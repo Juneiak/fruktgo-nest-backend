@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7  # Используем образ MongoDB 7
+    container_name: mongo_db
+    restart: always
+    ports:
+      - "27017:27017"  # Открываем порт 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_ALLOW_EMPTY_PASSWORD: "yes"
+    volumes:
+      - mongo_data:/data/db  # Сохраняем данные
+      - ./mongo-keyfile:/etc/mongo-keyfile:ro
+    command: ["mongod", "--replSet", "rs0", "--keyFile", "/etc/mongo-keyfile"]
+    healthcheck:
+      test: test $$(echo "rs.initiate()" | mongosh --quiet) -eq 0
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mongo_data:
