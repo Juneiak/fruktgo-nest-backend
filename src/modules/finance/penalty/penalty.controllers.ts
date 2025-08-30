@@ -29,7 +29,6 @@ export class PenaltyControllerForSeller {
   constructor(private readonly penaltyServiceForSeller: PenaltyServiceForSeller) {}
 
   @ApiOperation({summary: 'Получить штраф'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Get('/:penaltyId')
   getPenalty(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -39,7 +38,6 @@ export class PenaltyControllerForSeller {
   }
 
   @ApiOperation({summary: 'Получить штрафы'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Get('/')
   getPenalties(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -50,7 +48,6 @@ export class PenaltyControllerForSeller {
   }
 
   @ApiOperation({summary: 'Обжаловать штраф'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Patch('/:penaltyId')
   contestPenalty(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -73,7 +70,6 @@ export class PenaltyControllerForAdmin {
   constructor(private readonly penaltyServiceForAdmin: PenaltyServiceForAdmin) {}
 
   @ApiOperation({summary: 'Создать штраф'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Post('/')
   createPenalty(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -84,7 +80,6 @@ export class PenaltyControllerForAdmin {
 
 
   @ApiOperation({summary: 'Получить штрафы'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Get('/')
   getPenalties(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -95,7 +90,6 @@ export class PenaltyControllerForAdmin {
   }
 
   @ApiOperation({summary: 'Получить штраф'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Get('/:penaltyId')
   getPenalty(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -105,7 +99,6 @@ export class PenaltyControllerForAdmin {
   }
 
   @ApiOperation({summary: 'Обновить штраф'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Patch('/:penaltyId')
   updatePenalty(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -116,7 +109,6 @@ export class PenaltyControllerForAdmin {
   }
 
   @ApiOperation({summary: 'утвердить штраф'})
-  @ApiOkResponse({type: PenaltyResponseDto})
   @Patch('/:penaltyId/finalize-penalty')
   finalizePenalty(
     @GetUser() authedAdmin: AuthenticatedUser,

@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ValidationPipe } from '@nestjs/common';
+import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { MongooseExceptionFilter } from './common/filters/mongo-exception.filter';
 import * as express from 'express';
+import { Reflector } from '@nestjs/core';
 
 import { TelegramEmployeeBotService } from './modules/telegram/employee-bot/telegram-employee-bot.service';
 import { TelegramSellerBotService } from './modules/telegram/seller-bot/telegram-seller-bot.service';
@@ -15,7 +16,7 @@ async function bootstrap() {
 
   // Настройка CORS
   app.enableCors({
-    origin: ['http://localhost:3001', 'https://fruktoza.ru', 'https://seller.fruktoza.ru', 'https://admin.fruktoza.ru'],
+    origin: ['http://localhost:3001', 'https://fruktgo.ru', 'https://seller.fruktgo.ru', 'https://admin.fruktgo.ru'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     credentials: true,
   });

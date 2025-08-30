@@ -1,5 +1,5 @@
 {
-  "name": "fruktoza-backend",
+  "name": "fruktgo-backend",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -43,6 +43,7 @@
     "moment": "^2.30.1",
     "mongoose": "^8.10.1",
     "mongoose-lean-virtuals": "^1.1.0",
+    "mongoose-paginate-v2": "^1.9.1",
     "multer": "^1.4.5-lts.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -65,6 +66,7 @@
     "@swc/core": "^1.10.7",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
+    "@types/mongoose-paginate-v2": "^1.6.4",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.10.7",
     "@types/sharp": "^0.31.1",

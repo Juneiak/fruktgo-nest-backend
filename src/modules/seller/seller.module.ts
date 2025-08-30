@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 
-import { SellerForAdminService } from './for-admin/seller-for-admin.service';
-import { SellerForSellerService } from './for-seller/seller-for-seller.service';
-import { SellerForSellerController } from './for-seller/seller-for-seller.controller';
-import { SellerForAdminController } from './for-admin/seller-for-admin.controller';
-
+import { SellerAdminService } from './admin/seller.admin.service';
+import { SellerService } from './seller/seller.service';
+import { SellerController } from './seller/seller.controller';
+import { SellerAdminController } from './admin/seller.admin.controller';
+import { SellerSharedService } from './seller.shared.service';
 @Module({
   imports: [],
-  controllers: [SellerForSellerController, SellerForAdminController],
-  providers: [SellerForSellerService, SellerForAdminService],
-  exports: [SellerForSellerService],
+  controllers: [SellerController, SellerAdminController],
+  providers: [SellerService, SellerAdminService, SellerSharedService],
+  exports: [SellerSharedService],
 })
 export class SellerModule {}

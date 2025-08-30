@@ -37,7 +37,6 @@ export class ShopAccountControllerForSeller {
   constructor(private readonly shopAccountServiceForSeller: ShopAccountServiceForSeller) {}
 
   @ApiOperation({summary: 'Получить аккаунт магазина'})
-  @ApiOkResponse({type: ShopAccountResponseDto})
   @Get('/')
   getShopAccount(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -48,7 +47,6 @@ export class ShopAccountControllerForSeller {
 
 
   @ApiOperation({summary: 'Получить все периоды аккаунта магазина'})
-  @ApiOkResponse({type: SettlementPeriodResponseDto, isArray: true})
   @Get('/settlement-periods')
   getShopSettlementPeriods(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -61,7 +59,6 @@ export class ShopAccountControllerForSeller {
 
 
   @ApiOperation({summary: 'Получить список транзакций для данного периода'})
-  @ApiOkResponse({type: SettlementPeriodTransactionResponseDto, isArray: true})
   @Get('/settlement-periods/:settlementPeriodId/transactions')
   getSettlementPeriodTransactions(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -76,7 +73,6 @@ export class ShopAccountControllerForSeller {
   }
 
   @ApiOperation({summary: 'Получить транзакцию'})
-  @ApiOkResponse({type: SettlementPeriodTransactionResponseDto})
   @Get('/settlement-periods/:settlementPeriodId/transactions/:transactionId')
   getSettlementPeriodTransaction(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -100,7 +96,6 @@ export class ShopAccountControllerForAdmin {
   constructor(private readonly shopAccountServiceForAdmin: ShopAccountServiceForAdmin) {}
 
   @ApiOperation({summary: 'Получить аккаунт магазина'})
-  @ApiOkResponse({type: ShopAccountResponseDto})
   @Get('/')
   getShopAccount(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -110,7 +105,6 @@ export class ShopAccountControllerForAdmin {
   }
 
   @ApiOperation({summary: 'Обновить аккаунт магазина'})
-  @ApiOkResponse({type: ShopAccountResponseDto})
   @Patch('/')
   updateShopAccount(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -122,7 +116,6 @@ export class ShopAccountControllerForAdmin {
 
 
   @ApiOperation({summary: 'Получить периоды аккаунта магазина'})
-  @ApiOkResponse({type: SettlementPeriodResponseDto, isArray: true})
   @Get('/settlement-periods')
   getSettlementPeriods(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -135,7 +128,6 @@ export class ShopAccountControllerForAdmin {
 
 
   @ApiOperation({summary: 'Получить список транзакций для администратора'})
-  @ApiOkResponse({type: SettlementPeriodTransactionResponseDto, isArray: true})
   @Get('/settlement-periods/:settlementPeriodId/transactions')
   getTransactions(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -148,7 +140,6 @@ export class ShopAccountControllerForAdmin {
 
 
   @ApiOperation({summary: 'Создать корректировку баланса продавца'})
-  @ApiOkResponse({type: SettlementPeriodTransactionResponseDto})
   @Post('/settlement-periods/:settlementPeriodId/transactions')
   createCorrection(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -159,7 +150,6 @@ export class ShopAccountControllerForAdmin {
   }
 
   @ApiOperation({summary: 'Закрыть период'})
-  @ApiOkResponse({type: SettlementPeriodResponseDto})
   @Post('/settlement-periods/:settlementPeriodId/close')
   closeSettlementPeriod(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -170,7 +160,6 @@ export class ShopAccountControllerForAdmin {
 
 
   @ApiOperation({summary: 'Потвердить закрытие периода'})
-  @ApiOkResponse({type: SettlementPeriodResponseDto})
   @Post('/settlement-periods/:settlementPeriodId/approve')
   approveSettlementPeriod(
     @GetUser() authedAdmin: AuthenticatedUser,

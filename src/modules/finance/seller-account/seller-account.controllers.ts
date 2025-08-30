@@ -28,7 +28,6 @@ export class SellerAccountControllerForSeller {
   constructor(private readonly sellerAccountServiceForSeller: SellerAccountServiceForSeller) {}
 
   @ApiOperation({summary: 'Получить аккаунт продовца'})
-  @ApiOkResponse({type: SellerAccountResponseDto})
   @Get('/')
   getSellerAccount(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -38,7 +37,6 @@ export class SellerAccountControllerForSeller {
 
 
   @ApiOperation({summary: 'Обновить банковские реквизиты'})
-  @ApiOkResponse({type: SellerAccountResponseDto})
   @Patch('/')
   updateBankDetails(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -49,7 +47,6 @@ export class SellerAccountControllerForSeller {
 
 
   @ApiOperation({summary: 'создать запрос на вывод средств'})
-  @ApiOkResponse({type: WithdrawalRequestResponseDto})
   @Post('/withdrawal-request')
   createWithdrawalRequest(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -60,7 +57,6 @@ export class SellerAccountControllerForSeller {
 
 
   @ApiOperation({summary: 'Получить все запросы на вывод средств'})
-  @ApiOkResponse({type: WithdrawalRequestResponseDto, isArray: true})
   @Get('/withdrawal-requests')
   getWithdrawalRequests(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -72,7 +68,6 @@ export class SellerAccountControllerForSeller {
   
 
   @ApiOperation({summary: 'Получить запрос на вывод средств'})
-  @ApiOkResponse({type: WithdrawalRequestResponseDto})
   @Get('/withdrawal-requests/:withdrawalRequestId')
   getWithdrawalRequest(
     @GetUser() authedSeller: AuthenticatedUser,
@@ -94,7 +89,6 @@ export class SellerAccountControllerForAdmin {
   constructor(private readonly sellerAccountServiceForAdmin: SellerAccountServiceForAdmin) {}
 
   @ApiOperation({summary: 'Получить аккаунт продовца'})
-  @ApiOkResponse({type: SellerAccountResponseDto})
   @Get('/')
   getSellerAccount(
     @GetUser() authedAdmin: AuthenticatedUser,

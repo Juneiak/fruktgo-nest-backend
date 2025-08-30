@@ -1,6 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
+import { PaginateModel } from 'mongoose';
 
 export enum LogLevel {
   LOW = 'low',
@@ -10,269 +12,70 @@ export enum LogLevel {
   SERVICE = 'service',
 }
 
-
+export enum LogEntityType {
+  CUSTOMER = 'Customer',
+  EMPLOYEE = 'Employee', 
+  ORDER = 'Order',
+  PRODUCT = 'Product',
+  SELLER = 'Seller',
+  SHIFT = 'Shift',
+  SHOP_PRODUCT = 'ShopProduct',
+  SHOP = 'Shop',
+  SHOP_ACCOUNT = 'ShopAccount',
+  SELLER_ACCOUNT = 'SellerAccount',
+}
 // ====================================================
-// CUSTOMER LOG 
+// УНИВЕРСАЛЬНАЯ СХЕМА ДЛЯ ВСЕХ ЛОГОВ
 // ====================================================
 @Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
   timestamps: true,
+  discriminatorKey: 'entityType',
 })
-export class CustomerLog extends Document {
-
-  _id: Types.ObjectId;
-  id: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'Customer', required: true })
-  customer: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-
-export const CustomerLogSchema = SchemaFactory.createForClass(CustomerLog);
-CustomerLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-
-// ====================================================
-// EMPLOYEE LOG 
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class EmployeeLog extends Document {
-  _id: Types.ObjectId;
-  id: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'Employee', required: true })
-  employee: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-
-export const EmployeeLogSchema = SchemaFactory.createForClass(EmployeeLog);
-EmployeeLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-
-// ====================================================
-// ORDER LOG 
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class OrderLog extends Document {
-  _id: Types.ObjectId;
-  id: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'Order', required: true })
-  order: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-
-export const OrderLogSchema = SchemaFactory.createForClass(OrderLog);
-OrderLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-// ====================================================
-// PRODUCT LOG 
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class ProductLog extends Document {
-
-  _id: Types.ObjectId;
-  id: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
-  product: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-export const ProductLogSchema = SchemaFactory.createForClass(ProductLog);
-ProductLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-
-// ====================================================
-// SELLER LOG 
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class SellerLog extends Document {
-  
-  _id: Types.ObjectId;
-  id: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'Seller', required: true })
-  seller: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-export const SellerLogSchema = SchemaFactory.createForClass(SellerLog);
-SellerLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-
-// ====================================================
-// SHIFT LOG 
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class ShiftLog extends Document {
-
-  _id: Types.ObjectId;
-  id: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'Shift', required: true })
-  shift: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-export const ShiftLogSchema = SchemaFactory.createForClass(ShiftLog);
-ShiftLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-
-// ====================================================
-// SHOP PRODUCT LOG 
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class ShopProductLog extends Document {
-  
-  _id: Types.ObjectId;
-  id: string;
-
-  @Prop({ type: Types.ObjectId, ref: 'ShopProduct', required: true })
-  shopProduct: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-export const ShopProductLogSchema = SchemaFactory.createForClass(ShopProductLog);
-ShopProductLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-
-// ====================================================
-// SHOP LOG 
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class ShopLog extends Document {
-  
+export class BaseLog {
   _id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Shop', required: true })
-  shop: Types.ObjectId;
+  @Prop({ type: String, enum: Object.values(LogEntityType), required: true })
+  entityType: LogEntityType;
 
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
+  @Prop({ type: Types.ObjectId, required: true, refPath: 'entityType' })
+  entityId: Types.ObjectId;
+
+  @Prop({ type: String, enum: Object.values(LogLevel), default: LogLevel.LOW, required: true })
   logLevel: LogLevel;
 
-  @Prop({ type: String, required: true }) 
+  @Prop({ type: String, required: true })
   text: string;
+
+  // Виртуальные свойства для обратной совместимости
+  readonly logId?: string;
 }
-export const ShopLogSchema = SchemaFactory.createForClass(ShopLog);
-ShopLogSchema.plugin(mongooseLeanVirtuals as any);
 
+export const BaseLogSchema = SchemaFactory.createForClass(BaseLog);
+BaseLogSchema.plugin(mongooseLeanVirtuals as any);
+BaseLogSchema.plugin(mongoosePaginate);
 
+// Виртуальное поле для ID
+BaseLogSchema.virtual('logId').get(function (this: BaseLog) {
+  return this._id.toString();
+});
 
-// ====================================================
-// SHOP ACCOUNT LOG
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class ShopAccountLog extends Document {
-  
-  _id: Types.ObjectId;
+// Индексы для производительности
+BaseLogSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
+BaseLogSchema.index({ logLevel: 1, createdAt: -1 });
 
-  @Prop({ type: Types.ObjectId, ref: 'ShopAccount', required: true })
-  shopAccount: Types.ObjectId;
+export type BaseLogDocument = BaseLog & Document;
+export type LogModel = PaginateModel<BaseLogDocument>;
 
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-export const ShopAccountLogSchema = SchemaFactory.createForClass(ShopAccountLog);
-ShopAccountLogSchema.plugin(mongooseLeanVirtuals as any);
-
-
-
-// ====================================================
-// SELLER ACCOUNT LOG
-// ====================================================
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-})
-export class SellerAccountLog extends Document {
-  
-  _id: Types.ObjectId;
-
-  @Prop({ type: Types.ObjectId, ref: 'SellerAccount', required: true })
-  sellerAccount: Types.ObjectId;
-
-  @Prop({ type: String, enum: LogLevel, default: LogLevel.LOW, required: true })
-  logLevel: LogLevel;
-
-  @Prop({ type: String, required: true }) 
-  text: string;
-}
-export const SellerAccountLogSchema = SchemaFactory.createForClass(SellerAccountLog);
-SellerAccountLogSchema.plugin(mongooseLeanVirtuals as any);
-
+// Типы для обратной совместимости
+export type CustomerLog = BaseLog & { entityType: LogEntityType.CUSTOMER };
+export type EmployeeLog = BaseLog & { entityType: LogEntityType.EMPLOYEE };
+export type OrderLog = BaseLog & { entityType: LogEntityType.ORDER };
+export type ProductLog = BaseLog & { entityType: LogEntityType.PRODUCT };
+export type SellerLog = BaseLog & { entityType: LogEntityType.SELLER };
+export type ShiftLog = BaseLog & { entityType: LogEntityType.SHIFT };
+export type ShopProductLog = BaseLog & { entityType: LogEntityType.SHOP_PRODUCT };
+export type ShopLog = BaseLog & { entityType: LogEntityType.SHOP };
+export type ShopAccountLog = BaseLog & { entityType: LogEntityType.SHOP_ACCOUNT };
+export type SellerAccountLog = BaseLog & { entityType: LogEntityType.SELLER_ACCOUNT };

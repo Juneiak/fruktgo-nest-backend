@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 import { SellerAuthService } from 'src/modules/auth/seller-auth/seller-auth.service';
 import { INestApplication } from '@nestjs/common';
 import { RegisterSellerDto } from 'src/modules/auth/seller-auth/seller-auth.dtos';
-import { SellerForSellerService } from 'src/modules/seller/for-seller/seller-for-seller.service';
+import { SellerSharedService } from 'src/modules/seller/seller.shared.service';
 import {
   SELLER_BOT_LOGIN_TO_SELLER_DASHBOARD_PREFIX, SELLER_BOT_LOGIN_TO_SHOP_PREFIX} from 'src/common/constants';
 import { Seller } from 'src/modules/seller/seller.schema';
@@ -18,7 +18,7 @@ import { TelegramNotificationResponseDto } from 'src/common/dtos';
 import { Shift } from 'src/modules/shop/schemas/shift.schema';
 import { formatIssueMessage, formatShiftMessage } from './utils';
 import { message } from 'telegraf/filters';
-
+     
 enum MENU_BUTTONS {
   main = '🏠 Главное меню',
   support = 'ℹ️ Поддержка',
@@ -60,7 +60,7 @@ export class TelegramSellerBotService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly sellerAuthService: SellerAuthService,
-    private readonly sellerForSellerService: SellerForSellerService,
+    private readonly sellerSharedService: SellerSharedService,
     private readonly shopForSellerService: ShopForSellerService,
     private readonly supportService: SupportService
   ) {
@@ -237,11 +237,11 @@ export class TelegramSellerBotService implements OnModuleInit {
   private async checkSellerExists(ctx: Context, next: (ctx: SellerContext) => Promise<void>) {
     const telegramId = ctx.from?.id;
     if (!telegramId) return await ctx.reply('Ошибка: не найден Telegram ID пользователя.');
-    const seller = await this.sellerForSellerService.getSellerByTelegramId(telegramId);
+    const seller = await this.sellerSharedService.getSellerByTelegramId(telegramId);
     if (!seller) {
       await ctx.replyWithMarkdown(
 `
-*Продавайте больше с Fruktoza!*  
+*Продавайте больше с Fruktgo!*  
 Маркетплейс для фруктовых лавок, которым доверяют.
 
 🍊 120+ продавцов уже с нами — от частных лавок до сетей
@@ -257,7 +257,7 @@ _По данным действующих продавцов на платфор
 📱 Удобное управление: Telegram + личный кабинет
 🔒 Без скрытых комиссий и с полной поддержкой
 
-⏳ *Каждый день без Fruktoza — это недополученные клиенты*
+⏳ *Каждый день без Fruktgo — это недополученные клиенты*
 
 👉 Нажмите «📲 Зарегистрироваться» и подключите свой магазин за 5 минут
 `,
@@ -390,7 +390,7 @@ _По данным действующих продавцов на платфор
   private async handleShopSelectToLogin(ctx: SellerContext, code: string) {
     const telegramId = (ctx.state.seller!.telegramId);
     
-    const shops = await this.sellerForSellerService.getSellerShopsByTelegramId(telegramId);
+    const shops = await this.sellerSharedService.getSellerShopsByTelegramId(telegramId);
     if (!shops || shops.length === 0) return await ctx.reply('❌ У вас нет доступных магазинов.', Markup.keyboard([[MENU_BUTTONS.main],]).resize());
     
     this.tempShopLoginCodes.set(telegramId, { code });
@@ -496,7 +496,7 @@ _По данным действующих продавцов на платфор
   private async getSellerShopsList(ctx: SellerContext) {
     const telegramId = (ctx.state.seller!.telegramId);
     try {
-      const shops = await this.sellerForSellerService.getSellerShopsByTelegramId(telegramId);
+      const shops = await this.sellerSharedService.getSellerShopsByTelegramId(telegramId);
       if (!shops || shops.length === 0) return await ctx.reply('❌ У вас нет доступных магазинов.');
 
       await ctx.reply('Выберите магазин:', Markup.keyboard(

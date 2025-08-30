@@ -1,13 +1,14 @@
 import { Module } from "@nestjs/common";
-import { ProductForSellerService } from "./for-seller/product-for-seller.service";
-import { ProductForSellerController } from "./for-seller/product-for-seller.controller";
-import { ProductForAdminService } from "./for-admin/product-for-admin.service";
-import { ProductForAdminController } from "./for-admin/product-for-admin.controller";
+import { ProductSellerController } from "./seller/product.seller.controller";
+import { ProductSellerService } from "./seller/product.seller.service";
+import { ProductAdminController } from "./admin/product.admin.controller";
+import { ProductAdminService } from "./admin/product.admin.service";
+import { ProductSharedService } from "./product.shared.service";
 
 @Module({
   imports: [],
-  controllers: [ProductForSellerController, ProductForAdminController],
-  providers: [ProductForSellerService, ProductForAdminService],
-  exports: [],
+  controllers: [ProductSellerController, ProductAdminController],
+  providers: [ProductSellerService, ProductAdminService, ProductSharedService],
+  exports: [ProductSharedService],
 })
 export class ProductModule {}

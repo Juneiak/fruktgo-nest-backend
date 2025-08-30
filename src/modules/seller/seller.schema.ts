@@ -1,22 +1,19 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, SchemaTypes, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus } from 'src/common/types';
-import { LogLevel } from "src/common/modules/logs/logs.schemas";
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { RequestToEmployee } from 'src/modules/employee/schemas/request-to-employee.schema'
-import { SellerLog } from 'src/common/modules/logs/logs.schemas';
 
-
+  
 @Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
   timestamps: true,
   id: false,
 })
-export class Seller extends Document {
-
+export class Seller {
   _id: Types.ObjectId;
-  sellerId: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -48,7 +45,7 @@ export class Seller extends Document {
   @Prop({ type: String, required: false, default: null })
   inn?: string | null;
 
-  @Prop({ type: String, format: 'email', required: false, default: null })
+  @Prop({ type: String, required: false, default: null })
   email?: string | null;
 
   @Prop({ type: Boolean, default: false, required: true })
@@ -63,7 +60,7 @@ export class Seller extends Document {
   @Prop({ type: Number, min: 0, default: 0, required: true })
   totalOrders: number;
 
-  @Prop({ type: Date, nullable: true })
+  @Prop({ type: Date, default: null })
   lastLoginAt?: Date | null;
 
   @Prop({ type: Number, min: 0, default: 0, required: true })
@@ -75,23 +72,23 @@ export class Seller extends Document {
   @Prop({ type: Number, min: 0, default: 0, required: true })
   productsCount: number;
 
-  @Prop({ type: String, nullable: true, select: false })
+  @Prop({ type: String, default: null })
   internalNote?: string | null;
 
   @Prop({ type: [Types.ObjectId], ref: 'Shop', default: [] })
   shops?: Types.ObjectId[];
 
-  products?: any[];
-
-  employees?: any[];
-
-  logs?: any[];
-
-  requestsToEmployees?: RequestToEmployee[];
+  // virtuals (TS-объявления)
+  readonly sellerId: string;
+  readonly logs?: any[];
+  readonly products?: any[];
+  readonly employees?: any[];
+  readonly requestsToEmployees?: RequestToEmployee[];
 }
 
 export const SellerSchema = SchemaFactory.createForClass(Seller);
 SellerSchema.plugin(mongooseLeanVirtuals as any);
+SellerSchema.plugin(mongoosePaginate);
 
 SellerSchema.virtual('sellerId').get(function (this: Seller): string {
   return this._id.toString();
@@ -118,10 +115,5 @@ SellerSchema.virtual('employees', {
   justOne: false
 });
 
-
-SellerSchema.virtual('logs', {
-  ref: 'SellerLog',
-  localField: '_id',
-  foreignField: 'seller',
-  justOne: false
-});
+export type SellerDocument = HydratedDocument<Seller>;
+export type SellerModel = PaginateModel<SellerDocument>;

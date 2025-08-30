@@ -54,3 +54,4 @@ export class PaginatedResponseDto<T> {
   @Type(() => PaginationMetaDto)
   pagination: PaginationMetaDto;
 }
+

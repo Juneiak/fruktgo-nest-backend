@@ -1,7 +1,9 @@
-import { Model, Types } from 'mongoose';
+import { Model, PaginateResult, Types } from 'mongoose';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { VerifiedStatus } from 'src/common/types';
 import * as crypto from 'crypto';
+import { PaginatedResponseDto } from '../dtos';
+import { ClassConstructor, plainToInstance } from 'class-transformer';
 
 export function checkIsBlocked<T extends { isBlocked?: boolean }>(user: T): void {
   // if (user.isBlocked) throw new ForbiddenException('Пользователь заблокирован');
@@ -69,3 +71,21 @@ export function generateAuthCode(): string {
   // 4 случайные цифры с ведущими нулями
   return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
 }
+
+
+export const transformPaginatedResult = <T, D>(
+  result: PaginateResult<T>,
+  dtoClass: ClassConstructor<D>
+): PaginatedResponseDto<D> => {
+  return {
+    items: plainToInstance(dtoClass, result.docs, {
+      excludeExtraneousValues: true,
+    }),
+    pagination: {
+      totalItems: result.totalDocs,
+      totalPages: result.totalPages,
+      currentPage: result.page || 1,
+      pageSize: result.limit || 10,
+    }
+  }
+};

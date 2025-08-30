@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Seller } from 'src/modules/seller/seller.schema';
-import { ProductLog } from 'src/common/modules/logs/logs.schemas';
 
 export enum ProductCategory {
   FRUITS='fruits',
@@ -28,30 +28,20 @@ export enum ProductStepRate {
   STEP_10 = '10'
 }
 
-
-@Schema({
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-  timestamps: true,
-  id: false,
-})
-export class Product extends Document {
-
+@Schema({ toJSON: { virtuals: true }, toObject: { virtuals: true }, timestamps: true, id: false })
+export class Product {
   _id: Types.ObjectId;
-  productId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  
-  @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false })
+
+  @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false, default: null })
   cardImage?: Types.ObjectId | null;
 
-  @Prop({ type: String, nullable: true })
+  @Prop({ type: String, required: false, default: null })
   productArticle?: string | null;
 
   @Prop({ type: String, required: true })
   productName: string;
 
-  @Prop({ type: String, enum: ProductCategory, required: true })
+  @Prop({ type: String, enum: Object.values(ProductCategory), required: true })
   category: ProductCategory;
 
   @Prop({ type: Number, min: 0, required: true, default: 0 })
@@ -60,16 +50,16 @@ export class Product extends Document {
   @Prop({ type: Number, min: 1, required: true })
   price: number;
 
-  @Prop({ type: String, enum: ProductMeasuringScale, required: true })
+  @Prop({ type: String, enum: Object.values(ProductMeasuringScale), required: true })
   measuringScale: ProductMeasuringScale;
 
-  @Prop({ type: String, enum: ProductStepRate, required: true })
+  @Prop({ type: String, enum: Object.values(ProductStepRate), required: true })
   stepRate: ProductStepRate;
 
-  @Prop({ type: String, nullable: true })
+  @Prop({ type: String, required: false, default: null })
   aboutProduct?: string | null;
 
-  @Prop({ type: String, nullable: true })
+  @Prop({ type: String, required: false, default: null })
   origin?: string | null;
 
   @Prop({ type: Number, min: 0, required: true, default: 0 })
@@ -81,18 +71,19 @@ export class Product extends Document {
   @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalLast7daysWriteOff: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'Seller', required: true })
-  owner: Types.ObjectId | Seller;
+  @Prop({ type: Types.ObjectId, ref: Seller.name, required: true })
+  owner: Types.ObjectId;
 
-  shopProducts: any[];
-
-  logs: ProductLog[] | any[];
+  // virtuals (TS-объявления)
+  readonly productId: string;
+  readonly shopProducts: any[];
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
 ProductSchema.plugin(mongooseLeanVirtuals as any);
+ProductSchema.plugin(mongoosePaginate);
 
-ProductSchema.virtual('productId').get(function (this: Product): string {
+ProductSchema.virtual('productId').get(function (this: Product) {
   return this._id.toString();
 });
 
@@ -100,13 +91,10 @@ ProductSchema.virtual('shopProducts', {
   ref: 'ShopProduct',
   localField: '_id',
   foreignField: 'product',
-  justOne: false
-});
-ProductSchema.virtual('logs', {
-  ref: 'ProductLog',
-  localField: '_id',
-  foreignField: 'product',
-  justOne: false
+  justOne: false,
 });
 
+ProductSchema.index({ owner: 1, createdAt: -1 });
 
+export type ProductDocument = HydratedDocument<Product>;
+export type ProductModel = PaginateModel<ProductDocument>;

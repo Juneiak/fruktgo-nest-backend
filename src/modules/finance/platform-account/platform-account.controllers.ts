@@ -22,7 +22,6 @@ export class PlatformAccountControllerForAdmin {
   constructor(private readonly platformAccountServiceForAdmin: PlatformAccountServiceForAdmin) {}
 
   @ApiOperation({summary: 'Получить аккаунт платформы'})
-  @ApiOkResponse({type: PlatformAccountResponseDto})
   @Get('/')
   getPlatformAccount(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -31,7 +30,6 @@ export class PlatformAccountControllerForAdmin {
   }
 
   @ApiOperation({summary: 'Получить транзакции платформенного счета'})
-  @ApiOkResponse({type: PlatformAccountTransactionResponseDto, isArray: true})
   @Get('/transactions')
   getPlatformAccountTransactions(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -41,7 +39,6 @@ export class PlatformAccountControllerForAdmin {
   }
 
   @ApiOperation({summary: 'Получить транзакции платформенного счета'})
-  @ApiOkResponse({type: PlatformAccountTransactionResponseDto})
   @Get('/transactions/:platformAccountTransactionId')
   getPlatformAccountTransaction(
     @GetUser() authedAdmin: AuthenticatedUser,
@@ -51,7 +48,6 @@ export class PlatformAccountControllerForAdmin {
   }
 
   @ApiOperation({summary: 'Создать корректировку баланса продавца'})
-  @ApiOkResponse({type: PlatformAccountTransactionResponseDto})
   @Post('/transactions')
   createCorrection(
     @GetUser() authedAdmin: AuthenticatedUser,
