@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { SellerAccountControllerForAdmin, SellerAccountControllerForSeller } from './seller-account.controllers';
 import { SellerAccountService } from './seller-account.service';
 import { SellerAccountSchema } from './schemas/seller-account.schema';
 import { WithdrawalRequestSchema } from './schemas/withdrawal-request.schema';
-import { SellerAccountPublicService } from './seller-account.public.service';
-import { SellerAccountServiceForSeller, SellerAccountServiceForAdmin } from './seller-account.role-services';
+import { SellerAccountSellerController } from './seller/seller-account.seller.controller';
+import { SellerAccountAdminController } from './admin/seller-account.admin.controller';
+import { SellerAccountSellerService } from './seller/seller-account.seller.service';
+import { SellerAccountAdminService } from './admin/seller-account.admin.service';
+import { SellerAccountSharedService } from './shared/seller-account.shared.service';
 
 @Module({
   imports: [
@@ -14,13 +16,13 @@ import { SellerAccountServiceForSeller, SellerAccountServiceForAdmin } from './s
       { name: 'WithdrawalRequest', schema: WithdrawalRequestSchema }
     ])
   ],
-  controllers: [SellerAccountControllerForSeller, SellerAccountControllerForAdmin],
+  controllers: [SellerAccountSellerController, SellerAccountAdminController],
   providers: [
     SellerAccountService,
-    SellerAccountServiceForSeller,
-    SellerAccountServiceForAdmin,
-    SellerAccountPublicService
+    SellerAccountSellerService,
+    SellerAccountAdminService,
+    SellerAccountSharedService
   ],
-  exports: [SellerAccountPublicService]
+  exports: [SellerAccountSharedService]
 })
 export class SellerAccountModule {}

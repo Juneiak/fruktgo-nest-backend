@@ -31,8 +31,6 @@ interface CartProduct {
   selectedQuantity: number;
 };
 
-
-
 @Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true },

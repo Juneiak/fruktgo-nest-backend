@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus, UserSex } from 'src/common/types';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { Shop } from 'src/modules/shop/schemas/shop.schema';
 import { RequestToEmployee } from './request-to-employee.schema';
-import { EmployeeLog } from 'src/common/modules/logs/logs.schemas';
 import { Shift } from 'src/modules/shop/schemas/shift.schema';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 
 export enum EmployeeStatus {
   WORKING='working',
@@ -20,17 +20,18 @@ export enum EmployeeStatus {
   timestamps: true,
   id: false,
 })
-export class Employee extends Document {
+export class Employee {
 
   _id: Types.ObjectId;
-  employeeId: string;
+  // virtuals (TS-объявления)
+  readonly employeeId: string;
   createdAt: Date;
   updatedAt: Date;
 
   @Prop({ type: Boolean, required: true, default: false })
   isBlocked: boolean;
 
-  @Prop({ type: String, enum: VerifiedStatus, default: VerifiedStatus.IS_CHECKING, required: true })
+  @Prop({ type: String, enum: Object.values(VerifiedStatus), default: VerifiedStatus.IS_CHECKING, required: true })
   verifiedStatus: VerifiedStatus;
 
   @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false, default: null })
@@ -54,10 +55,10 @@ export class Employee extends Document {
   @Prop({ type: String, required: false, default: null })
   telegramLastName?: string;
 
-  @Prop({ type: String, enum: UserSex, default: UserSex.NOT_SPECIFIED })
+  @Prop({ type: String, enum: Object.values(UserSex), default: UserSex.NOT_SPECIFIED })
   sex?: UserSex
 
-  @Prop({ type: String, enum: EmployeeStatus, default: EmployeeStatus.NOT_PINNED })
+  @Prop({ type: String, enum: Object.values(EmployeeStatus), default: EmployeeStatus.NOT_PINNED })
   status: EmployeeStatus;
 
   @Prop({ type: Date, required: false, default: null })
@@ -93,15 +94,14 @@ export class Employee extends Document {
   @Prop({ type: Types.ObjectId, ref: 'Seller', required: false, default: null })
   employer: Types.ObjectId | Seller | null;
 
-  requestsFromSellers: RequestToEmployee[];
-
-  openedShifts: Shift[];
-
-  logs: EmployeeLog[] | any[];
+  // virtuals (TS-объявления)
+  readonly requestsFromSellers?: RequestToEmployee[];
+  readonly openedShifts?: Shift[];
 }
 
 export const EmployeeSchema = SchemaFactory.createForClass(Employee);
 EmployeeSchema.plugin(mongooseLeanVirtuals as any);
+EmployeeSchema.plugin(mongoosePaginate);
 
 EmployeeSchema.virtual('employeeId').get(function (this: Employee): string {
   return this._id.toString();
@@ -121,9 +121,5 @@ EmployeeSchema.virtual('openedShifts', {
   justOne: false
 });
 
-EmployeeSchema.virtual('logs', {
-  ref: 'EmployeeLog',
-  localField: '_id',
-  foreignField: 'employee',
-  justOne: false
-});
+export type EmployeeDocument = HydratedDocument<Employee>;
+export type EmployeeModel = PaginateModel<EmployeeDocument>;

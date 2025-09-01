@@ -1,23 +1,29 @@
 import { Module } from '@nestjs/common';
-import { EmployeeForSellerController } from './for-seller/employee-for-seller.controller';
-import { EmployeeForSellerService } from './for-seller/employee-for-seller.service';
-import { EmployeeForAdminService } from './for-admin/employee-for-admin.service';
-import { EmployeeForAdminController } from './for-admin/employee-for-admin.controller';
-import { EmployeeForEmployeeService } from './for-employee/employee-for-employee.service';
+import { EmployeeSellerController } from './seller/employee.seller.controller';
+import { EmployeeSellerService } from './seller/employee.seller.service';
+import { EmployeeAdminController } from './admin/employee.admin.controller';
+import { EmployeeAdminService } from './admin/employee.admin.service';
+import { EmployeeController } from './employee/employee.controller';
+import { EmployeeService } from './employee/employee.service';
 import { forwardRef } from '@nestjs/common';
 import { NotificationModule } from '../notification/notification.module';
-
+import { EmployeeSharedService } from './shared/employee.shared.service';
 
 @Module({
   imports: [
     forwardRef(() => NotificationModule)
   ],
-  controllers: [EmployeeForSellerController, EmployeeForAdminController],
-  providers: [
-    EmployeeForSellerService,
-    EmployeeForAdminService,
-    EmployeeForEmployeeService
+  controllers: [
+    EmployeeSellerController,
+    EmployeeAdminController,
+    EmployeeController
   ],
-  exports: [EmployeeForEmployeeService, EmployeeForSellerService],
+  providers: [
+    EmployeeSellerService,
+    EmployeeAdminService,
+    EmployeeService,
+    EmployeeSharedService
+  ],
+  exports: [EmployeeSharedService],
 })
 export class EmployeeModule {}

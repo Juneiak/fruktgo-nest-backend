@@ -6,9 +6,9 @@ import { EmployeeAuthService } from 'src/modules/auth/employee-auth/employee-aut
 import { RegisterEmployeeDto } from 'src/modules/auth/employee-auth/employee-auth.dtos';
 import { INestApplication } from '@nestjs/common';
 import { message } from 'telegraf/filters';
-import { EmployeeForEmployeeService } from 'src/modules/employee/for-employee/employee-for-employee.service';
+import { EmployeeService } from 'src/modules/employee/employee/employee.service';
 import { formatEmployeeInfoMessage, formatEmployeeAvatar, formatNewOrderMessage } from './utils';
-import { EmployeeForEmployeeTelegramBotResponseDto } from 'src/modules/employee/for-employee/employee-for-employee.dtos';
+import { EmployeeForEmployeeTelegramBotResponseDto } from 'src/modules/employee/employee/employee.response.dto';
 import { EMPLOYEE_BOT_LOGIN_TO_SHOP_PREFIX } from 'src/common/constants';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
 import { Order } from 'src/modules/order/order.schema';

@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { PlatformAccountControllerForAdmin } from './platform-account.controllers';
+import { PlatformAccountAdminController } from './admin/platform-account.admin.controller';
 import { PlatformAccountService } from './platform-account.service';
 import { PlatformAccountSchema } from './schemas/platform-account.schema';
-import { PlatformAccountPublicService } from './platform-account.public.service';
-import { PlatformAccountServiceForAdmin } from './platform-account.role-services';
+import { PlatformAccountSharedService } from './shared/platform-account.shared.service';
+import { PlatformAccountAdminService } from './admin/platform-account.admin.service';
 
 @Module({
   imports: [
@@ -12,12 +12,12 @@ import { PlatformAccountServiceForAdmin } from './platform-account.role-services
       { name: 'PlatformAccount', schema: PlatformAccountSchema },
     ])
   ],
-  controllers: [PlatformAccountControllerForAdmin],
+  controllers: [PlatformAccountAdminController],
   providers: [
     PlatformAccountService,
-    PlatformAccountServiceForAdmin,
-    PlatformAccountPublicService
+    PlatformAccountAdminService,
+    PlatformAccountSharedService
   ],
-  exports: [PlatformAccountPublicService]
+  exports: [PlatformAccountSharedService]
 })
 export class PlatformAccountModule {}

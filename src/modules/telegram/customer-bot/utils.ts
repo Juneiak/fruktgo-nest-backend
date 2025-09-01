@@ -1,4 +1,4 @@
-import { CustomerPreviewForTelegramBotResponseDto } from "src/modules/customer/for-customer/customer-for-customer.dtos";
+import { CustomerPreviewForTelegramBotResponseDto } from "src/modules/customer/customer/customer.request.dto";
 import { IssueStatusText } from "src/modules/support/issue.schema";
 import * as moment from 'moment';
 import { Order } from 'src/modules/order/order.schema';

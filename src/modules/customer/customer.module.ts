@@ -1,19 +1,19 @@
 import { Module, forwardRef } from '@nestjs/common';
 
-import { CustomerForCustomerService } from './for-customer/customer-for-customer.service';
-import { CustomerForCustomerController } from './for-customer/customer-for-customer.controller';
-import { CartForCustomerService } from './for-customer/cart-for-customer.service';
-import { CartForCustomerController } from './for-customer/cart-for-customer.controller';
-import { CustomerForAdminController } from './for-admin/customer-for-admin.controller';
-import { CustomerForAdminService } from './for-admin/customer-for-admin.service';
+import { CustomerService } from './customer/customer.service';
+import { CustomerController } from './customer/customer.controller';
+import { CartCustomerService } from './customer/cart.customer.service';
+import { CartCustomerController } from './customer/cart.customer.controller';
+import { CustomerAdminController } from './admin/customer.admin.controller';
+import { CustomerAdminService } from './admin/customer.admin.service';
 import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
     forwardRef(() => NotificationModule),
   ],
-  controllers: [CustomerForCustomerController, CartForCustomerController, CustomerForAdminController],
-  providers: [CustomerForCustomerService, CartForCustomerService, CustomerForAdminService],
-  exports: [CustomerForCustomerService, CartForCustomerService],
+  controllers: [CustomerController, CartCustomerController, CustomerAdminController],
+  providers: [CustomerService, CartCustomerService, CustomerAdminService],
+  exports: [CustomerService, CartCustomerService],
 })
 export class CustomerModule {}

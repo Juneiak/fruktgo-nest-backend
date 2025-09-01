@@ -25,7 +25,7 @@ import { Product } from 'src/modules/product/product.schema';
 import { MessageResponseDto } from 'src/common/dtos';
 import {checkId} from 'src/common/utils';
 import { Shift } from '../schemas/shift.schema';
-import { EmployeeForSellerResponseDto } from 'src/modules/employee/for-seller/employee-for-seller.dtos'
+import { EmployeeForSellerResponseDto } from 'src/modules/employee/seller/employee.seller.response.dtos'
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
 import { AuthenticatedUser, UserType } from 'src/common/types';

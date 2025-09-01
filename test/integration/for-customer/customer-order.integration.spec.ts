@@ -6,7 +6,7 @@ import { Model, Types, Document } from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
 
 import { OrdersForCustomerService } from "src/modules/orders/for-customer/orders-for-customer.service";
-import { CartForCustomerService } from "src/modules/customer/for-customer/cart-for-customer.service";
+import { CartForCustomerService } from "src/modules/customer/customer/cart.customer.service";
 import { OrdersCommonService } from "src/modules/orders/orders-common.service";
 import { Customer, CustomerSchema } from "src/modules/customer/schemas/customer.schema";
 import { Cart, CartSchema } from "src/modules/customer/schemas/cart.schema";

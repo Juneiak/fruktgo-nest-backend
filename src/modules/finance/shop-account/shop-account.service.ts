@@ -7,7 +7,8 @@ import { ShopAccount, AccountStatus } from './schemas/shop-account.schema';
 import { Shop } from 'src/modules/shop/schemas/shop.schema';
 import { checkId } from 'src/common/utils';
 import { PaginationMetaDto, PaginationQueryDto } from 'src/common/dtos';
-import {CreateSettlementPeriodTransactionDto, SettlementPeriodFilterQueryDto, SettlementPeriodTransactionFilterQueryDto, UpdateSettlementPeriodTransactionDto } from './shop-account.request.dtos';
+import { SettlementPeriodFilterQueryDto, SettlementPeriodTransactionFilterQueryDto } from './admin/shop-account.admin.request.dto';
+import { CreateSettlementPeriodTransactionDto, UpdateSettlementPeriodTransactionDto } from './shared/shop-account.shared.request.dto';
 
 export type SettlementPeriodManualUpdateFields = {
   internalComment?: string;

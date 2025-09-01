@@ -18,7 +18,7 @@ import {
 import { checkId, verifyUserStatus,  } from "src/common/utils";
 import { Order, OrderProduct } from '../order.schema';
 import { Product } from "src/modules/product/product.schema";
-import { CartForCustomerService } from 'src/modules/customer/for-customer/cart-for-customer.service';
+import { CartForCustomerService } from 'src/modules/customer/customer/cart.customer.service';
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import {OrderStatus} from 'src/modules/order/order.schema'

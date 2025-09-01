@@ -1,8 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus, UserSex } from 'src/common/types/index';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { Cart } from './cart.schema';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { CustomerLog } from 'src/common/modules/logs/logs.schemas';
 
 export const AddressSchema = {
@@ -15,7 +16,6 @@ export const AddressSchema = {
   latitude: { type: Number, default: null },
   longitude: { type: Number, default: null },
 };
-
 interface Address {
   city: string;
   street: string;
@@ -37,10 +37,10 @@ interface Address {
   timestamps: true,
   id: false,
 })
-export class Customer extends Document {
-
+export class Customer {
   _id: Types.ObjectId;
-  customerId: string;
+  
+  readonly customerId: string;
   createdAt: Date;
   updatedAt: Date;
 
@@ -65,13 +65,13 @@ export class Customer extends Document {
   @Prop({ type: Boolean, default: false, required: true })
   isBlocked: boolean;
 
-  @Prop({ type: String, enum: VerifiedStatus, default: VerifiedStatus.IS_CHECKING, required: true })
+  @Prop({ type: String, enum: Object.values(VerifiedStatus), default: VerifiedStatus.IS_CHECKING, required: true })
   verifiedStatus: VerifiedStatus;
 
   @Prop({ type: String, required: true, })
   customerName: string;
 
-  @Prop({ type: String, enum: UserSex, default: UserSex.NOT_SPECIFIED })
+  @Prop({ type: String, enum: Object.values(UserSex), default: UserSex.NOT_SPECIFIED })
   sex?: UserSex;
 
   @Prop({ type: Date })
@@ -104,23 +104,15 @@ export class Customer extends Document {
   @Prop({ type: [Types.ObjectId], ref: 'Order', default: [] })
   activeOrders: Types.ObjectId[];
 
-  logs: CustomerLog[] | Types.ObjectId[];
-
-  orders: any[];
+  readonly orders?: any[];
 }
 
 export const CustomerSchema = SchemaFactory.createForClass(Customer);
 CustomerSchema.plugin(mongooseLeanVirtuals as any);
+CustomerSchema.plugin(mongoosePaginate);
 
 CustomerSchema.virtual('customerId').get(function (this: Customer): string {
   return this._id.toString();
-});
-
-CustomerSchema.virtual('logs', {
-  ref: 'CustomerLog',
-  localField: '_id',
-  foreignField: 'customer',
-  justOne: false
 });
 
 CustomerSchema.virtual('orders', {
@@ -129,3 +121,6 @@ CustomerSchema.virtual('orders', {
   foreignField: 'orderedBy.customer',
   justOne: false
 });
+
+export type CustomerDocument = HydratedDocument<Customer>;
+export type CustomerModel = PaginateModel<CustomerDocument>;

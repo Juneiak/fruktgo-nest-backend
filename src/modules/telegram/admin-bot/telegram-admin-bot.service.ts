@@ -7,10 +7,10 @@ import { setupWebhook } from "../telegram-utils";
 import { message } from 'telegraf/filters';
 import { AdminAuthService } from 'src/modules/auth/admin-auth/admin-auth.service';
 import { Admin } from 'src/modules/admin/admin.schema';
-import { AdminService } from 'src/modules/admin/admin.service';
+import { AdminService } from 'src/modules/admin/admin/admin.service';
 import { ADMIN_BOT_LOGIN_TO_SYSTEM_PREFIX } from 'src/common/constants';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
-import { AdminResponseDto } from 'src/modules/admin/admin.dtos';
+import { AdminResponseDto } from 'src/modules/admin/admin/admin.request.dto';
 
 enum MENU_BUTTONS {
   main = '🏠 Главное меню',

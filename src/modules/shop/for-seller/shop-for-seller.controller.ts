@@ -21,7 +21,7 @@ import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { ApiShopIdParam, ApiShopProductIdParam, ApiShiftIdParam, ApiImageIdParam, ApiEmployeeIdParam, ApiOrderIdParam} from 'src/common/swagger';
 import { MessageResponseDto } from 'src/common/dtos';
-import {EmployeeForSellerResponseDto} from 'src/modules/employee/for-seller/employee-for-seller.dtos'
+import {EmployeeForSellerResponseDto} from 'src/modules/employee/seller/employee.seller.response.dtos'
 import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.interceptor';
 import { ApiFormData } from 'src/common/swagger/api-form-data.decorator';
 import { OrderPreviewResponseForSellerDto, OrderFullResponseForSellerDto } from 'src/modules/order/for-seller/order-for-seller.dtos';

@@ -4,8 +4,15 @@ import { Model, Types } from 'mongoose';
 import { Penalty, PenaltyStatus } from './penalty.schema';
 import { PaginationQueryDto, PaginationMetaDto } from 'src/common/dtos';
 import { checkId } from 'src/common/utils';
-import { ContestPenaltyDto, CreatePenaltyDto, FinalizePenaltyDto, PenaltyFilterQueryDto, PenaltyStatusFilter, UpdatePenaltyDto } from './penalty.request.dtos';
-import { ShopAccountPublicService } from 'src/modules/finance/shop-account/shop-account.public.service';
+import {
+  ContestPenaltyDto,
+  CreatePenaltyDto,
+  FinalizePenaltyDto,
+  PenaltyFilterQueryDto,
+  PenaltyStatusFilter,
+  UpdatePenaltyDto
+} from './shared/penalty.shared.request.dtos';
+import { ShopAccountPublicService } from 'src/modules/finance/shop-account/shared/shop-account.shared.service';
 import { SettlementPeriodTransactionDirection, SettlementPeriodTransactionStatus, SettlementPeriodTransactionType } from 'src/modules/finance/shop-account/schemas/settlement-period-transaction.schema';
 import { ShopAccount } from 'src/modules/finance/shop-account/schemas/shop-account.schema';
 

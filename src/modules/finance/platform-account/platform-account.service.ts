@@ -1,16 +1,15 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
 import { PlatformAccount } from './schemas/platform-account.schema';
 import { PlatformAccountTransaction, PlatformAccountTransactionDirection, PlatformAccountTransactionStatus, PlatformAccountTransactionType } from './schemas/platform-account-transaction.schema';
 import { PaginationQueryDto, PaginationMetaDto } from 'src/common/dtos';
 import { checkId } from 'src/common/utils';
-import { CreatePlatformAccountTransactionDto, UpdatePlatformAccountTransactionDto } from './platform-account.request.dtos';
+import { CreatePlatformAccountTransactionDto, UpdatePlatformAccountTransactionDto } from './shared/platform-account.shared.request.dto';
 
 
 @Injectable()
 export class PlatformAccountService {
-
   constructor(
     @InjectModel('PlatformAccount') private platformAccountModel: Model<PlatformAccount>,
     @InjectModel('PlatformAccountTransaction') private platformAccountTransactionModel: Model<PlatformAccountTransaction>,

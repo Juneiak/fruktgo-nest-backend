@@ -1,4 +1,4 @@
-import { EmployeeForEmployeeTelegramBotResponseDto } from "src/modules/employee/for-employee/employee-for-employee.dtos";
+import { EmployeeForEmployeeTelegramBotResponseDto } from "src/modules/employee/employee/employee.response.dto";
 import { PUBLIC_URL_OF_SELLERS, PUBLIC_URL_OF_SHOPS } from "src/common/constants";
 import { Order } from "src/modules/order/order.schema";
 import * as moment from "moment";
