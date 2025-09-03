@@ -94,9 +94,11 @@ export class Employee {
   @Prop({ type: Types.ObjectId, ref: 'Seller', required: false, default: null })
   employer: Types.ObjectId | Seller | null;
 
+  @Prop({ type: Types.ObjectId, ref: 'Shift', required: false, default: null })
+  openedShift?: Types.ObjectId | Shift | null;
+
   // virtuals (TS-объявления)
   readonly requestsFromSellers?: RequestToEmployee[];
-  readonly openedShifts?: Shift[];
 }
 
 export const EmployeeSchema = SchemaFactory.createForClass(Employee);
@@ -111,13 +113,6 @@ EmployeeSchema.virtual('requestsFromSellers', {
   ref: 'RequestToEmployee',
   localField: '_id',
   foreignField: 'to',
-  justOne: false
-});
-
-EmployeeSchema.virtual('openedShifts', {
-  ref: 'Shift',
-  localField: '_id',
-  foreignField: 'openedBy.employee',
   justOne: false
 });
 

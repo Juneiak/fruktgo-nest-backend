@@ -10,7 +10,7 @@ import {
   SELLER_BOT_LOGIN_TO_SELLER_DASHBOARD_PREFIX, SELLER_BOT_LOGIN_TO_SHOP_PREFIX} from 'src/common/constants';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { setupWebhook } from "../telegram-utils";
-import { ShopForSellerService } from 'src/modules/shop/for-seller/shop-for-seller.service';
+import { ShopForSellerService } from 'src/modules/shop/old/for-seller/shop-for-seller.service';
 import { SupportService } from 'src/modules/support/support.service';
 import {IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';
 import * as moment from 'moment';

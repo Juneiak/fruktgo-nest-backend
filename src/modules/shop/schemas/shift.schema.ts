@@ -1,9 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { Shop } from 'src/modules/shop/schemas/shop.schema';
-import { ShiftLog } from 'src/common/modules/logs/logs.schemas';
-import { Order } from 'src/modules/order/order.schema';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 
 
 // openedBy
@@ -57,16 +56,17 @@ export interface Statistics {
   timestamps: true,
   id: false,
 })
-export class Shift extends Document {
+export class Shift {
 
   _id: Types.ObjectId;
-  shiftId: string;
+  // virtuals (TS-объявления)
+  readonly shiftId?: string;
 
   createdAt: Date;
   updatedAt: Date;
 
   @Prop({ type: Types.ObjectId, ref: 'Shop', required: true })
-  shop: Types.ObjectId | Shop;
+  shop: Types.ObjectId;
   
   @Prop({ type: Date, required: true, default: () => new Date() })
   openedAt: Date;
@@ -89,23 +89,16 @@ export class Shift extends Document {
   @Prop({ type: StatisticsSchema, required: true, default: {} })
   statistics: Statistics;
 
-  logs: ShiftLog[] | any[];
-
-  orders: Order[] | any[];
+  // virtuals (TS-объявления)
+  readonly orders?: any[];
 }
 
 export const ShiftSchema = SchemaFactory.createForClass(Shift);
 ShiftSchema.plugin(mongooseLeanVirtuals as any);
+ShiftSchema.plugin(mongoosePaginate);
 
 ShiftSchema.virtual('shiftId').get(function (this: Shift): string {
   return this._id.toString();
-});
-
-ShiftSchema.virtual('logs', {
-  ref: 'ShiftLog',
-  localField: '_id',
-  foreignField: 'shift',
-  justOne: false
 });
 
 ShiftSchema.virtual('orders', {
@@ -115,67 +108,5 @@ ShiftSchema.virtual('orders', {
   justOne: false
 });
 
-//TODO: внедриить
-// Маппинг популизированных полей к их типам
-export type ShiftPopulatedFieldTypes = {
-  shop: Shop;
-  logs: ShiftLog[];
-};
-
-/**
- * Функция для создания типа Shift с популизированными полями
- * @param fields Массив названий полей, которые были популизированы
- * @returns Тип Shift с указанными популизированными полями
- * @example
- * // Получить тип с популизированным полем shop
- * type ShiftWithShop = PopulatedShift<'shop'>;
- * 
- * // Получить тип с популизированными полями shop и logs
- * type FullyPopulatedShift = PopulatedShift<'shop' | 'logs'>;
- */
-// Тип для Shift с популизированными полями
-export type PopulatedShift<T extends keyof ShiftPopulatedFieldTypes = never> = Shift & {
-  [K in T]: ShiftPopulatedFieldTypes[K];
-};
-
-/**
- * Функция для проверки, популизировано ли поле в документе Shift
- * @param shift Документ Shift
- * @param field Название поля для проверки
- * @returns true, если поле популизировано
- * @example
- * if (isShiftFieldPopulated(shift, 'shop')) {
- *   // здесь TypeScript знает, что shift.shop имеет тип Shop
- *   console.log(shift.shop.shopName);
- * }
- */
-export function isShiftFieldPopulated<K extends keyof ShiftPopulatedFieldTypes>(
-  shift: Shift,
-  field: K
-): shift is Shift & { [P in K]: ShiftPopulatedFieldTypes[P] } {
-  return (
-    shift[field] !== null &&
-    shift[field] !== undefined &&
-    typeof shift[field] === 'object' &&
-    !(shift[field] instanceof Types.ObjectId)
-  );
-}
-
-/**
- * Функция для проверки, популизированы ли указанные поля в документе Shift
- * @param shift Документ Shift
- * @param fields Массив названий полей для проверки
- * @returns true, если все указанные поля популизированы
- * @example
- * if (areShiftFieldsPopulated(shift, ['shop', 'logs'])) {
- *   // здесь TypeScript знает, что shift.shop имеет тип Shop, а shift.logs - тип ShiftLog[]
- *   console.log(shift.shop.shopName, shift.logs.length);
- * }
- */
-export function areShiftFieldsPopulated<T extends keyof ShiftPopulatedFieldTypes>(
-  shift: Shift,
-  fields: T[]
-): shift is Shift & { [P in T]: ShiftPopulatedFieldTypes[P] } {
-  return fields.every(field => isShiftFieldPopulated(shift, field));
-}
-
+export type ShiftDocument = HydratedDocument<Shift>;
+export type ShiftModel = PaginateModel<ShiftDocument>;

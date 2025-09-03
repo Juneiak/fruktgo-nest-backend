@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus } from 'src/common/types';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Order } from 'src/modules/order/order.schema';
 import { Shift } from 'src/modules/shop/schemas/shift.schema';
-import { ShopLog } from 'src/common/modules/logs/logs.schemas';
 
 export enum ShopStatus {
   OPENED='opened',
@@ -42,10 +42,11 @@ export interface ShopAddress {
   timestamps: true,
   id: false,
 })
-export class Shop extends Document {
+export class Shop {
 
   _id: Types.ObjectId;
-  shopId: string;
+  // virtuals (TS-объявления)
+  readonly shopId?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -56,7 +57,7 @@ export class Shop extends Document {
   @Prop({ type: Boolean, default: false, required: true })
   isBlocked: boolean;
 
-  @Prop({ type: String, enum: VerifiedStatus, default: VerifiedStatus.IS_CHECKING, required: true })
+  @Prop({ type: String, enum: Object.values(VerifiedStatus), default: VerifiedStatus.IS_CHECKING, required: true })
   verifiedStatus: VerifiedStatus;
 
   @Prop({ type: String, required: true })
@@ -71,7 +72,7 @@ export class Shop extends Document {
   @Prop({ type: ShopAddressSchema, required: false, default: {} })
   address?: ShopAddress | null;
 
-  @Prop({ type: String, enum: ShopStatus, default: ShopStatus.CLOSED, required: true })
+  @Prop({ type: String, enum: Object.values(ShopStatus), default: ShopStatus.CLOSED, required: true })
   status: ShopStatus;
 
   @Prop({ type: String, required: false, default: null })
@@ -114,26 +115,23 @@ export class Shop extends Document {
   currentShift: Types.ObjectId | Shift | null;
 
   @Prop({ type: [Types.ObjectId], ref: 'Order', required: false, default: [] })
-  activeOrders: Types.ObjectId[];
+  activeOrders: Types.ObjectId[] | Order[];
 
   @Prop({ type: Types.ObjectId, ref: 'ShopAccount', required: false, default: null })
   shopAccount: Types.ObjectId | null;
 
-  pinnedEmployees: any[];
-
-  shopProducts: any[];
-
-  shopOrders: any[];
-
-  shopShifts: any[];
-
-  logs: ShopLog[] | any[];
+  // virtuals (TS-объявления)
+  readonly pinnedEmployees?: any[];
+  readonly shopProducts?: any[];
+  readonly shopOrders?: any[];
+  readonly shopShifts?: any[];
 }
 
 export const ShopSchema = SchemaFactory.createForClass(Shop);
 ShopSchema.plugin(mongooseLeanVirtuals as any);
+ShopSchema.plugin(mongoosePaginate);
 
-ShopSchema.virtual('shopId').get(function (this: Shop & { _id: Types.ObjectId }): string {
+ShopSchema.virtual('shopId').get(function (this: Shop): string {
   return this._id.toString();
 });
 
@@ -166,10 +164,5 @@ ShopSchema.virtual('shopShifts', {
   justOne: false
 });
 
-
-ShopSchema.virtual('logs', {
-  ref: 'ShopLog',
-  localField: '_id',
-  foreignField: 'shop',
-  justOne: false
-});
+export type ShopDocument = HydratedDocument<Shop>;
+export type ShopModel = PaginateModel<ShopDocument>;

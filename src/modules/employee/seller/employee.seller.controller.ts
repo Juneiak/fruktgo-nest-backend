@@ -8,7 +8,8 @@ import { UserType } from 'src/common/decorators/type.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import {RequestToEmployeeDto, UpdateEmployeeDto} from './employee.seller.request.dtos';
-import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
+import { MessageResponseDto, PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
+import { EmployeeFilterDto } from './employee.seller.filter.dto';
 
 
 @ApiTags('for seller')
@@ -56,15 +57,14 @@ export class EmployeeSellerController {
   // ====================================================
   // EMPLOYEES
   // ====================================================
-
   @ApiOperation({summary: 'возвращает информацию о сотрудниках'})
   @Get('/')
   getSellerShopEmployees(
     @GetUser() seller: AuthenticatedUser,
     @Query() paginationQuery: PaginationQueryDto,
-    @Query('shopId') shopId
+    @Query() filterQuery: EmployeeFilterDto
   ): Promise<PaginatedResponseDto<EmployeeResponseDto>> {
-    return this.employeeSellerService.getSellerEmployees(seller, paginationQuery, {shopId});
+    return this.employeeSellerService.getSellerEmployees(seller, paginationQuery, filterQuery);
   }
 
 
@@ -77,7 +77,6 @@ export class EmployeeSellerController {
     return this.employeeSellerService.getSellerEmployee(authedSeller, employeeId);
   }
 
-
   @ApiOperation({summary: 'Обновление информации о сотруднике'})
   @Patch('/:employeeId')
   updateSellerEmployee(
@@ -89,7 +88,7 @@ export class EmployeeSellerController {
   }
 
 
-  @ApiOperation({summary: 'Открепить сотрудника'})
+  @ApiOperation({summary: 'Открепить сотрудника от продавца'})
   @Delete('/:employeeId')
   unpinEmployee(
     @Param('employeeId') employeeId: string,
@@ -97,4 +96,16 @@ export class EmployeeSellerController {
   ): Promise<EmployeeResponseDto> {
     return this.employeeSellerService.unpinEmployeeFromSeller(authedSeller, employeeId);
   }
+
+
+  @ApiOperation({summary: 'Открепить сотрудника от магазина'})
+  @Delete('/employees/unpin')
+  unpinEmployeeFromShop(
+    @Param('shopId') shopId: string,
+    @Param('employeeId') employeeId: string,
+    @GetUser() authedSeller: AuthenticatedUser,
+  ): Promise<MessageResponseDto> {
+    return this.employeeSellerService.unpinEmployeeFromShop(authedSeller, employeeId);
+  }
+
 };

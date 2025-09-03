@@ -1,11 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
-import { Customer } from 'src/modules/customer/schemas/customer.schema';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
-import { ShopProduct } from 'src/modules/shop/schemas/shop-product.schema';
-import { Employee } from 'src/modules/employee/schemas/employee.schema';
-import { OrderLog } from 'src/common/modules/logs/logs.schemas';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { ProductCategory, ProductMeasuringScale } from 'src/modules/product/product.schema';
 
 export enum OrderStatus {
@@ -80,7 +76,7 @@ const OrderedBySchema = {
   customerName: { type: String, required: true },
 };
 export interface OrderedBy {
-  customer: Types.ObjectId | Customer | null;
+  customer: Types.ObjectId;
   customerName: string;
 }
 
@@ -92,7 +88,7 @@ const OrderedFromSchema = {
   shopImage: { type: String, required: true },
 };
 export interface OrderedFrom {
-  shop: Types.ObjectId | Shop;
+  shop: Types.ObjectId;
   shopName: string;
   shopImage: string;
 }
@@ -105,7 +101,7 @@ const HandledBySchema = {
   shift: { type: Types.ObjectId, ref: 'Shift', required: false, default: null },
 };
 export interface HandledBy {
-  employee: Types.ObjectId | Employee | null;
+  employee: Types.ObjectId | null;
   employeeName: string | null;
   shift: Types.ObjectId | null;
 }
@@ -163,18 +159,18 @@ export interface OrderDelivery {
 // order product
 const OrderProductSchema = {
   shopProduct: { type: Types.ObjectId, ref: 'ShopProduct', required: true },
-  category: { type: String, enum: ProductCategory, required: true },
+  category: { type: String, enum: Object.values(ProductCategory), required: true },
   productName: { type: String, required: true },
   price: { type: Number, required: true, min: 0 },
   cardImage: { type: Types.ObjectId, ref: 'UploadedFile', required: false },
-  measuringScale: { type: String, enum: ProductMeasuringScale, required: true },
+  measuringScale: { type: String, enum: Object.values(ProductMeasuringScale), required: true },
   selectedQuantity: { type: Number, required: true, min: 0 },
   actualQuantity: { type: Number, min: 0, required: false, default: null },
   weightCompensationBonus: { type: Number, min: 0, required: false, default: 0 },
   _id: false
 };
 export interface OrderProduct {
-  shopProduct: Types.ObjectId | ShopProduct;
+  shopProduct: Types.ObjectId;
   category: ProductCategory;
   productName: string;
   price: number;
@@ -191,10 +187,11 @@ export interface OrderProduct {
   timestamps: true,
   id: false,
 })
-export class Order extends Document {
+export class Order {
 
   _id: Types.ObjectId;
-  orderId: string;
+  // virtuals (TS-объявления)
+  readonly orderId?: string;
 
   @Prop({ type: OrderedFromSchema, required: true })
   orderedFrom: OrderedFrom;
@@ -202,7 +199,7 @@ export class Order extends Document {
   @Prop({ type: OrderedBySchema, required: true })
   orderedBy: OrderedBy;
 
-  @Prop({ type: String, enum: OrderStatus, required: true, default: OrderStatus.PENDING })
+  @Prop({ type: String, enum: Object.values(OrderStatus), required: true, default: OrderStatus.PENDING })
   orderStatus: OrderStatus;
 
   @Prop({ type: Types.ObjectId, ref: 'Shift', required: true })
@@ -266,20 +263,16 @@ export class Order extends Document {
   @Prop({ type: [OrderProductSchema], required: true, default: [] })
   products: OrderProduct[]
 
-  logs: OrderLog[] | any[];
 };
 
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
 OrderSchema.plugin(mongooseLeanVirtuals as any);
+OrderSchema.plugin(mongoosePaginate);
 
 OrderSchema.virtual('orderId').get(function (this: Order): string {
   return this._id.toString();
 });
 
-OrderSchema.virtual('logs', {
-  ref: 'OrderLog',
-  localField: '_id',
-  foreignField: 'order',
-  justOne: false
-});
+export type OrderDocument = HydratedDocument<Order>;
+export type OrderModel = PaginateModel<OrderDocument>;

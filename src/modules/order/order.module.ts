@@ -1,18 +1,19 @@
 import { Module, forwardRef } from '@nestjs/common';
 
-import { OrderForCustomerController } from './for-customer/order-for-customer.controller';
-import { OrderForCustomerService } from './for-customer/order-for-customer.service';
+import { OrderCustomerController } from './customer/order.customer.controller';
+import { OrderCustomerService } from './customer/order.customer.service';
 
-import { OrderForSellerController } from './for-seller/order-for-seller.controller';
-import { OrderForSellerService } from './for-seller/order-for-seller.service';
+import { OrderSellerController } from './seller/order.seller.controller';
+import { OrderSellerService } from './seller/order.seller.service';
 
-import { OrderForShopController } from './for-shop/order-for-shop.controller';
-import { OrderForShopService } from './for-shop/order-for-shop.service';
+import { OrderShopController } from './shop/order.shop.controller';
+import { OrderShopService } from './shop/order.shop.service';
 
 import { CustomerModule } from '../customer/customer.module';
 import { NotificationModule } from '../notification/notification.module';
-import { OrderForAdminService } from './for-admin/order-for-admin.service';
-import { OrderForAdminController } from './for-admin/order-for-admin.controller';
+import { OrderAdminService } from './admin/order.admin.service';
+import { OrderAdminController } from './admin/order.admin.controller';
+import { OrderSharedService } from './shared/order.shared.service';
 
 @Module({
   imports: [
@@ -20,22 +21,19 @@ import { OrderForAdminController } from './for-admin/order-for-admin.controller'
     forwardRef(() => NotificationModule)
   ],
   controllers: [
-    OrderForCustomerController,
-    OrderForSellerController,
-    OrderForShopController,
-    OrderForAdminController
+    OrderCustomerController,
+    OrderSellerController,
+    OrderShopController,
+    OrderAdminController
   ],
   providers: [
-    OrderForCustomerService,
-    OrderForSellerService,
-    OrderForShopService,
-    OrderForAdminService
+    OrderCustomerService,
+    OrderSellerService,
+    OrderShopService,
+    OrderAdminService
   ],
   exports: [
-    OrderForCustomerService,
-    OrderForSellerService,
-    OrderForShopService,
-    OrderForAdminService
+    OrderSharedService,
   ],
 })
 export class OrderModule {} 
