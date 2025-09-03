@@ -1,10 +1,10 @@
-import { EmployeeForEmployeeTelegramBotResponseDto } from "src/modules/employee/employee/employee.response.dto";
+import { EmployeeTelegramBotResponseDto } from "src/modules/employee/shared/employee.shared.response.dto";
 import { PUBLIC_URL_OF_SELLERS, PUBLIC_URL_OF_SHOPS } from "src/common/constants";
 import { Order } from "src/modules/order/order.schema";
 import * as moment from "moment";
 import { ORDER_STATUS_DISPLAY_MAP } from 'src/modules/order/order.schema';
 
-export const formatEmployeeInfoMessage = (employeeInfo: EmployeeForEmployeeTelegramBotResponseDto): string => {
+export const formatEmployeeInfoMessage = (employeeInfo: EmployeeTelegramBotResponseDto): string => {
   const { isBlocked, verifiedStatus, employeeName, position, salary, pinnedTo, employer } = employeeInfo;
   // Форматирование работодателя
   let employerStr = '—';
@@ -41,7 +41,7 @@ export const formatNewOrderMessage = (order: Order): string => {
   return `
 *Новый заказ:*
 
-*ID:* ${orderId.slice(-4)}
+*ID:* ${orderId?.slice(-4)}
 *Статус:* ${ORDER_STATUS_DISPLAY_MAP[orderStatus]}
 *Дата:* ${moment(orderedAt).format('DD.MM.YY HH:mm')}
   `.trim();

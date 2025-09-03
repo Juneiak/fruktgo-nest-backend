@@ -6,11 +6,10 @@ import { INestApplication } from '@nestjs/common';
 import { setupWebhook } from "../telegram-utils";
 import { message } from 'telegraf/filters';
 import { AdminAuthService } from 'src/modules/auth/admin-auth/admin-auth.service';
-import { Admin } from 'src/modules/admin/admin.schema';
-import { AdminService } from 'src/modules/admin/admin/admin.service';
+import { AdminSharedService } from 'src/modules/admin/shared/admin.shared.service';
 import { ADMIN_BOT_LOGIN_TO_SYSTEM_PREFIX } from 'src/common/constants';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
-import { AdminResponseDto } from 'src/modules/admin/admin/admin.request.dto';
+import { Admin } from 'src/modules/admin/admin.schema';
 
 enum MENU_BUTTONS {
   main = '🏠 Главное меню',
@@ -19,7 +18,7 @@ enum MENU_BUTTONS {
 
 interface AdminContext extends Context {
   state: {
-    admin?: AdminResponseDto | null;
+    admin?: Admin | null;
   };
 }
 
@@ -35,7 +34,7 @@ export class TelegramAdminBotService implements OnModuleInit {
   }
   constructor(
     private readonly configService: ConfigService,
-    private readonly adminService: AdminService,
+    private readonly adminSharedService: AdminSharedService,
     private readonly adminAuthService: AdminAuthService,
   ) { 
     const token = this.configService.get<string>('ADMIN_BOT_TOKEN');
@@ -117,9 +116,9 @@ export class TelegramAdminBotService implements OnModuleInit {
   private async checkAdminExists(ctx: Context, next: (ctx: AdminContext) => Promise<void>) {
     const telegramId = ctx.from?.id;
     if (!telegramId) return await ctx.reply('Ошибка: не найден Telegram ID пользователя.');
-    let admin: AdminResponseDto | null = null;
+    let admin: Admin | null = null;
     try {
-      admin = await this.adminService.getAdminByTelegramId(telegramId);
+      admin = await this.adminSharedService.getAdminByTelegramId(telegramId);
       if (!admin) return await ctx.reply('Ошибка: вы не администратор.');
     } catch (error) {
       console.error(error);

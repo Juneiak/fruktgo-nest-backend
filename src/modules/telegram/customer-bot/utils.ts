@@ -1,4 +1,4 @@
-import { CustomerPreviewForTelegramBotResponseDto } from "src/modules/customer/customer/customer.request.dto";
+import { CustomerPreviewResponseDto } from "src/modules/customer/shared/customer.shared.response.dto";
 import { IssueStatusText } from "src/modules/support/issue.schema";
 import * as moment from 'moment';
 import { Order } from 'src/modules/order/order.schema';
@@ -16,7 +16,7 @@ export function escapeMarkdown(text: string): string {
   return String(text).replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 }
 
-export function formatCustomerInfoMessage(customerInfo: CustomerPreviewForTelegramBotResponseDto): string {
+export function formatCustomerInfoMessage(customerInfo: CustomerPreviewResponseDto): string {
   const {
     isBlocked,
     verifiedStatus,
@@ -58,7 +58,7 @@ export function formatOrderMessage(order: Order, options: {isUpdated: boolean}={
   if (!order) return 'Информация о заказе недоступна';
 
   // Получаем основные данные заказа
-  const orderId = order.orderId.slice(-4);
+  const orderId = order.orderId?.slice(-4);
   const orderStatus = order.orderStatus;
   const orderedAt = order.orderedAt;
   const orderedFrom = order.orderedFrom;

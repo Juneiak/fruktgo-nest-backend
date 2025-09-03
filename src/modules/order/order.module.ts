@@ -30,7 +30,8 @@ import { OrderSharedService } from './shared/order.shared.service';
     OrderCustomerService,
     OrderSellerService,
     OrderShopService,
-    OrderAdminService
+    OrderAdminService,
+    OrderSharedService,
   ],
   exports: [
     OrderSharedService,

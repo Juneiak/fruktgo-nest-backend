@@ -1,16 +1,23 @@
 import { Module, forwardRef} from '@nestjs/common';
 
-import { ShopForSellerService } from './old/for-seller/shop-for-seller.service';
-import { ShopForAdminService } from './old/for-admin/shop-for-admin.service';
-import { ShopForPublicService } from './old/for-public/shop-for-public.service';
-import { ShopForSellerController } from './old/for-seller/shop-for-seller.controller';
-import { ShopForAdminController } from './old/for-admin/shop-for-admin.controller';
-import { ShopForPublicController } from './old/for-public/shop-for-public.controller';
-import { ShopForShopController } from './old/for-shop/shop-for-shop.controller';
-import { ShopForShopService } from './old/for-shop/shop-for-shop.service';
 import { OrderModule } from 'src/modules/order/order.module'
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { UploadsModule } from 'src/common/modules/uploads/uploads.module';
+
+import { ShopProductAdminService } from './admin/shop-product.admin.service';
+import { ShopProductPublicController } from './public/shop-product.public.controller';
+
+import { ShopProductPublicService } from './public/shop-product.public.service'
+import { ShopProductAdminController } from './admin/shop-product.admin.controller';
+
+import { ShopProductShopService } from './shop/shop-product.shop.service';
+import { ShopProductShopController } from './shop/shop-product.shop.controller';
+
+import { ShopProductSellerController } from './seller/shop-product.seller.controller';
+import { ShopProductSellerService } from './seller/shop-product.seller.service';
+
+import { ShopProductSharedService } from './shared/shop-product.shared.service';
+
 
 @Module({
   imports: [
@@ -19,21 +26,20 @@ import { UploadsModule } from 'src/common/modules/uploads/uploads.module';
     forwardRef(() => UploadsModule)
   ],
   controllers: [
-    ShopForSellerController,
-    ShopForAdminController,
-    ShopForPublicController,
-    ShopForAdminController,
-    ShopForPublicController,
-    ShopForShopController
+    ShopProductShopController,
+    ShopProductAdminController,
+    ShopProductPublicController,
+    ShopProductSellerController,
   ],
   providers: [
-    ShopForSellerService,
-    ShopForAdminService,
-    ShopForPublicService,
-    ShopForShopService,
+    ShopProductShopService,
+    ShopProductAdminService,
+    ShopProductPublicService,
+    ShopProductSellerService,
+    ShopProductSharedService,
   ],
   exports: [
-    ShopForSellerService
+    ShopProductSharedService,
   ],
 })
-export class ShopModule {}
+export class ShopProductModule {}

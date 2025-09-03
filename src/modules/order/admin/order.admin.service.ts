@@ -16,7 +16,7 @@ import { checkId } from 'src/common/utils';
 import {AuthenticatedUser} from 'src/common/types';
 import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
 import { LogsService } from 'src/common/modules/logs/logs.service';
-import { OrderFilterDto } from './order.admin.filter.dto';
+import { OrderQueryFilterDto } from './order.admin.filter.dto';
 
 
 @Injectable()
@@ -29,13 +29,13 @@ export class OrderAdminService {
   async getOrders(
     authedAdmin: AuthenticatedUser, 
     paginationQuery: PaginationQueryDto,
-    orderFilterQuery?: OrderFilterDto
+    orderQueryFilter?: OrderQueryFilterDto
   ): Promise<PaginatedResponseDto<OrderPreviewResponseDto>> {
     const { page = 1, pageSize = 10 } = paginationQuery;
     const skip = (page - 1) * pageSize;
     
     // Создаем фильтр для поиска
-    const queryFilter = this.buildOrderFilter(orderFilterQuery);
+    const queryFilter = this.buildOrderFilter(orderQueryFilter);
     
     // Получаем общее количество заказов для пагинации с учетом фильтра
     const totalItems = await this.orderModel.countDocuments(queryFilter).exec();
@@ -64,7 +64,7 @@ export class OrderAdminService {
   /**
    * Создает объект фильтрации для запроса в базу данных на основе переданных параметров
    */
-  private buildOrderFilter(filter: OrderFilterDto = {}): any {
+  private buildOrderFilter(filter: OrderQueryFilterDto = {}): any {
     const queryFilter: any = {};
     
     // Фильтрация по клиенту

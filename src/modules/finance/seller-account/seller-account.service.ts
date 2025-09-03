@@ -3,7 +3,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { SellerAccount } from './schemas/seller-account.schema';
 import { WithdrawalRequest, WithdrawalRequestStatus } from './schemas/withdrawal-request.schema';
-import { CreateWithdrawalRequestDto, UpdateBankDetailsDto, UpdateWithdrawalRequestDto, WithdrawalRequestFilterQueryDto, WithdrawalRequestStatusFilter } from './seller-account.request.dtos';
+import { 
+  CreateWithdrawalRequestDto,
+  UpdateBankDetailsDto,
+  WithdrawalRequestFilterQueryDto,
+  WithdrawalRequestStatusFilter,
+} from './seller/seller-account.seller.request.dtos';
+import { UpdateWithdrawalRequestDto } from './admin/seller-account.admin.request.dtos';
+
 import { PaginationQueryDto, PaginationMetaDto } from 'src/common/dtos';
 import { checkId } from 'src/common/utils';
 

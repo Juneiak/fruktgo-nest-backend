@@ -13,7 +13,7 @@ import { EmployeeAuthModule } from './modules/auth/employee-auth/employee-auth.m
 import { CommonModule } from './common/common.module';
 
 import { CustomerModule } from './modules/customer/customer.module'
-import { ShopModule } from './modules/shop/shop.module';
+import { ShopModule } from './modules/shop/shop/shop.module';
 import { SellerModule } from './modules/seller/seller.module';
 import { ProductModule } from './modules/product/product.module';
 import { EmployeeModule } from './modules/employee/employee.module';

@@ -12,7 +12,7 @@ import {
   OrderFullResponseDto
 } from './order.admin.response.dto';
 import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
-import { OrderFilterDto } from './order.admin.filter.dto';
+import { OrderQueryFilterDto } from './order.admin.filter.dto';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -27,9 +27,9 @@ export class OrderAdminController {
   async getAllOrders(
     @GetUser() authedAdmin: AuthenticatedUser,
     @Query() paginationQuery: PaginationQueryDto,
-    @Query() orderFilterQuery?: OrderFilterDto
+    @Query() orderQueryFilter?: OrderQueryFilterDto
   ): Promise<PaginatedResponseDto<OrderPreviewResponseDto>> {
-    return this.orderAdminService.getOrders(authedAdmin, paginationQuery, orderFilterQuery);
+    return this.orderAdminService.getOrders(authedAdmin, paginationQuery, orderQueryFilter);
   }
 
 

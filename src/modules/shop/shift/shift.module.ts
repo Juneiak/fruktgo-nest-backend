@@ -28,4 +28,4 @@ import { ShiftSharedService } from './shared/shift.shared.service';
     ShiftSharedService
   ],
 })
-export class ShopModule {}
+export class ShiftModule {}

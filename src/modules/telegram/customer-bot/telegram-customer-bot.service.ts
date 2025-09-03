@@ -7,11 +7,11 @@ import { INestApplication } from '@nestjs/common';
 import { message } from 'telegraf/filters';
 import { CustomerAuthService } from 'src/modules/auth/customer-auth/customer-auth.service';
 import { CUSTOMER_BOT_LOGIN_TO_SYSTEM_PREFIX } from 'src/common/constants';
-import { CustomerForCustomerService } from 'src/modules/customer/customer/customer.service';
+import { CustomerSharedService } from 'src/modules/customer/shared/customer.shared.service';
 import { formatCustomerInfoMessage, formatOrderMessage, formatIssueMessage } from './utils';
 import { setupWebhook } from "../telegram-utils";
-import { CustomerPreviewForTelegramBotResponseDto } from 'src/modules/customer/customer/customer.request.dto';
-import { OrderForCustomerService } from 'src/modules/order/for-customer/order-for-customer.service';
+import { CustomerPreviewResponseDto } from 'src/modules/customer/shared/customer.shared.response.dto';
+import { OrderSharedService } from 'src/modules/order/shared/order.shared.service';
 import { SupportService } from 'src/modules/support/support.service';
 import { IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';
 import * as moment from 'moment';
@@ -31,7 +31,7 @@ enum MENU_BUTTONS {
 
 interface CustomerContext extends Context {
   state: {
-    customer?: CustomerPreviewForTelegramBotResponseDto | null;
+    customer?: CustomerPreviewResponseDto | null;
   };
 }
 
@@ -52,8 +52,8 @@ export class TelegramCustomerBotService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly customerAuthService: CustomerAuthService,
-    private readonly customerForCustomerService: CustomerForCustomerService,
-    private readonly orderForCustomerService: OrderForCustomerService,
+    private readonly customerSharedService: CustomerSharedService,
+    private readonly orderSharedService: OrderSharedService,
     private readonly supportService: SupportService
   ) { 
     const token = this.configService.get<string>('CUSTOMER_BOT_TOKEN');
@@ -188,7 +188,7 @@ export class TelegramCustomerBotService implements OnModuleInit {
     const telegramId = ctx.from?.id;
     if (!telegramId) return await ctx.reply('Ошибка: не найден Telegram ID пользователя.');
 
-    const customer = await this.customerForCustomerService.getCustomerByTelegramId(telegramId);
+    const customer = await this.customerSharedService.getCustomerByTelegramId(telegramId);
     if (!customer) {
       await ctx.replyWithMarkdown(
 `
@@ -254,7 +254,7 @@ export class TelegramCustomerBotService implements OnModuleInit {
   private async getCustomerActiveOrders(ctx: CustomerContext) {
     const telegramId = ctx.state.customer!.telegramId;
     try {
-      const orders = await this.orderForCustomerService.getActiveOrderForCustomerBot(telegramId);
+      const orders = await this.orderSharedService.getActiveOrderForCustomerBot(telegramId);
       if (orders.length === 0) return await ctx.reply('У вас нет активных заказов.', {reply_markup: {keyboard: [[MENU_BUTTONS.main]]}});
       
       for (const order of orders) {

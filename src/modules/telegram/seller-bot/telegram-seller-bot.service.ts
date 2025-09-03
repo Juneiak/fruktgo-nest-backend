@@ -10,7 +10,7 @@ import {
   SELLER_BOT_LOGIN_TO_SELLER_DASHBOARD_PREFIX, SELLER_BOT_LOGIN_TO_SHOP_PREFIX} from 'src/common/constants';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { setupWebhook } from "../telegram-utils";
-import { ShopForSellerService } from 'src/modules/shop/old/for-seller/shop-for-seller.service';
+import { ShiftSharedService } from 'src/modules/shop/shift/shared/shift.shared.service';
 import { SupportService } from 'src/modules/support/support.service';
 import {IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';
 import * as moment from 'moment';
@@ -61,7 +61,7 @@ export class TelegramSellerBotService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly sellerAuthService: SellerAuthService,
     private readonly sellerSharedService: SellerSharedService,
-    private readonly shopForSellerService: ShopForSellerService,
+    private readonly shiftSharedService: ShiftSharedService,
     private readonly supportService: SupportService
   ) {
     const token = this.configService.get<string>('SELLER_BOT_TOKEN');
@@ -511,7 +511,7 @@ _По данным действующих продавцов на платфор
   private async getSellerActiveShifts(ctx: SellerContext) {
     const telegramId = (ctx.state.seller!.telegramId);
     try {
-      const activeShifts = await this.shopForSellerService.getSellerActiveShiftsByTelegramId(telegramId);
+      const activeShifts = await this.shiftSharedService.getSellerActiveShiftsByTelegramId(telegramId);
       if (!activeShifts || activeShifts.length === 0) return await ctx.reply('❌ У вас нет активных смен.', Markup.keyboard([[MENU_BUTTONS.main],]).resize());
 
       for (const shift of activeShifts) {

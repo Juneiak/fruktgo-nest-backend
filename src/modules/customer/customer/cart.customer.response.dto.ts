@@ -1,8 +1,6 @@
 import { Expose, Type } from 'class-transformer';
-import {
-  ShopProductResponseDto,
-  ShopPreviewResponseDto
-} from 'src/modules/shop/public/shop.public.dtos';
+import { ShopPreviewResponseDto } from 'src/modules/shop/shop/public/shop.public.response.dto';
+import { ShopProductResponseDto } from 'src/modules/shop/shop-product/public/shop-product.public.response.dto';
 
 export class CartShopProductDto {
   @Expose() @Type(() => ShopProductResponseDto) shopProduct: ShopProductResponseDto;

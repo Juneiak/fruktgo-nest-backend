@@ -1,16 +1,16 @@
 import { Module, forwardRef} from '@nestjs/common';
 
-import { ShopForSellerService } from './old/for-seller/shop-for-seller.service';
-import { ShopForAdminService } from './old/for-admin/shop-for-admin.service';
-import { ShopForPublicService } from './old/for-public/shop-for-public.service';
-import { ShopForSellerController } from './old/for-seller/shop-for-seller.controller';
-import { ShopForAdminController } from './old/for-admin/shop-for-admin.controller';
-import { ShopForPublicController } from './old/for-public/shop-for-public.controller';
-import { ShopForShopController } from './old/for-shop/shop-for-shop.controller';
-import { ShopForShopService } from './old/for-shop/shop-for-shop.service';
 import { OrderModule } from 'src/modules/order/order.module'
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { UploadsModule } from 'src/common/modules/uploads/uploads.module';
+import { ShopSellerController } from './seller/shop.seller.controller';
+import { ShopAdminController } from './admin/shop.admin.controller';
+import { ShopPublicController } from './public/shop.public.controller';
+import { ShopSellerService } from './seller/shop.seller.service';
+import { ShopAdminService } from './admin/shop.admin.service';
+import { ShopPublicService } from './public/shop.public.service';
+import { ShopSharedService } from './shared/shop.shared.service'
+
 
 @Module({
   imports: [
@@ -19,21 +19,18 @@ import { UploadsModule } from 'src/common/modules/uploads/uploads.module';
     forwardRef(() => UploadsModule)
   ],
   controllers: [
-    ShopForSellerController,
-    ShopForAdminController,
-    ShopForPublicController,
-    ShopForAdminController,
-    ShopForPublicController,
-    ShopForShopController
+    ShopSellerController,
+    ShopAdminController,
+    ShopPublicController,
   ],
   providers: [
-    ShopForSellerService,
-    ShopForAdminService,
-    ShopForPublicService,
-    ShopForShopService,
+    ShopSellerService,
+    ShopAdminService,
+    ShopPublicService,
+    ShopSharedService,
   ],
   exports: [
-    ShopForSellerService
+    ShopSharedService
   ],
 })
 export class ShopModule {}

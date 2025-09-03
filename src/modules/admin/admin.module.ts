@@ -7,7 +7,6 @@ import { AdminSharedService } from './shared/admin.shared.service';
 @Module({
   imports: [
     SupportModule,
-    AdminSharedService,
   ],
   controllers: [AdminController],
   providers: [AdminService, AdminSharedService],

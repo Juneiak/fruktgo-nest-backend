@@ -6,13 +6,15 @@ import { PaginationQueryDto, PaginationMetaDto } from 'src/common/dtos';
 import { checkId } from 'src/common/utils';
 import {
   ContestPenaltyDto,
-  CreatePenaltyDto,
-  FinalizePenaltyDto,
   PenaltyFilterQueryDto,
   PenaltyStatusFilter,
-  UpdatePenaltyDto
-} from './shared/penalty.shared.request.dtos';
-import { ShopAccountPublicService } from 'src/modules/finance/shop-account/shared/shop-account.shared.service';
+} from './seller/penalty.seller.request.dto';
+import {
+  FinalizePenaltyDto,
+  CreatePenaltyDto,
+  UpdatePenaltyDto,
+} from './admin/penalty.admin.request.dto';
+import { ShopAccountSharedService } from '../shop-account/shared/shop-account.shared.service';
 import { SettlementPeriodTransactionDirection, SettlementPeriodTransactionStatus, SettlementPeriodTransactionType } from 'src/modules/finance/shop-account/schemas/settlement-period-transaction.schema';
 import { ShopAccount } from 'src/modules/finance/shop-account/schemas/shop-account.schema';
 
@@ -22,7 +24,7 @@ export class PenaltyService {
   constructor(
     @InjectModel('Penalty') private penaltyModel: Model<Penalty>,
     @InjectModel('ShopAccount') private shopAccountModel: Model<ShopAccount>,
-    private shopAccounPublicService: ShopAccountPublicService,
+    private shopAccountSharedService: ShopAccountSharedService,
   ) {}
 
   async getPenalty(penaltyId: string): Promise<Penalty> {
@@ -92,7 +94,7 @@ export class PenaltyService {
       createdPenalty = await penalty.save({ session });
 
       // Создаем транзакцию расчетного периода в той же сессии
-      const createdSettlementPeriodTransaction = await this.shopAccounPublicService.createSettlementPeriodTransaction({
+      const createdSettlementPeriodTransaction = await this.shopAccountSharedService.createSettlementPeriodTransaction({
         shopAccountId: createPenaltyDto.shopAccountId,
         amount: createPenaltyDto.amount,
         direction: SettlementPeriodTransactionDirection.DEBIT,
@@ -192,11 +194,7 @@ export class PenaltyService {
         else newTransactionStatus = SettlementPeriodTransactionStatus.CANCELED;
         
         // Обновляем транзакцию в рамках текущей сессии
-        await this.shopAccounPublicService.updateSettlementPeriodTransaction(
-          transactionId, 
-          { status: newTransactionStatus },
-          session
-        );
+        await this.shopAccountSharedService.updateSettlementPeriodTransaction(transactionId,  { status: newTransactionStatus }, session);
       }
 
       await session.commitTransaction();

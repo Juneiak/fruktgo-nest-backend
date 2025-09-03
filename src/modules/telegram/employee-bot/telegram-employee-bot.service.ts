@@ -6,15 +6,15 @@ import { EmployeeAuthService } from 'src/modules/auth/employee-auth/employee-aut
 import { RegisterEmployeeDto } from 'src/modules/auth/employee-auth/employee-auth.dtos';
 import { INestApplication } from '@nestjs/common';
 import { message } from 'telegraf/filters';
-import { EmployeeService } from 'src/modules/employee/employee/employee.service';
 import { formatEmployeeInfoMessage, formatEmployeeAvatar, formatNewOrderMessage } from './utils';
-import { EmployeeForEmployeeTelegramBotResponseDto } from 'src/modules/employee/employee/employee.response.dto';
+import { EmployeeTelegramBotResponseDto } from 'src/modules/employee/shared/employee.shared.response.dto';
 import { EMPLOYEE_BOT_LOGIN_TO_SHOP_PREFIX } from 'src/common/constants';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
 import { Order } from 'src/modules/order/order.schema';
 import {RequestToEmployeeStatus} from 'src/modules/employee/schemas/request-to-employee.schema'
 import {EmployeeLoginCode} from 'src/modules/auth/employee-auth/employee-login-code.schema'
 import { setupWebhook } from "../telegram-utils"
+import { EmployeeSharedService } from 'src/modules/employee/shared/employee.shared.service';
 
 enum MENU_BUTTONS {
   main = '🏠 Главное меню',
@@ -40,7 +40,7 @@ enum EDIT_BUTTONS {
 
 interface EmployeeContext extends Context {
   state: {
-    employee?: EmployeeForEmployeeTelegramBotResponseDto | null;
+    employee?: EmployeeTelegramBotResponseDto | null;
   };
 }
 
@@ -71,7 +71,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => EmployeeAuthService))
     private readonly employeeAuthService: EmployeeAuthService,
-    private readonly employeeForEmployeeService: EmployeeForEmployeeService
+    private readonly employeeSharedService: EmployeeSharedService
   ) {
     const token = this.configService.get<string>('EMPLOYEE_BOT_TOKEN');
     if (!token) throw new Error('EMPLOYEE_BOT_TOKEN not provided');
@@ -326,7 +326,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
     const telegramId = ctx.from?.id;
     if (!telegramId) return await ctx.reply('Ошибка: не найден Telegram ID пользователя.');
 
-    const employee = await this.employeeForEmployeeService.getEmployeeByTelegramId(telegramId);
+    const employee = await this.employeeSharedService.getEmployeeByTelegramId(telegramId);
     if (!employee) {
       await ctx.reply(
         'Вы не зарегистрированы как сотрудник. Пожалуйста, зарегистрируйтесь через меню.',
@@ -445,7 +445,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
   }
   private async confirmLeaveTheSeller(ctx: EmployeeContext) {
     const telegramId = ctx.state.employee!.telegramId;
-    await this.employeeForEmployeeService.leaveTheEmployer(telegramId);
+    await this.employeeSharedService.leaveTheEmployer(telegramId);
     await ctx.reply('✅ Вы открепились от компании.', Markup.keyboard([[MENU_BUTTONS.main]]).resize());
   }
 
@@ -453,7 +453,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
 
   // работа с данными сотрудника
   private async getEmployeeInfo(ctx: EmployeeContext) {
-    const employeeInfo: EmployeeForEmployeeTelegramBotResponseDto = ctx.state.employee!;
+    const employeeInfo: EmployeeTelegramBotResponseDto = ctx.state.employee!;
 
     const domain = this.configService.get<string>('WEBHOOK_DOMAIN') || 'http://localhost:3000';
     const message = formatEmployeeInfoMessage(employeeInfo);
@@ -508,7 +508,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
   private async handleEditName(ctx: EmployeeContext, name: string) {
     const telegramId = ctx.state.employee!.telegramId;
     try {
-      await this.employeeForEmployeeService.updateEmployeeName(telegramId, name);
+      await this.employeeSharedService.updateEmployeeName(telegramId, name);
       await ctx.reply('✅ Имя изменено.');
     } catch (error) {
       console.error(error);
@@ -530,7 +530,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
   private async handleEditAvatar(ctx: EmployeeContext, fileId: string) {
     const telegramId = ctx.state.employee!.telegramId;
     try {
-      await this.employeeForEmployeeService.updateEmployeeAvatarViaTelegram(telegramId, fileId);
+      await this.employeeSharedService.updateEmployeeAvatarViaTelegram(telegramId, fileId);
       await ctx.reply('✅ Фото изменено.');
     } catch (error) {
       console.error(error);
@@ -546,7 +546,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
   private async getRequests(ctx: EmployeeContext) {
     const telegramId = (ctx.state.employee!.telegramId);
 
-    const requests = await this.employeeForEmployeeService.getEmployeeRequestsByTelegramId(telegramId);
+    const requests = await this.employeeSharedService.getEmployeeRequestsByTelegramId(telegramId);
     if (!requests || requests.length === 0) return await ctx.reply('❌ У вас нет запросов на прекрепление.', Markup.keyboard([[MENU_BUTTONS.main]]).resize());
 
     this.awaitingChoosingEmployeeRequestId.set(telegramId, true);
@@ -572,11 +572,11 @@ export class TelegramEmployeeBotService implements OnModuleInit {
     const isAwaiting  = this.awaitingChoosingEmployeeRequestId.get(telegramId);
     if (!isAwaiting || !choosedRequest) return await ctx.reply('❌ У вас нет запросов на прекрепление.', Markup.keyboard([[MENU_BUTTONS.main]]).resize());
 
-    await this.employeeForEmployeeService.changeEmployeeRequestStatusByEmployee(telegramId, choosedRequest.requestId, newStatus);
+    await this.employeeSharedService.changeEmployeeRequestStatusByEmployee(telegramId, choosedRequest.requestId, newStatus);
     this.clearMaps();
     await ctx.reply('✅ Запрос на прекрепление изменён.');
 
-    const requests = await this.employeeForEmployeeService.getEmployeeRequestsByTelegramId(telegramId);
+    const requests = await this.employeeSharedService.getEmployeeRequestsByTelegramId(telegramId);
     if (!requests || requests.length === 0) return await this.getMainMenu(ctx);
     await this.getRequests(ctx);
   }
@@ -614,7 +614,7 @@ export class TelegramEmployeeBotService implements OnModuleInit {
     this.awaitingChoosingEmployeeRequestId.set(telegramId, true);
     this.awaitingRequestChangeStatus.set(telegramId, { requestId: requestToEmployeeId });
     try {
-      const requestToEmployee = await this.employeeForEmployeeService.getEmployeeRequestById(requestToEmployeeId);
+      const requestToEmployee = await this.employeeSharedService.getEmployeeRequestById(requestToEmployeeId);
       await this.notifyEmployee(
         telegramId,
         `Новый запрос на прекрепление 📍 ${requestToEmployee.from.companyName}#${requestToEmployee.id}`,

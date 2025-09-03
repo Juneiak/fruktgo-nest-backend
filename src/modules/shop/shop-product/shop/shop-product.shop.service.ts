@@ -1,63 +1,39 @@
-
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { Shop } from '../schemas/shop.schema';
+import { Types } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
-import {
-  ShopForShopPreviewResponseDto,
-  ShopProductForShopPreviewResponseDto,
-  ShopProductForShopFullResponseDto,
-  OpenShiftByEmployeeDto,
-  CloseShiftByEmployeeDto,
-  RemoveShopProductImageDto,
-  UpdateShopProductByEmployeeDto,
-  CurrentShopProductsStockDto,
-  CurrentShopProductStockResponseDto
-} from './shop-product.shop.request.dto';
 import { MessageResponseDto } from 'src/common/dtos';
 import { verifyUserStatus } from 'src/common/utils';
-import { ShopStatus } from "src/modules/shop/schemas/shop.schema";
-import { EmployeeStatus } from "src/modules/employee/schemas/employee.schema";
-import { ShopProduct } from '../schemas/shop-product.schema';
 import {checkId} from 'src/common/utils';
-import { Shift } from '../schemas/shift.schema';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
-import { Employee } from 'src/modules/employee/schemas/employee.schema';
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { UploadsService } from 'src/common/modules/uploads/uploads.service';
 import { EntityType, ImageType } from 'src/common/modules/uploads/uploaded-file.schema';
-import { NotificationService } from 'src/modules/notification/notification.service';
-import {AuthenticatedUser, AuthenticatedEmployee, UserType} from 'src/common/types';
-
+import {AuthenticatedUser, AuthenticatedEmployee} from 'src/common/types';
+import { ShopProductStockQueryFilterDto } from './shop-product.shop.filter.dto';
+import { ShopModel } from 'src/modules/shop/schemas/shop.schema';
+import { ShopProductModel } from 'src/modules/shop/schemas/shop-product.schema';
+import { EmployeeModel } from 'src/modules/employee/schemas/employee.schema';
+import {
+  ShopProductFullResponseDto,
+  ShopProductPreviewResponseDto,
+  CurrentShopProductStockResponseDto
+} from './shop-product.shop.response.dto';
+import { RemoveShopProductImageDto } from './shop-product.shop.request.dto';
+import { UpdateShopProductByEmployeeDto } from './shop-product.shop.request.dto';
 
 @Injectable()
-export class ShopForShopService {
+export class ShopProductShopService {
   constructor(
-    @InjectModel('Shop') private shopModel: Model<Shop>,
-    @InjectModel('ShopProduct') private shopProductModel: Model<ShopProduct>,
-    @InjectModel('Shift') private shiftModel: Model<Shift>,
-    @InjectModel('Employee') private employeeModel: Model<Employee>,
+    @InjectModel('Shop') private shopModel: ShopModel,
+    @InjectModel('ShopProduct') private shopProductModel: ShopProductModel,
+    @InjectModel('Employee') private employeeModel: EmployeeModel,
     private logsService: LogsService,
     private uploadsService: UploadsService,
-    private notificationService: NotificationService
   ) {}
   
-  // ====================================================
-  // COMMON 
-  // ====================================================
-  async getShopPreviewInfo(authedShop: AuthenticatedUser): Promise<ShopForShopPreviewResponseDto> {
-    const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).populate('currentShift pinnedEmployees').exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
-  
-    return plainToInstance(ShopForShopPreviewResponseDto, shop, { excludeExtraneousValues: true });
-  }
 
-
-  // ====================================================
-  // SHOP PRODUCTS 
-  // ====================================================
-  async getShopProduct(authedShop: AuthenticatedUser, shopProductId: string): Promise<ShopProductForShopFullResponseDto> {
+  async getShopProduct(authedShop: AuthenticatedUser, shopProductId: string): Promise<ShopProductFullResponseDto> {
     checkId([shopProductId]);
     const foundShopProduct = await this.shopProductModel.findOne({pinnedTo: new Types.ObjectId(authedShop.id), _id: new Types.ObjectId(shopProductId)})
     .select('shopProductId pinnedTo product stockQuantity status images')
@@ -73,18 +49,18 @@ export class ShopForShopService {
     .lean({ virtuals: true }).exec();
     if (!foundShopProduct) throw new NotFoundException('Товар не найден');
     
-    return plainToInstance(ShopProductForShopFullResponseDto, foundShopProduct, { excludeExtraneousValues: true });
+    return plainToInstance(ShopProductFullResponseDto, foundShopProduct, { excludeExtraneousValues: true });
   }
 
 
-  async getShopProducts(authedShop: AuthenticatedUser): Promise<ShopProductForShopPreviewResponseDto[]> {
+  async getShopProducts(authedShop: AuthenticatedUser): Promise<ShopProductPreviewResponseDto[]> {
     const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).lean().exec();
     if (!shop) throw new NotFoundException('Магазин не найден');
 
     const foundShopProducts = await this.shopProductModel.find({ pinnedTo: shop._id }).populate('product').lean({ virtuals: true }).exec();
     if (!foundShopProducts) throw new NotFoundException('Товары не найдены');
     
-    return plainToInstance(ShopProductForShopPreviewResponseDto, foundShopProducts, { excludeExtraneousValues: true });
+    return plainToInstance(ShopProductPreviewResponseDto, foundShopProducts, { excludeExtraneousValues: true });
   }
 
 
@@ -176,7 +152,7 @@ export class ShopForShopService {
     authedEmployee: AuthenticatedEmployee,
     shopProductId: string,
     newShopProductImage: Express.Multer.File
-  ): Promise<ShopProductForShopFullResponseDto> {
+  ): Promise<ShopProductFullResponseDto> {
     // Получаем сессию MongoDB для транзакций
     const session = await this.shopModel.db.startSession();
     
@@ -266,7 +242,7 @@ export class ShopForShopService {
     authedEmployee: AuthenticatedEmployee,
     shopProductId: string,
     dto: UpdateShopProductByEmployeeDto
-  ): Promise<ShopProductForShopFullResponseDto> {
+  ): Promise<ShopProductFullResponseDto> {
     checkId([shopProductId]);
     const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id))
     .select('_id owner currentShift isBlocked verifiedStatus')
@@ -313,16 +289,17 @@ export class ShopForShopService {
       ${dto.comment ? `Комментарий от сотрудника: ${dto.comment}` : ''}`
     );
 
-    return plainToInstance(ShopProductForShopFullResponseDto, foundShopProduct, { excludeExtraneousValues: true });
+    return plainToInstance(ShopProductFullResponseDto, foundShopProduct, { excludeExtraneousValues: true });
   }
 
-  async getShopProductStock(authedShop: AuthenticatedUser, dto: CurrentShopProductsStockDto): Promise<CurrentShopProductStockResponseDto[]> {
+
+  async getShopProductStock(authedShop: AuthenticatedUser, queryFilter: ShopProductStockQueryFilterDto): Promise<CurrentShopProductStockResponseDto[]> {
     // Проверяем магазин
     const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).select('_id').lean().exec();
     if (!shop) throw new NotFoundException('Магазин не найден');
     
     // Преобразуем строковые ID в ObjectId для поиска
-    const shopProductObjectIds = dto.shopProductIds.map(id => new Types.ObjectId(id));
+    const shopProductObjectIds = queryFilter.shopProductIds.map(id => new Types.ObjectId(id));
     
     // Ищем только продукты из списка и выбираем только нужные поля
     const foundShopProducts = await this.shopProductModel
@@ -337,159 +314,4 @@ export class ShopForShopService {
     // Преобразуем в DTO и возвращаем
     return plainToInstance(CurrentShopProductStockResponseDto, foundShopProducts, { excludeExtraneousValues: true });
   }
-  
-
-  // ====================================================
-  // SHIFT
-  // ====================================================
-  async openShiftByEmployee(
-    authedShop: AuthenticatedUser, 
-    authedEmployee: AuthenticatedEmployee, 
-    dto: OpenShiftByEmployeeDto
-  ): Promise<ShopForShopPreviewResponseDto> {
-
-    // Проверяем корректность ID магазина
-    const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).lean().exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
-    verifyUserStatus(shop);
-    
-    // Проверяем права доступа магазина
-    if (!shop._id.equals(new Types.ObjectId(authedShop.id))) throw new ForbiddenException('Недостаточно прав доступа к магазину');
-    
-    // Проверяем существование сотрудника
-    const foundEmployee = await this.employeeModel.findById(new Types.ObjectId(authedEmployee.id)).lean().exec();
-    if (!foundEmployee) throw new NotFoundException('Сотрудник не найден');
-    verifyUserStatus(foundEmployee);
-    
-    // Проверяем, что сотрудник привязан к этому магазину
-    if (foundEmployee.pinnedTo && foundEmployee.pinnedTo.toString() !== shop._id.toString()) throw new ForbiddenException('Сотрудник не привязан к этому магазину');
-    
-    // Проверяем, нет ли уже открытой смены
-    // const existingOpenShift = await this.shiftModel.findOne({
-    //   shop: shop._id,
-    //   closedAt: null
-    // }).lean().exec();
-    
-    // if (existingOpenShift) throw new BadRequestException('У магазина уже есть открытая смена');
-    
-    // Создаем новую смену
-    const newShift = new this.shiftModel({
-      shop: shop._id,
-      openedAt: dto.openAt || new Date(),
-      openComment: dto.comment,
-      openedBy: {
-        employee: foundEmployee._id,
-        employeeName: foundEmployee.employeeName
-      }
-    });
-    
-    const savedShift = await newShift.save();
-    
-    // Обновляем магазин, записывая текущую смену
-    await this.shopModel.findByIdAndUpdate(shop._id, {
-      currentShift: savedShift._id,
-      status: ShopStatus.OPENED
-    }).exec();
-    
-    // Увеличиваем счетчик смен у сотрудника и меняем статус на работает
-    await this.employeeModel.findByIdAndUpdate(foundEmployee._id, {
-      $inc: { totalShifts: 1 },
-      status: EmployeeStatus.WORKING
-    }).exec();
-    
-    // Логирование действия
-    await this.logsService.addShiftLog(savedShift._id.toString(), LogLevel.MEDIUM, 
-      `Смена (${savedShift._id.toString()}) открыта сотрудником ${foundEmployee.employeeName}(${foundEmployee._id.toString()}).
-      Комментарий: ${dto.comment}
-      Дата открытия: ${savedShift.openedAt}`
-    );
-    console.log(savedShift);
-    this.notificationService.notifySellerAboutShiftUpdate(savedShift._id.toString(), true);
-    
-    // Преобразуем и возвращаем объект смены
-    return this.getShopPreviewInfo(authedShop);
-  }
-  
-
-  async closeShiftByEmployee(
-    authedShop: AuthenticatedUser, 
-    authedEmployee: AuthenticatedEmployee,
-    shiftId: string,
-    dto: CloseShiftByEmployeeDto
-  ): Promise<ShopForShopPreviewResponseDto> {
-    // Проверяем корректность ID магазина и смены
-    checkId([shiftId]);
-    
-    // Находим магазин
-    const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).lean().exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
-    
-    // Проверяем права доступа магазина
-    if (!shop._id.equals(new Types.ObjectId(authedShop.id))) throw new ForbiddenException('Недостаточно прав доступа к магазину');
-    
-    // Проверяем существование сотрудника
-    const foundEmployee = await this.employeeModel.findById(new Types.ObjectId(authedEmployee.id)).lean().exec();
-    if (!foundEmployee) throw new NotFoundException('Сотрудник не найден');
-
-    // Проверяем статус сотрудника
-    verifyUserStatus(foundEmployee);
-    // Проверяем, что сотрудник привязан к этому магазину
-    if (foundEmployee.pinnedTo && foundEmployee.pinnedTo.toString() !== shop._id.toString()) throw new ForbiddenException('Сотрудник не привязан к этому магазину');
-    
-    // Получаем смену по ID
-    const shift = await this.shiftModel.findById(new Types.ObjectId(shiftId)).exec();
-    if (!shift) throw new NotFoundException('Смена не найдена');
-    
-    // Проверяем, что смена принадлежит этому магазину
-    if (shift.shop.toString() !== shop._id.toString()) throw new ForbiddenException('Смена не принадлежит этому магазину');
-  
-    // Проверяем, что смена является текущей для магазина
-    if (!shop.currentShift || shop.currentShift.toString() !== shift._id.toString()) throw new BadRequestException('Эта смена не является текущей для магазина');
-    
-    // Проверяем закрыта ли смена по наличию даты закрытия
-    if (shift.closedAt) throw new BadRequestException('Смена уже закрыта');
-    
-    
-    // Обновляем смену
-    shift.closedAt = dto.closeAt || new Date();
-    shift.closeComment = dto.comment;
-    shift.closedBy = {
-      employee: foundEmployee._id,
-      employeeName: foundEmployee.employeeName
-    };
-    // Добавляем комментарий в логи, так как у схемы Shift нет поля comment
-    // И также нет поля status
-    
-    // У схемы Shift нет поля logs, логи добавляются через сервис shopsCommonService
-    
-    await shift.save();
-    
-    // Обновляем магазин, очищая текущую смену
-    await this.shopModel.findByIdAndUpdate(shop._id, {
-      currentShift: null,
-      status: ShopStatus.CLOSED
-    }).exec();
-    
-    // Логирование действия в логах смены
-    await this.logsService.addShiftLog(shift._id.toString(), LogLevel.MEDIUM, 
-      `Смена (${shift._id.toString()}) закрыта сотрудником ${foundEmployee.employeeName}(${foundEmployee._id.toString()}).
-      Дата закрытия: ${shift.closedAt}
-      Комментарий: ${dto.comment || ''}`
-    );
-    
-    // Логирование действия в логах магазина
-    await this.logsService.addShopLog(shop._id.toString(), LogLevel.MEDIUM, 
-      `Смена (${shift._id.toString()}) закрыта сотрудником ${foundEmployee.employeeName}(${foundEmployee._id.toString()}).
-      Дата закрытия: ${shift.closedAt}
-      Статус магазина изменен на: ${ShopStatus.CLOSED}
-      Комментарий: ${dto.comment || ''}`
-    );
-
-    this.notificationService.notifySellerAboutShiftUpdate(shift._id.toString(), false);
-
-    // Преобразуем и возвращаем объект смены
-    return this.getShopPreviewInfo(authedShop);
-  }
-
-    
 }

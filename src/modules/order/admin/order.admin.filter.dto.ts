@@ -3,7 +3,7 @@ import { IsEnum, IsOptional, IsString, IsDateString } from 'class-validator';
 import { OrderStatus } from '../order.schema';
 
 
-export class OrderFilterDto {
+export class OrderQueryFilterDto {
   @ApiPropertyOptional({ description: 'ID клиента для фильтрации заказов' })
   @IsString()
   @IsOptional()
