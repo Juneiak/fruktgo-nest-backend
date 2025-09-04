@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
-import { ShiftModel } from '../../schemas/shift.schema';
+import { ShiftModel } from '../shift.schema';
 import { plainToInstance } from 'class-transformer';
 import { checkId } from "src/common/utils";
 import { LogsService } from 'src/common/modules/logs/logs.service';

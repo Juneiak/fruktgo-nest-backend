@@ -11,9 +11,9 @@ import { UploadsService } from 'src/common/modules/uploads/uploads.service';
 import { EntityType, ImageType } from 'src/common/modules/uploads/uploaded-file.schema';
 import {AuthenticatedUser, AuthenticatedEmployee} from 'src/common/types';
 import { ShopProductStockQueryFilterDto } from './shop-product.shop.filter.dto';
-import { ShopModel } from 'src/modules/shop/schemas/shop.schema';
-import { ShopProductModel } from 'src/modules/shop/schemas/shop-product.schema';
-import { EmployeeModel } from 'src/modules/employee/schemas/employee.schema';
+import { ShopModel } from 'src/modules/shop/shop/shop.schema';
+import { ShopProductModel } from 'src/modules/shop/shop-product/shop-product.schema';
+import { EmployeeModel } from 'src/modules/employee/employee.schema';
 import {
   ShopProductFullResponseDto,
   ShopProductPreviewResponseDto,

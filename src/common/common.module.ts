@@ -10,11 +10,11 @@ import { TypeGuard } from './guards/type.guard';
 
 import { ProductSchema } from 'src/modules/product/product.schema';
 import { OrderSchema } from 'src/modules/order/order.schema';
-import { ShopSchema } from 'src/modules/shop/schemas/shop.schema';
-import { EmployeeSchema } from 'src/modules/employee/schemas/employee.schema';
-import { RequestToEmployeeSchema } from 'src/modules/employee/schemas/request-to-employee.schema';
-import { ShiftSchema } from 'src/modules/shop/schemas/shift.schema';
-import { ShopProductSchema } from 'src/modules/shop/schemas/shop-product.schema';
+import { ShopSchema } from 'src/modules/shop/shop/shop.schema';
+import { EmployeeSchema } from 'src/modules/employee/employee.schema';
+import { RequestToEmployeeSchema } from 'src/modules/employee/request-to-employee.schema';
+import { ShiftSchema } from 'src/modules/shop/shift/shift.schema';
+import { ShopProductSchema } from 'src/modules/shop/shop-product/shop-product.schema';
 import { CartSchema } from 'src/modules/customer/schemas/cart.schema';
 import { CustomerSchema } from 'src/modules/customer/schemas/customer.schema';
 import { SellerSchema } from 'src/modules/seller/seller.schema';

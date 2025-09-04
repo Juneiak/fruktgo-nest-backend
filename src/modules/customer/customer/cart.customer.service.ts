@@ -16,8 +16,8 @@ import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { Types } from 'mongoose';
 import { MessageResponseDto } from 'src/common/dtos';
-import { ShopProduct } from 'src/modules/shop/schemas/shop-product.schema';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
+import { ShopProduct } from 'src/modules/shop/shop-product/shop-product.schema';
+import { Shop } from 'src/modules/shop/shop/shop.schema';
 
 
 @Injectable()

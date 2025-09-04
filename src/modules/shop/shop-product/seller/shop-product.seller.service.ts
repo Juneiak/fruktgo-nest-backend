@@ -7,7 +7,7 @@ import { plainToInstance } from 'class-transformer';
 import { UpdateShopProductDto } from './shop-product.seller.request.dto';
 import { SellerModel } from 'src/modules/seller/seller.schema';
 import { verifyUserStatus } from 'src/common/utils';
-import { ShopProductModel, ShopProductStatus } from "src/modules/shop/schemas/shop-product.schema";
+import { ShopProductModel, ShopProductStatus } from "src/modules/shop/shop-product/shop-product.schema";
 import { ShopProductResponseDto } from './shop-product.seller.response.dto';
 import { ProductModel } from 'src/modules/product/product.schema';
 import { MessageResponseDto } from 'src/common/dtos';
@@ -16,7 +16,7 @@ import { LogsService } from 'src/common/modules/logs/logs.service';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
 import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
-import { ShopModel } from '../../schemas/shop.schema';
+import { ShopModel } from '../../shop/shop.schema';
 
 @Injectable()
 export class ShopProductSellerService {

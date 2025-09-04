@@ -5,7 +5,7 @@ import { plainToInstance } from 'class-transformer';
 import { ProductMeasuringScale } from "src/modules/product/product.schema";
 import { MIN_WEIGHT_PERCENTAGE } from 'src/common/constants';
 
-import { ShopModel } from 'src/modules/shop/schemas/shop.schema';
+import { ShopModel } from 'src/modules/shop/shop/shop.schema';
 import { OrderModel, OrderStatus } from 'src/modules/order/order.schema';
 import {
   DeclineOrderByEmployeeDto,
@@ -14,7 +14,7 @@ import {
   CompleteOrderAssemblyByEmployeeDto
 } from './order.shop.request.dto';
 import { OrderPreviewResponseDto, OrderFullResponseDto } from './order.shop.response.dto';
-import { EmployeeModel } from 'src/modules/employee/schemas/employee.schema';
+import { EmployeeModel } from 'src/modules/employee/employee.schema';
 import { checkId, verifyUserStatus } from 'src/common/utils';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import {AuthenticatedEmployee, AuthenticatedUser} from 'src/common/types';

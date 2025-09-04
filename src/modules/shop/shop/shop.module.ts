@@ -1,6 +1,5 @@
 import { Module, forwardRef} from '@nestjs/common';
 
-import { OrderModule } from 'src/modules/order/order.module'
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { UploadsModule } from 'src/common/modules/uploads/uploads.module';
 import { ShopSellerController } from './seller/shop.seller.controller';
@@ -14,7 +13,6 @@ import { ShopSharedService } from './shared/shop.shared.service'
 
 @Module({
   imports: [
-    forwardRef(() => OrderModule),
     forwardRef(() => NotificationModule),
     forwardRef(() => UploadsModule)
   ],

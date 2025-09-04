@@ -1,9 +1,9 @@
 
 import { IsEnum, IsString } from 'class-validator';
 import { Expose, Type } from 'class-transformer';
-import { RequestToEmployeeStatus } from "src/modules/employee/schemas/request-to-employee.schema";
+import { RequestToEmployeeStatus } from "src/modules/employee/request-to-employee.schema";
 import { VerifiedStatus, UserSex } from 'src/common/types';
-import { EmployeeStatus } from 'src/modules/employee/schemas/employee.schema';
+import { EmployeeStatus } from 'src/modules/employee/employee.schema';
 
 class ShopDto {
   @Expose() @Type(() => String) shopId: string;

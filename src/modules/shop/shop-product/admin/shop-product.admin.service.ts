@@ -10,7 +10,7 @@ import {
 import { checkId } from "src/common/utils";
 import {AuthenticatedUser} from 'src/common/types';
 import { PaginatedResponseDto, PaginationMetaDto, PaginationQueryDto } from 'src/common/dtos';
-import { ShopProductModel } from '../../schemas/shop-product.schema';
+import { ShopProductModel } from '../shop-product.schema';
 
 @Injectable()
 export class ShopProductAdminService {

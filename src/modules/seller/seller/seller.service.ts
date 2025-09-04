@@ -12,7 +12,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { UpdateSellerDto } from './seller.request.dtos';
 import { UploadsService } from 'src/common/modules/uploads/uploads.service';
 import { EntityType, ImageType } from 'src/common/modules/uploads/uploaded-file.schema';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
+import { Shop } from 'src/modules/shop/shop/shop.schema';
 
 @Injectable()
 export class SellerService {

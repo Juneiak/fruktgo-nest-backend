@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
-import { ShopStatus } from 'src/modules/shop/schemas/shop.schema';
+import { ShopStatus } from 'src/modules/shop/shop/shop.schema';
 import { Types } from 'mongoose';
 
 class OwnerDto {
@@ -37,6 +37,9 @@ export class ShopPreviewResponseDto {
   @Expose() createdAt: Date;
   @Expose() currentShift: string;
   @Expose() internalNote: string | null;
+  @Expose() acceptanceTimeLimit: number;
+  @Expose() assemblyTimeLimit: number;
+  @Expose() minWeightPercentage: number;
 };
 
 class PinnedEmployeeDto {
@@ -87,4 +90,7 @@ export class ShopFullResponseDto {
   @Expose() currentShift: any | null;
   @Expose() activeOrders: any[];
   @Expose() internalNote: string | null;
+  @Expose() acceptanceTimeLimit: number;
+  @Expose() assemblyTimeLimit: number;
+  @Expose() minWeightPercentage: number;
 };

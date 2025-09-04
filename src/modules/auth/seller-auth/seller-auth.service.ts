@@ -8,7 +8,7 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { SellerLoginCode } from './seller-login-code.schema';
 import { ShopLoginCode } from './shop-login-code.schema';
 import { Seller } from 'src/modules/seller/seller.schema';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
+import { Shop } from 'src/modules/shop/shop/shop.schema';
 import { SellerAuthGateway } from './seller-auth.gateway';
 import {
   SELLER_AUTH_CODE_EXPIRES_IN,

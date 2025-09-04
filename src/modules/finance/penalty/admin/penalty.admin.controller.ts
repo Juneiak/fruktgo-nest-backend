@@ -11,10 +11,11 @@ import { GetUser } from 'src/common/decorators/user.decorator';
 import { PenaltyAdminService } from './penalty.admin.service';
 import {
   CreatePenaltyDto,
-  PenaltyFilterQueryDto,
   UpdatePenaltyDto, 
-  FinalizePenaltyDto} from './penalty.admin.request.dto';
+  FinalizePenaltyDto
+} from './penalty.admin.request.dto';
 import { PenaltyResponseDto } from './penalty.admin.response.dto';
+import { PenaltyFilterQueryDto } from './penalty.admin.filter.dto';
 
 
 @ApiTags('for admin')

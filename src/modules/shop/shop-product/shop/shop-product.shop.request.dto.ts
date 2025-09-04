@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, IsArray } from 'class-validator';
-import { ShopProductStatus } from "src/modules/shop/schemas/shop-product.schema";
+import { ShopProductStatus } from "src/modules/shop/shop-product/shop-product.schema";
 
 export class RemoveShopProductImageDto {
   @IsString()

@@ -21,6 +21,7 @@ export class BlogPublicController {
     return this.blogPublicService.getPublishedArticle(articleId);
   }
 
+
   @ApiOperation({ summary: 'Получить список опубликованных статей' })
   @Get('/articles')
   async getPublishedArticles(

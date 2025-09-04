@@ -1,6 +1,15 @@
 import { Expose, Type } from 'class-transformer';
+import { BlockStatus } from 'src/common/enums/common.enum';
 import { VerifiedStatus } from 'src/common/types';
 
+export class BlockedDto {
+  @Expose() status: BlockStatus;
+  @Expose() reason?: string | null;
+  @Expose() code?: string | null;
+  @Expose() by?: string | null;
+  @Expose() blockedAt?: Date | null;
+  @Expose() blockedUntil?: Date | null;
+}
 export class AddressDto {
   @Expose() addressId: string;
   @Expose() address: string;
@@ -18,7 +27,7 @@ export class CustomerPreviewResponseDto {
   @Expose() telegramLastName?: string;
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
-  @Expose() isBlocked: boolean;
+  @Expose() blocked: BlockedDto;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() customerName: string;
   @Expose() sex?: string | null;
@@ -41,7 +50,7 @@ export class CustomerFullResponseDto {
   @Expose() telegramLastName?: string;
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
-  @Expose() isBlocked: boolean;
+  @Expose() blocked: BlockedDto;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() customerName: string;
   @Expose() sex?: string | null;

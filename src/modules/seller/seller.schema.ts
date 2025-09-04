@@ -3,7 +3,9 @@ import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus } from 'src/common/types';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { RequestToEmployee } from 'src/modules/employee/schemas/request-to-employee.schema'
+import { RequestToEmployee } from 'src/modules/employee/request-to-employee.schema'
+import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
+import { BlockStatus } from 'src/common/enums/common.enum';
 
   
 @Schema({
@@ -48,8 +50,8 @@ export class Seller {
   @Prop({ type: String, required: false, default: null })
   email?: string | null;
 
-  @Prop({ type: Boolean, default: false, required: true })
-  isBlocked: boolean;
+  @Prop({ type: BlockedSchema, required: true, _id: false, default: { status: BlockStatus.ACTIVE }})
+  blocked: Blocked;
 
   @Prop({ type: String, enum: VerifiedStatus, default: VerifiedStatus.IS_CHECKING, required: true })
   verifiedStatus: VerifiedStatus;
@@ -98,13 +100,6 @@ SellerSchema.virtual('requestsToEmployees', {
   ref: 'RequestToEmployee',
   localField: '_id',
   foreignField: 'from',
-  justOne: false
-});
-
-SellerSchema.virtual('products', {
-  ref: 'Product',
-  localField: '_id',
-  foreignField: 'owner',
   justOne: false
 });
 

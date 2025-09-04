@@ -29,7 +29,7 @@ export class SellerController {
     return this.sellerService.getFullSeller(authedSeller);
   }
 
-  
+
   @ApiOperation({summary: 'Получает краткую информацию о продавце'})
   @Get('preview')
   getSellerPreview(

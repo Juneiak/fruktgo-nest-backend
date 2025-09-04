@@ -22,7 +22,7 @@ import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
 export class ShiftAdminController {
   constructor(private readonly shiftAdminService: ShiftAdminService) {}
 
-  @ApiOperation({summary: 'Получает превью смен магазина с пагинацией'})
+  @ApiOperation({summary: 'Получает превью смен с пагинацией'})
   @Get('/shifts')
   getShifts(
     @GetUser() authedAdmin: AuthenticatedUser,

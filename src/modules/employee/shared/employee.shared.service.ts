@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorException} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Employee } from '../schemas/employee.schema';
+import { Employee } from '../employee.schema';
 import { plainToInstance } from 'class-transformer';
 import {
   EmployeeResponseDto,
@@ -12,20 +12,18 @@ import { UploadsService } from 'src/common/modules/uploads/uploads.service';
 import { EntityType } from 'src/common/modules/uploads/uploaded-file.schema';
 import axios from 'axios';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
-import { RequestToEmployee } from '../schemas/request-to-employee.schema';
+import { RequestToEmployee } from '../request-to-employee.schema';
 import { verifyUserStatus } from 'src/common/utils';
-import { Shift } from 'src/modules/shop/schemas/shift.schema';
 import {LogsService} from 'src/common/modules/logs/logs.service';
 import * as path from 'path';
-import { EmployeeStatus } from 'src/modules/employee/schemas/employee.schema';
-import { RequestToEmployeeStatus } from 'src/modules/employee/schemas/request-to-employee.schema';
+import { EmployeeStatus } from 'src/modules/employee/employee.schema';
+import { RequestToEmployeeStatus } from 'src/modules/employee/request-to-employee.schema';
 
 @Injectable()
 export class EmployeeSharedService {
   constructor(
     @InjectModel('Employee') private employeeModel: Model<Employee>,
     @InjectModel('RequestToEmployee') private requestToEmployeeModel: Model<RequestToEmployee>,
-    @InjectModel('Shift') private shiftModel: Model<Shift>,
 
     private readonly uploadsService: UploadsService,
     private readonly logsService: LogsService
@@ -105,10 +103,7 @@ export class EmployeeSharedService {
     verifyUserStatus(employee);
 
     if (!employee.employer) throw new ForbiddenException('Сотрудник не имеет привязанного работодателя');
-    if (employee.pinnedTo) {
-      const shift = await this.shiftModel.findOne({ shop: employee.pinnedTo, 'openedBy.employee': employee._id }).select('_id').exec();
-      if (shift) throw new ForbiddenException('У сотрудника есть открытая смена, нужно её закрыть');
-    }
+    if (employee.openedShift) throw new ForbiddenException('У сотрудника есть открытая смена, нужно её закрыть');
 
     const oldEmployerId = employee.employer.toString();
     const oldShopId = employee.pinnedTo?.toString() || null;

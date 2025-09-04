@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
-import { ShopStatus } from 'src/modules/shop/schemas/shop.schema';
-import { ShopProductStatus } from 'src/modules/shop/schemas/shop-product.schema';
+import { ShopStatus } from 'src/modules/shop/shop/shop.schema';
+import { ShopProductStatus } from 'src/modules/shop/shop-product/shop-product.schema';
 import { ProductMeasuringScale } from 'src/modules/product/product.schema';
 import { Types } from 'mongoose';
 import { ProductCategory, ProductStepRate } from 'src/modules/product/product.schema';

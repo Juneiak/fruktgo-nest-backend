@@ -15,7 +15,7 @@ import { SupportService } from 'src/modules/support/support.service';
 import {IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';
 import * as moment from 'moment';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
-import { Shift } from 'src/modules/shop/schemas/shift.schema';
+import { Shift } from 'src/modules/shop/shift/shift.schema';
 import { formatIssueMessage, formatShiftMessage } from './utils';
 import { message } from 'telegraf/filters';
      

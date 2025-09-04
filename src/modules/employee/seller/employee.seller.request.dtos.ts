@@ -4,19 +4,19 @@ import { IsValidPhoneNumber } from 'src/common/validators';
 export class UpdateEmployeeDto {
   @IsString()
   @IsOptional()
-  position: string | null;
+  position?: string;
   
   @IsNumber()
   @IsOptional()
-  salary: number | null;
+  salary?: number;
   
   @IsString()
   @IsOptional()
-  pinnedTo: string;
+  pinnedTo?: string | null;
   
   @IsString()
   @IsOptional()
-  sellerNote: string | null;
+  sellerNote?: string;
 }
 
 

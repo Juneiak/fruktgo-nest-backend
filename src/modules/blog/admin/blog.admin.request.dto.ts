@@ -16,7 +16,8 @@ export class CreateArticleDto {
 
   @IsEnum(ArticleTargetAudience)
   @Transform(transformDtoToFormDataString)
-  targetAudience: ArticleTargetAudience;
+  @IsOptional()
+  targetAudience?: ArticleTargetAudience;
 }
 
 

@@ -3,10 +3,12 @@ import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus, UserSex } from 'src/common/types';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { Seller } from 'src/modules/seller/seller.schema';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
+import { Shop } from 'src/modules/shop/shop/shop.schema';
 import { RequestToEmployee } from './request-to-employee.schema';
-import { Shift } from 'src/modules/shop/schemas/shift.schema';
+import { Shift } from 'src/modules/shop/shift/shift.schema';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
+import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
+import { BlockStatus } from 'src/common/enums/common.enum';
 
 export enum EmployeeStatus {
   WORKING='working',
@@ -21,15 +23,13 @@ export enum EmployeeStatus {
   id: false,
 })
 export class Employee {
-
   _id: Types.ObjectId;
-  // virtuals (TS-объявления)
   readonly employeeId: string;
   createdAt: Date;
   updatedAt: Date;
 
-  @Prop({ type: Boolean, required: true, default: false })
-  isBlocked: boolean;
+  @Prop({ type: BlockedSchema, required: true, _id: false, default: { status: BlockStatus.ACTIVE }})
+  blocked: Blocked;
 
   @Prop({ type: String, enum: Object.values(VerifiedStatus), default: VerifiedStatus.IS_CHECKING, required: true })
   verifiedStatus: VerifiedStatus;
@@ -96,9 +96,6 @@ export class Employee {
 
   @Prop({ type: Types.ObjectId, ref: 'Shift', required: false, default: null })
   openedShift?: Types.ObjectId | Shift | null;
-
-  // virtuals (TS-объявления)
-  readonly requestsFromSellers?: RequestToEmployee[];
 }
 
 export const EmployeeSchema = SchemaFactory.createForClass(Employee);
@@ -107,13 +104,6 @@ EmployeeSchema.plugin(mongoosePaginate);
 
 EmployeeSchema.virtual('employeeId').get(function (this: Employee): string {
   return this._id.toString();
-});
-
-EmployeeSchema.virtual('requestsFromSellers', {
-  ref: 'RequestToEmployee',
-  localField: '_id',
-  foreignField: 'to',
-  justOne: false
 });
 
 export type EmployeeDocument = HydratedDocument<Employee>;

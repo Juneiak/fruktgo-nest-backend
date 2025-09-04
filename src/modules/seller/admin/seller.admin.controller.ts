@@ -4,10 +4,10 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
 import {
-  SellerForAdminPreviewResponseDto,
-  SellerForAdminFullResponseDto,
-  UpdateSellerByAdminDto
-} from './seller.admin.dtos';
+  SellerPreviewResponseDto,
+  SellerFullResponseDto,
+} from './seller.admin.response.dto';
+import { UpdateSellerByAdminDto } from './seller.admin.request.dto';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
@@ -28,7 +28,7 @@ export class SellerAdminController {
   getAllSellers(
     @GetUser() authedAdmin: AuthenticatedUser,
     @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<SellerForAdminPreviewResponseDto>> {
+  ): Promise<PaginatedResponseDto<SellerPreviewResponseDto>> {
     return this.sellerAdminService.getSellers(authedAdmin, paginationQuery);
   }
 
@@ -38,7 +38,7 @@ export class SellerAdminController {
   getCurrentSeller(
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('sellerId') sellerId: string
-  ): Promise<SellerForAdminFullResponseDto> {
+  ): Promise<SellerFullResponseDto> {
     return this.sellerAdminService.getSeller(authedAdmin, sellerId);
   }
 
@@ -59,7 +59,7 @@ export class SellerAdminController {
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('sellerId') sellerId: string,
     @Body() dto: UpdateSellerByAdminDto
-  ): Promise<SellerForAdminFullResponseDto> {
+  ): Promise<SellerFullResponseDto> {
     return this.sellerAdminService.updateSeller(authedAdmin, sellerId, dto);
   }
 

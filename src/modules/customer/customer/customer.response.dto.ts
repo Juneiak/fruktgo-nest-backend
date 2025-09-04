@@ -1,9 +1,18 @@
 import { VerifiedStatus } from 'src/common/types';
 import { Expose, Type } from 'class-transformer';
 import { OrderStatus } from 'src/modules/order/order.schema';
+import { BlockStatus } from 'src/common/enums/common.enum';
 
+class BlockedDto {
+  @Expose() status: BlockStatus;
+  @Expose() reason?: string | null;
+  @Expose() code?: string | null;
+  @Expose() by?: string | null;
+  @Expose() blockedAt?: Date | null;
+  @Expose() blockedUntil?: Date | null;
+}
 
-export class AddressResponseDto {
+class AddresseDto {
   @Expose() id: string;
   @Expose() city: string;
   @Expose() street: string;
@@ -15,7 +24,6 @@ export class AddressResponseDto {
   @Expose() address: string;
   @Expose() latitude?: number;
   @Expose() longitude?: number;
-  @Expose() isSelected: boolean;
 }
 
 class OrderFinanceInfoDto {
@@ -30,7 +38,8 @@ class OrderDto {
 
 export class CustomerResponseDto {
   @Expose() customerId: string;
-  @Expose() isBlocked: boolean;
+  @Expose() blocked: BlockedDto;
+  @Expose() selectedAddressId: AddresseDto;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() customerName: string;
   @Expose() telegramId: number;
@@ -38,15 +47,16 @@ export class CustomerResponseDto {
   @Expose() sex?: string | null;
   @Expose() birthDate?: Date | null;
   @Expose() bonusPoints: number;
-  @Expose() @Type(() => AddressResponseDto) savedAddresses: AddressResponseDto[] | [];
+  @Expose() @Type(() => AddresseDto) savedAddresses: AddresseDto[] | [];
   @Expose() @Type(() => OrderDto) activeOrders: OrderDto[] | [];
 }
 
 export class CustomerPreviewResponseDto {
-  @Expose() isBlocked: boolean;
+  @Expose() blocked: BlockedDto;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() customerName: string;
   @Expose() phone: string;
+  @Expose() selectedAddressId: AddresseDto;
   @Expose() bonusPoints: number;
   @Expose() telegramUsername?: string;
   @Expose() telegramId: number;

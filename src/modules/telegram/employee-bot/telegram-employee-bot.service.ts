@@ -11,7 +11,7 @@ import { EmployeeTelegramBotResponseDto } from 'src/modules/employee/shared/empl
 import { EMPLOYEE_BOT_LOGIN_TO_SHOP_PREFIX } from 'src/common/constants';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
 import { Order } from 'src/modules/order/order.schema';
-import {RequestToEmployeeStatus} from 'src/modules/employee/schemas/request-to-employee.schema'
+import {RequestToEmployeeStatus} from 'src/modules/employee/request-to-employee.schema'
 import {EmployeeLoginCode} from 'src/modules/auth/employee-auth/employee-login-code.schema'
 import { setupWebhook } from "../telegram-utils"
 import { EmployeeSharedService } from 'src/modules/employee/shared/employee.shared.service';

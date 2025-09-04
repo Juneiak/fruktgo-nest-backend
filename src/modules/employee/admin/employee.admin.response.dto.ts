@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { UserSex, VerifiedStatus } from 'src/common/types';
-import { EmployeeStatus } from 'src/modules/employee/schemas/employee.schema';
+import { EmployeeStatus } from 'src/modules/employee/employee.schema';
 import {ShiftStatisticsDto} from 'src/modules/shop/shop.dtos';
 
 class EmployerDto {
@@ -63,18 +63,4 @@ export class EmployeeFullResponseDto {
   @Expose() @Type(() => PinnedToDto) pinnedTo: PinnedToDto;
   @Expose() @Type(() => EmployerDto) employer: EmployerDto;
   @Expose() lastLoginAt?: Date;
-}
-
-
-class ShopDto {
-  @Expose() shopId: string;
-  @Expose() shopName: string;
-}
-
-export class EmployeeShiftPreviewResponseDto {
-  @Expose() shiftId: string;
-  @Expose() @Type(() => ShopDto) shop: ShopDto;
-  @Expose() openedAt: Date;
-  @Expose() closedAt: Date | null;
-  @Expose() @Type(() => ShiftStatisticsDto) statistics: ShiftStatisticsDto;
 }

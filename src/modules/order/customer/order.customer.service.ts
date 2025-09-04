@@ -3,8 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
-import { ShopProduct } from "src/modules/shop/schemas/shop-product.schema";
-import { Shop } from "src/modules/shop/schemas/shop.schema";
+import { ShopProduct } from "src/modules/shop/shop-product/shop-product.schema";
+import { Shop } from "src/modules/shop/shop/shop.schema";
 import { Customer } from "src/modules/customer/schemas/customer.schema";
 import {
   CreateOrderDto,
@@ -28,7 +28,7 @@ import {OrderStatus} from 'src/modules/order/order.schema'
 import { transformOrderToPreview } from './utils';
 import {AuthenticatedUser} from 'src/common/types';
 import { SYSTEM_TAX } from 'src/common/constants';
-import { Shift } from 'src/modules/shop/schemas/shift.schema';
+import { Shift } from 'src/modules/shop/shift/shift.schema';
 
 @Injectable()
 export class OrderCustomerService {

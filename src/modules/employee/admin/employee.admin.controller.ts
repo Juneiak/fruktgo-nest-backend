@@ -1,11 +1,9 @@
 import { Controller, Patch, Body, Get, Param, UseGuards, Query } from '@nestjs/common';
 import { EmployeeAdminService } from './employee.admin.service';
-
 import { ApiBearerAuth, ApiTags, ApiOperation} from '@nestjs/swagger';
 import {
   EmployeeFullResponseDto,
   EmployeePreviewResponseDto,
-  EmployeeShiftPreviewResponseDto,
 } from './employee.admin.response.dto';
 import { UpdateEmployeeDto } from './employee.admin.request.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -15,6 +13,7 @@ import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { BlockDto } from 'src/common/dtos/block.dto';
 
 
 @ApiTags('for admin')
@@ -56,6 +55,17 @@ export class EmployeeAdminController {
   }
 
 
+  @ApiOperation({summary: 'блокировка сотрудника'})
+  @Patch('/:employeeId/block')
+  blockEmployee(
+    @GetUser() authedAdmin: AuthenticatedUser,
+    @Param('employeeId') employeeId: string,
+    @Body() dto: BlockDto
+  ): Promise<EmployeeFullResponseDto> {
+    return this.employeeAdminService.blockEmployee(authedAdmin, employeeId, dto);
+  }
+
+
   @ApiOperation({summary: 'возвращает логи сотрудника'})
   @Get('/:employeeId/logs')
   getEmployeeLogs(
@@ -64,16 +74,5 @@ export class EmployeeAdminController {
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedLogDto> {
     return this.employeeAdminService.getEmployeeLogs(authedAdmin, employeeId, paginationQuery);
-  }
-
-
-  @ApiOperation({summary: 'Возвращает список смен, открытых сотрудником, с пагинацией'})
-  @Get('/:employeeId/shifts')
-  getCurrentEmployeeShifts(
-    @GetUser() authedAdmin: AuthenticatedUser,
-    @Param('employeeId') employeeId: string,
-    @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<EmployeeShiftPreviewResponseDto>> {
-    return this.employeeAdminService.getEmployeeShifts(authedAdmin, employeeId, paginationQuery);
   }
 }

@@ -1,5 +1,5 @@
 import { Expose, Type } from 'class-transformer';
-import { OpenedBy, ClosedBy, Statistics } from '../../schemas/shift.schema';
+import { OpenedBy, ClosedBy, Statistics } from '../shift.schema';
 import { OrderDeliveryInfoDto, OrderedByDto, OrderFinanceInfoDto, OrderRatingDto } from 'src/modules/order/order.dtos';
 import { OrderStatus } from 'src/modules/order/order.schema';
 

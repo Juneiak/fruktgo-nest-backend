@@ -23,7 +23,6 @@ export class EmployeeSellerController {
   // ====================================================
   // REQUESTS TO EMPLOYEE
   // ====================================================
-
   @ApiOperation({summary: 'Получает запросы селлеров к сотрудникам'})
   @Get('/requests')
   getSellerRequestsToEmployees(
@@ -52,7 +51,7 @@ export class EmployeeSellerController {
     return this.employeeSellerService.deleteRequestToEmployee(authedSeller, requestToEmployeeId);
   }
 
-  
+
 
   // ====================================================
   // EMPLOYEES
@@ -77,6 +76,7 @@ export class EmployeeSellerController {
     return this.employeeSellerService.getSellerEmployee(authedSeller, employeeId);
   }
 
+
   @ApiOperation({summary: 'Обновление информации о сотруднике'})
   @Patch('/:employeeId')
   updateSellerEmployee(
@@ -96,16 +96,4 @@ export class EmployeeSellerController {
   ): Promise<EmployeeResponseDto> {
     return this.employeeSellerService.unpinEmployeeFromSeller(authedSeller, employeeId);
   }
-
-
-  @ApiOperation({summary: 'Открепить сотрудника от магазина'})
-  @Delete('/employees/unpin')
-  unpinEmployeeFromShop(
-    @Param('shopId') shopId: string,
-    @Param('employeeId') employeeId: string,
-    @GetUser() authedSeller: AuthenticatedUser,
-  ): Promise<MessageResponseDto> {
-    return this.employeeSellerService.unpinEmployeeFromShop(authedSeller, employeeId);
-  }
-
 };

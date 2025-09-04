@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { ProductCategory, ProductMeasuringScale, ProductStepRate } from "src/modules/product/product.schema";
-import {ShopProductStatus} from 'src/modules/shop/schemas/shop-product.schema'
+import {ShopProductStatus} from 'src/modules/shop/shop-product/shop-product.schema'
 import { Types } from 'mongoose';
 
 export class ProductPreviewResponseDto {

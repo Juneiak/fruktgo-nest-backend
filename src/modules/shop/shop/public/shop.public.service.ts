@@ -2,7 +2,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
-import { ShopModel } from '../../schemas/shop.schema';
+import { ShopModel } from '../shop.schema';
 import { plainToInstance } from 'class-transformer';
 import {
   ShopPreviewResponseDto, 

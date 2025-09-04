@@ -5,8 +5,8 @@ import { PaginationQueryDto, PaginationMetaDto, PaginatedResponseDto } from "src
 import { plainToInstance } from 'class-transformer';
 import { ShiftPreviewResponseDto, ShiftFullResponseDto } from './shift.seller.response.dto';
 import { checkId } from 'src/common/utils';
-import { ShiftModel } from '../../schemas/shift.schema';
-import { ShopModel } from '../../schemas/shop.schema';
+import { ShiftModel } from '../shift.schema';
+import { ShopModel } from '../../shop/shop.schema';
 import { AuthenticatedUser } from 'src/common/types';
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';

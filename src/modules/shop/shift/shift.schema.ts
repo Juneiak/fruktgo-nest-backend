@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
+import { Shop } from 'src/modules/shop/shop/shop.schema';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 
 
@@ -88,9 +88,6 @@ export class Shift {
 
   @Prop({ type: StatisticsSchema, required: true, default: {} })
   statistics: Statistics;
-
-  // virtuals (TS-объявления)
-  readonly orders?: any[];
 }
 
 export const ShiftSchema = SchemaFactory.createForClass(Shift);
@@ -99,13 +96,6 @@ ShiftSchema.plugin(mongoosePaginate);
 
 ShiftSchema.virtual('shiftId').get(function (this: Shift): string {
   return this._id.toString();
-});
-
-ShiftSchema.virtual('orders', {
-  ref: 'Order',
-  localField: '_id',
-  foreignField: 'shift',
-  justOne: false
 });
 
 export type ShiftDocument = HydratedDocument<Shift>;

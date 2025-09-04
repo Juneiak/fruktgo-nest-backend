@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
 import { Seller } from 'src/modules/seller/seller.schema';
-import { Shift } from '../../schemas/shift.schema';
+import { Shift } from '../shift.schema';
 import { ShiftTelegramBotPreviewResponseDto } from './shift.shared.response.dto';
 
 @Injectable()

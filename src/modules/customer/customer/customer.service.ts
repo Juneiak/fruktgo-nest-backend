@@ -6,13 +6,11 @@ import {
   CreateAddressDto,
   UpdateCustomerDto,
 } from './customer.request.dto';
-import {
-  AddressResponseDto,
-  CustomerResponseDto
-} from './customer.response.dto';
+import { CustomerResponseDto } from './customer.response.dto';
 import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { Types } from 'mongoose';
+import { Address } from 'src/common/schemas/common-schemas';
 
 
 @Injectable()
@@ -24,13 +22,13 @@ export class CustomerService {
   // ====================================================
   // ADDRESSES 
   // ====================================================
-
-  async addAddress(authedCustomer: AuthenticatedUser, dto: CreateAddressDto): Promise<AddressResponseDto[]> {
+  async addAddress(authedCustomer: AuthenticatedUser, dto: CreateAddressDto): Promise<CustomerResponseDto> {
     const customer = await this.customerModel.findById(new Types.ObjectId(authedCustomer.id)).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
 
-    customer.savedAddresses.push({
-      _id: new Types.ObjectId(),
+    const newAddressId = new Types.ObjectId();
+    const newAddress = {
+      _id: newAddressId,
       city: dto.city,
       street: dto.street,
       house: dto.house || null,
@@ -40,58 +38,51 @@ export class CustomerService {
       intercomCode: dto.intercomCode || null,
       latitude: dto.latitude || null,
       longitude: dto.longitude || null,
-      isSelected: customer.savedAddresses.length === 0,
-    });
+    } as Address;
+
+    customer.savedAddresses.push(newAddress);
+
+    // Если раньше не было выбранного адреса, выбираем только что добавленный (первый)
+    if (!customer.selectedAddressId && customer.savedAddresses.length === 1) customer.selectedAddressId = newAddressId as any;
+
     await customer.save();
-    return plainToInstance(AddressResponseDto, customer?.savedAddresses || [], { excludeExtraneousValues: true });
+    return this.getCustomer(authedCustomer);
   }
 
 
-  async deleteSavedAddress(authedCustomer: AuthenticatedUser, addressId: string): Promise<AddressResponseDto[]> {
+  async deleteSavedAddress(authedCustomer: AuthenticatedUser, addressId: string): Promise<CustomerResponseDto> {
+    checkId([addressId]);
     const customer = await this.customerModel.findById(new Types.ObjectId(authedCustomer.id)).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
 
-    // Проверяем, является ли удаляемый адрес выбранным
-    checkId([addressId]);
-    
-    const isSelectedAddress = customer.savedAddresses.some(addr => 
-      addr._id.toString() === addressId && addr.isSelected
-    );
-    
+    const wasSelected = customer.selectedAddressId && customer.selectedAddressId.toString() === addressId;
+
     // Удаляем адрес из массива сохранённых адресов
     customer.savedAddresses = customer.savedAddresses.filter(addr => addr._id.toString() !== addressId);
-    
-    // Если удаленный адрес был выбранным и есть другие адреса, выбираем первый из них
-    if (isSelectedAddress && customer.savedAddresses.length > 0) {
-      customer.savedAddresses[0].isSelected = true;
-    }
-  
-    // Сохраняем изменения
+
+    // Если удалён выбранный адрес — переопределяем selectedAddressId на первый оставшийся либо null
+    if (wasSelected) customer.selectedAddressId = customer.savedAddresses.length > 0 ? (customer.savedAddresses[0]._id as any) : null;
     await customer.save();
-  
-    return plainToInstance(AddressResponseDto, customer.savedAddresses || [], { excludeExtraneousValues: true });
+
+    return this.getCustomer(authedCustomer);
   }
 
 
-  async selectAddress(authedCustomer: AuthenticatedUser, addressId: string): Promise<AddressResponseDto[]> {
+  async selectAddress(authedCustomer: AuthenticatedUser, addressId: string): Promise<CustomerResponseDto> {
+    checkId([addressId]);
     const customer = await this.customerModel.findById(new Types.ObjectId(authedCustomer.id)).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
 
-    // Найдем адрес по ID в списке сохраненных адресов
-    checkId([addressId]);
-    const addressIndex = customer.savedAddresses.findIndex(addr => addr._id.toString() === addressId);
-    if (addressIndex === -1) throw new NotFoundException('Адрес не найден');
+    // Найдём адрес по ID в списке сохранённых адресов
+    const exists = customer.savedAddresses.some(addr => addr._id.toString() === addressId);
+    if (!exists) throw new NotFoundException('Адрес не найден');
 
-    // Сначала сбрасываем флаг isSelected у всех адресов
-    customer.savedAddresses.forEach(addr => {
-      addr.isSelected = false;
-    });
-    
-    // Устанавливаем флаг isSelected для выбранного адреса
-    customer.savedAddresses[addressIndex].isSelected = true;
+    // Установим selectedAddressId (флагов на адресах нет)
+    customer.selectedAddressId = new Types.ObjectId(addressId) as any;
+
     await customer.save();
-  
-    return plainToInstance(AddressResponseDto, customer.savedAddresses, { excludeExtraneousValues: true });
+
+    return this.getCustomer(authedCustomer);
   }
 
 
@@ -99,7 +90,6 @@ export class CustomerService {
   // ====================================================
   // CUSTOMER
   // ====================================================
-
   async getCustomer(authedCustomer: AuthenticatedUser): Promise<CustomerResponseDto> {
     const customer = await this.customerModel.findById(new Types.ObjectId(authedCustomer.id))
       .select('telegramId customerName phone sex birthDate email bonusPoints savedAddresses selectedAddress cart activeOrders')
@@ -107,7 +97,6 @@ export class CustomerService {
       .populate('activeOrders')
       .lean({virtuals: true}).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
-    
     return plainToInstance(CustomerResponseDto, customer, { excludeExtraneousValues: true, enableCircularCheck: true });
   }
 
@@ -116,24 +105,11 @@ export class CustomerService {
     const customer = await this.customerModel.findById(new Types.ObjectId(authedCustomer.id)).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
     
-    // Обновляем только предоставленные поля
-    if (dto.customerName !== undefined) {
-      customer.customerName = dto.customerName;
-    }
+    if (dto.customerName !== undefined) customer.customerName = dto.customerName;
+    if (dto.sex !== undefined) customer.sex = dto.sex;
+    if (dto.birthDate !== undefined) customer.birthDate = dto.birthDate;
+    if (dto.email !== undefined) customer.email = dto.email;
     
-    if (dto.sex !== undefined) {
-      customer.sex = dto.sex;
-    }
-    
-    if (dto.birthDate !== undefined) {
-      customer.birthDate = dto.birthDate;
-    }
-    
-    if (dto.email !== undefined) {
-      customer.email = dto.email;
-    };
-    
-    // Сохраняем изменения
     await customer.save();
 
     return this.getCustomer(authedCustomer);

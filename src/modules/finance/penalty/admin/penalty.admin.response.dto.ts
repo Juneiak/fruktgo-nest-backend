@@ -5,7 +5,7 @@ import { PenaltyReason, PenaltyStatus } from '../penalty.schema';
 
 class PenaltyReferenceDto {
   @Expose() orderId?: string;
-  @Expose()transactionId?: string;
+  @Expose() transactionId?: string;
 }
 
 export class PenaltyResponseDto {

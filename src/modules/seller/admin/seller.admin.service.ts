@@ -5,10 +5,10 @@ import { Types } from 'mongoose';
 import { SellerModel } from '../seller.schema';
 import { plainToInstance } from 'class-transformer';
 import {
-  SellerForAdminFullResponseDto,
-  SellerForAdminPreviewResponseDto,
-  UpdateSellerByAdminDto
-} from './seller.admin.dtos';
+  SellerFullResponseDto,
+  SellerPreviewResponseDto,
+} from './seller.admin.response.dto';
+import { UpdateSellerByAdminDto } from './seller.admin.request.dto';
 import { checkId } from 'src/common/utils';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
 import { LogsService } from 'src/common/modules/logs/logs.service';
@@ -28,7 +28,7 @@ export class SellerAdminService {
   async getSellers(
     authedAdmin: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<SellerForAdminPreviewResponseDto>> {
+  ): Promise<PaginatedResponseDto<SellerPreviewResponseDto>> {
     const { page = 1, pageSize = 10 } = paginationQuery;
 
     const result = await this.sellerModel.paginate({}, {
@@ -39,11 +39,11 @@ export class SellerAdminService {
       leanWithId: false,
       sort: { createdAt: -1 },
     });
-    return transformPaginatedResult(result, SellerForAdminPreviewResponseDto);
+    return transformPaginatedResult(result, SellerPreviewResponseDto);
   }
 
 
-  async getSeller(authedAdmin: AuthenticatedUser, sellerId: string): Promise<SellerForAdminFullResponseDto> {
+  async getSeller(authedAdmin: AuthenticatedUser, sellerId: string): Promise<SellerFullResponseDto> {
     checkId([sellerId]);
 
     const seller = await this.sellerModel.findById(new Types.ObjectId(sellerId)).select('+internalNote +phone +telegramId +telegramUsername +telegramFirstName +telegramLastName')
@@ -52,7 +52,7 @@ export class SellerAdminService {
       .lean({ virtuals: true }).exec();
 
     if (!seller) throw new NotFoundException('Продавец не найден');
-    return plainToInstance(SellerForAdminFullResponseDto, seller, { excludeExtraneousValues: true, exposeDefaultValues: true });
+    return plainToInstance(SellerFullResponseDto, seller, { excludeExtraneousValues: true, exposeDefaultValues: true });
   }
 
 
@@ -62,7 +62,7 @@ export class SellerAdminService {
   }
 
 
-  async updateSeller(authedAdmin: AuthenticatedUser, sellerId: string, dto: UpdateSellerByAdminDto): Promise<SellerForAdminFullResponseDto> {
+  async updateSeller(authedAdmin: AuthenticatedUser, sellerId: string, dto: UpdateSellerByAdminDto): Promise<SellerFullResponseDto> {
     checkId([sellerId]);
     const session = await this.sellerModel.db.startSession();
     try {

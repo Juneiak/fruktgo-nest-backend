@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
-import { ShopStatus } from "src/modules/shop/schemas/shop.schema";
+import { ShopStatus } from "src/modules/shop/shop/shop.schema";
 import { ShiftPreviewResponseDto } from 'src/modules/shop/shift/shop/shift.shop.response.dto';
 
 // todo: handle address
@@ -28,6 +28,9 @@ export class ShopPreviewResponseDto{
   @Expose() openAt?: string | null;
   @Expose() closeAt?: string | null;
   @Expose() minOrderSum: number;
+  @Expose() acceptanceTimeLimit: number;
+  @Expose() assemblyTimeLimit: number;
+  @Expose() minWeightPercentage: number;
   @Expose() @Type(() => ShiftPreviewResponseDto) currentShift: ShiftPreviewResponseDto;
   @Expose() @Type(() => PinnedEmployeepDto) pinnedEmployees: PinnedEmployeepDto[];
 }

@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import { TelegramSellerBotService } from "src/modules/telegram/seller-bot/telegram-seller-bot.service";
 import { TelegramNotificationResponseDto } from "src/common/dtos";
 import { Issue } from "src/modules/support/issue.schema";
-import { Shift } from "src/modules/shop/schemas/shift.schema";
+import { Shift } from "src/modules/shop/shift/shift.schema";
 
 export interface INotificationToSellerProvider {
   notifySeller(telegramId: number, message: string, options?: {reply_markup?: any}): Promise<TelegramNotificationResponseDto>;

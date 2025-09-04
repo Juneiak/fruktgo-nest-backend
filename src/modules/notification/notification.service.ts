@@ -9,11 +9,11 @@ import { Order } from 'src/modules/order/order.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Issue } from 'src/modules/support/issue.schema';
-import { Shift } from 'src/modules/shop/schemas/shift.schema';
-import { Employee } from 'src/modules/employee/schemas/employee.schema';
+import { Shift } from 'src/modules/shop/shift/shift.schema';
+import { Employee } from 'src/modules/employee/employee.schema';
 import { IssueUserType } from 'src/modules/support/issue.schema';
 import { Types } from 'mongoose';
-import { RequestToEmployee } from 'src/modules/employee/schemas/request-to-employee.schema';
+import { RequestToEmployee } from 'src/modules/employee/request-to-employee.schema';
 import { EmployeeLoginCode } from 'src/modules/auth/employee-auth/employee-login-code.schema';
 
 @Injectable()

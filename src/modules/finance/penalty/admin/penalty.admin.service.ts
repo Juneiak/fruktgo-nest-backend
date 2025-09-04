@@ -5,11 +5,11 @@ import { plainToInstance } from 'class-transformer';
 import { PenaltyService } from '../penalty.service';
 import { PenaltyResponseDto } from './penalty.admin.response.dto';
 import {
-  PenaltyFilterQueryDto,
   UpdatePenaltyDto,
   CreatePenaltyDto,
   FinalizePenaltyDto
 } from './penalty.admin.request.dto';
+import { PenaltyFilterQueryDto } from './penalty.admin.filter.dto';
 
 
 @Injectable()

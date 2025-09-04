@@ -1,6 +1,9 @@
 // Константа минимального процента от заказанного количества для весовых продуктов
-export const MIN_WEIGHT_PERCENTAGE = 0.9; // 90% от заказанного количества
-export const SYSTEM_TAX = 0.1; // 10% комиссия
+export const DEFAULT_MIN_WEIGHT_PERCENTAGE = 0.9; // 90% от заказанного количества
+export const DEFAULT_SYSTEM_TAX = 0.1; // 10% комиссия
+
+export const DEFAULT_ACCEPTANCE_LIMIT = 180;
+export const DEFAULT_ASSEMBLY_LIMIT = 300;
 
 export const EMPLOYEE_BOT_LOGIN_TO_SHOP_PREFIX = 'loginToShop';
 export const EMPLOYEE_AUTH_CODE_EXPIRES_IN = 5 * 60 * 1000;

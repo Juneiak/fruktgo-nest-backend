@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
-import { RequestToEmployeeStatus } from 'src/modules/employee/schemas/request-to-employee.schema';
+import { RequestToEmployeeStatus } from 'src/modules/employee/request-to-employee.schema';
 import { UserSex, VerifiedStatus } from 'src/common/types';
-import { EmployeeStatus } from 'src/modules/employee/schemas/employee.schema';
+import { EmployeeStatus } from 'src/modules/employee/employee.schema';
 
 export class EmployeeResponseDto {
   @Expose() sellerNote: string;

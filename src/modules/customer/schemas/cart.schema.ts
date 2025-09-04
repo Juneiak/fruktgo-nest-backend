@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 import { VerifiedStatus, UserSex } from 'src/common/types/index';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { Customer } from './customer.schema';
-import { ShopProduct } from 'src/modules/shop/schemas/shop-product.schema';
+import { ShopProduct } from 'src/modules/shop/shop-product/shop-product.schema';
 
 const DeliveryInfoSchema = {
   to: { type: String },

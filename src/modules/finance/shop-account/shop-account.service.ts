@@ -4,7 +4,7 @@ import { ClientSession, Model, Types } from 'mongoose';
 import { SettlementPeriodTransaction, SettlementPeriodTransactionDirection, SettlementPeriodTransactionStatus, SettlementPeriodTransactionType } from './schemas/settlement-period-transaction.schema';
 import { SettlementPeriod, SettlementPeriodStatus, SettlementPeriodAmounts } from './schemas/settlement-period.schema';
 import { ShopAccount, AccountStatus } from './schemas/shop-account.schema';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
+import { Shop } from 'src/modules/shop/shop/shop.schema';
 import { checkId } from 'src/common/utils';
 import { PaginationMetaDto, PaginationQueryDto } from 'src/common/dtos';
 import { SettlementPeriodFilterQueryDto, SettlementPeriodTransactionFilterQueryDto } from './admin/shop-account.admin.request.dto';

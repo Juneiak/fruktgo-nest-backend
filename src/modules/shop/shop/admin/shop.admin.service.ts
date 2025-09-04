@@ -12,7 +12,7 @@ import { LogsService } from 'src/common/modules/logs/logs.service';
 import {AuthenticatedUser} from 'src/common/types';
 import { PaginatedResponseDto, PaginationMetaDto, PaginationQueryDto } from 'src/common/dtos';
 import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
-import { ShopModel } from '../../schemas/shop.schema';
+import { ShopModel } from '../shop.schema';
 
 @Injectable()
 export class ShopAdminService {

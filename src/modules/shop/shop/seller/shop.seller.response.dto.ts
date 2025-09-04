@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
-import { ShopStatus } from 'src/modules/shop/schemas/shop.schema';
+import { ShopStatus } from 'src/modules/shop/shop/shop.schema';
 import { ShiftPreviewResponseDto } from 'src/modules/shop/shift/seller/shift.seller.response.dto';
 
 class ShopAddressDto {
@@ -32,6 +32,9 @@ export class ShopPreviewResponseDto {
   @Expose() shopProductsCount: number;
   @Expose() pinnedEmployeesCount: number;
   @Expose() createdAt: Date;
+  @Expose() acceptanceTimeLimit: number;
+  @Expose() assemblyTimeLimit: number;
+  @Expose() minWeightPercentage: number;
 }
 
 export class ShopFullResponseDto {
@@ -59,4 +62,7 @@ export class ShopFullResponseDto {
   @Expose() sellerNote?: string | null;
   @Expose() createdAt: Date;
   @Expose() @Type(() => ShiftPreviewResponseDto) currentShift?: ShiftPreviewResponseDto;
+  @Expose() acceptanceTimeLimit: number;
+  @Expose() assemblyTimeLimit: number;
+  @Expose() minWeightPercentage: number;
 }

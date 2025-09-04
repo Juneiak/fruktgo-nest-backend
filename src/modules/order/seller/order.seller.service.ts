@@ -7,7 +7,7 @@ import { OrderPreviewResponseDto, OrderFullResponseDto } from './order.seller.re
 import { Order } from 'src/modules/order/order.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
-import { Shop } from 'src/modules/shop/schemas/shop.schema';
+import { Shop } from 'src/modules/shop/shop/shop.schema';
 import { PaginationQueryDto, PaginationMetaDto, PaginatedResponseDto } from "src/common/dtos";
 
 @Injectable()

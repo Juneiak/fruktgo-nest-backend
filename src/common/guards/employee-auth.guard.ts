@@ -3,7 +3,7 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from
 import { JwtService } from "@nestjs/jwt";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
-import { Employee } from "src/modules/employee/schemas/employee.schema";
+import { Employee } from "src/modules/employee/employee.schema";
 import { AuthenticatedEmployee } from "src/common/types";
 
 @Injectable()

@@ -39,7 +39,7 @@ export class LogsService {
       text,
       logLevel,
     }
-
+    
     if (session) {
       return await this.logModel.create([logData], { session }).then(docs => docs[0]);
     } else {

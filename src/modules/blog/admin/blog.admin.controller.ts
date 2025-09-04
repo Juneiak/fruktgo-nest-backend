@@ -16,11 +16,12 @@ import {
   ArticleFullResponseDto,
   ArticlePreviewResponseDto,
 } from './blog.admin.response.dto';
+import { ArticleQueryFilterDto } from './blog.admin.filter.dto';
 
 // Административный контроллер для блога (требует авторизации)
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
-@Controller('blog/for-admin')
+@Controller('admin/blog')
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
 export class BlogAdminController {
@@ -36,6 +37,7 @@ export class BlogAdminController {
   ): Promise<ArticleFullResponseDto> {
     return this.blogAdminService.createArticle(authedAdmin, dto, articleImage);
   }
+
 
   @ApiOperation({ summary: 'Обновить существующую статью' })
   @Patch('/articles/:articleId')
@@ -59,14 +61,16 @@ export class BlogAdminController {
     return this.blogAdminService.getArticleDetail(authedAdmin, articleId);
   }
 
+
   @ApiOperation({ summary: 'Получить список всех статей' })
   @Get('/articles')
   getAllArticles(
     @GetUser() authedAdmin: AuthenticatedUser,
-    @Query('targetAudience') targetAudience?: ArticleTargetAudience
+    @Query() queryFilter: ArticleQueryFilterDto
   ): Promise<ArticlePreviewResponseDto[]> {
-    return this.blogAdminService.getAllArticles(authedAdmin, targetAudience);
+    return this.blogAdminService.getAllArticles(authedAdmin, queryFilter);
   }
+
 
   @ApiOperation({ summary: 'Архивировать статью' })
   @Delete('/articles/:articleId')

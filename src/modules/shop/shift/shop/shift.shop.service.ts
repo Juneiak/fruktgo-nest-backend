@@ -9,14 +9,14 @@ import {
 } from './shift.shop.request.dto';
 import { ShiftPreviewResponseDto } from './shift.shop.response.dto';
 import { verifyUserStatus } from 'src/common/utils';
-import { ShopModel, ShopStatus } from "src/modules/shop/schemas/shop.schema";
-import { EmployeeModel, EmployeeStatus } from "src/modules/employee/schemas/employee.schema";
+import { ShopModel, ShopStatus } from "src/modules/shop/shop/shop.schema";
+import { EmployeeModel, EmployeeStatus } from "src/modules/employee/employee.schema";
 import {checkId} from 'src/common/utils';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import {AuthenticatedUser, AuthenticatedEmployee} from 'src/common/types';
-import { ShiftModel } from '../../schemas/shift.schema';
+import { ShiftModel } from '../shift.schema';
 
 
 @Injectable()

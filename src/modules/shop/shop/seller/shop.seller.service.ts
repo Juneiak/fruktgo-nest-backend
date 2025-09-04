@@ -21,7 +21,7 @@ import {checkId} from 'src/common/utils';
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { LogLevel } from "src/common/modules/logs/logs.schemas";
 import { AuthenticatedUser } from 'src/common/types';
-import { ShopModel } from '../../schemas/shop.schema';
+import { ShopModel } from '../shop.schema';
 
 @Injectable()
 export class ShopSellerService {

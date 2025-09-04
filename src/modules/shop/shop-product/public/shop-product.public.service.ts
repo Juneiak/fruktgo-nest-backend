@@ -6,8 +6,8 @@ import { plainToInstance } from 'class-transformer';
 import {ShopProductResponseDto} from './shop-product.public.response.dto';
 import {checkId} from 'src/common/utils';
 import { verifyUserStatus } from 'src/common/utils';
-import { ShopProductModel } from '../../schemas/shop-product.schema';
-import { ShopModel } from '../../schemas/shop.schema';
+import { ShopProductModel } from '../shop-product.schema';
+import { ShopModel } from '../../shop/shop.schema';
 
 @Injectable()
 export class ShopProductPublicService {
