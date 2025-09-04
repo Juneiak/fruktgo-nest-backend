@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
-import { LoginCodeForAdminDto, AdminAuthDto } from './admin-auth.dtos';
+import { LoginCodeResponseDto, AdminAuthResponseDto } from './admin-auth.response.dto';
 import { plainToInstance } from 'class-transformer';
 import { Admin } from 'src/modules/admin/admin.schema';
 import { generateAuthCode } from 'src/common/utils';
@@ -22,7 +22,7 @@ export class AdminAuthService {
     private readonly adminAuthGateway: AdminAuthGateway,
   ) {}
 
-  async generateLoginCode(): Promise<LoginCodeForAdminDto> {
+  async generateLoginCode(): Promise<LoginCodeResponseDto> {
     const code = generateAuthCode();
     const expiresAt = new Date(Date.now() + ADMIN_AUTH_CODE_EXPIRES_IN);
     
@@ -50,7 +50,7 @@ export class AdminAuthService {
     // Генерируем токен для администратора
     const token = this.jwtService.sign({ id: foundAdmin._id.toString(), type: 'admin' });
 
-    const admin = plainToInstance(AdminAuthDto, foundAdmin, { excludeExtraneousValues: true });
+    const admin = plainToInstance(AdminAuthResponseDto, foundAdmin, { excludeExtraneousValues: true });
     // Уведомляем администратора по WebSocket
     this.adminAuthGateway.notifyLoginConfirmed(code, token, admin);
 
@@ -62,11 +62,12 @@ export class AdminAuthService {
     return {token}
   }
 
-  async checkAuth(authedAdmin: AuthenticatedUser): Promise<AdminAuthDto> {
+
+  async checkAuth(authedAdmin: AuthenticatedUser): Promise<AdminAuthResponseDto> {
     const admin = await this.adminModel.findById(authedAdmin.id).select('_id id telegramId').lean({ virtuals: true }).exec();
     if (!admin) throw new UnauthorizedException('Администратор не найден');
     
-    return plainToInstance(AdminAuthDto, admin, { excludeExtraneousValues: true });
+    return plainToInstance(AdminAuthResponseDto, admin, { excludeExtraneousValues: true });
   }
 
 }

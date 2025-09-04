@@ -2,13 +2,14 @@ import { Expose, Type } from 'class-transformer';
 import { RequestToEmployeeStatus } from 'src/modules/employee/request-to-employee.schema';
 import { UserSex, VerifiedStatus } from 'src/common/types';
 import { EmployeeStatus } from 'src/modules/employee/employee.schema';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class EmployeeResponseDto {
   @Expose() sellerNote: string;
   @Expose() employeeId: string;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() @Type(() => String) employeeAvatar: string | null;
+  @ExposeObjectId() employeeAvatar: string | null;
   @Expose() employeeName: string;
   @Expose() phone: string;
   @Expose() telegramId: number;
@@ -21,8 +22,8 @@ export class EmployeeResponseDto {
   @Expose() totalOrders: number;
   @Expose() totalShifts: number;
   @Expose() shiftRating: number;
-  @Expose() @Type(() => String) employer?: any;
-  @Expose() @Type(() => String) pinnedTo: any;
+  @ExposeObjectId() employer?: any;
+  @ExposeObjectId() pinnedTo: any;
 };
 
 
@@ -36,6 +37,6 @@ export class RequestToEmployeeResponseDto {
   @Expose() id: string;
   @Expose() createdAt: Date;
   @Expose() @Type(() => ToOfRequestToEmployeeDto) to: ToOfRequestToEmployeeDto;
-  @Expose() @Type(() => String) from: string;
+  @ExposeObjectId() from: string;
   @Expose() requestStatus: RequestToEmployeeStatus;
 }

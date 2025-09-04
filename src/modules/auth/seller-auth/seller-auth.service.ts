@@ -2,7 +2,13 @@ import { Injectable, UnauthorizedException, BadRequestException, NotFoundExcepti
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
-import { RegisterSellerDto, SellerAuthDto, LoginCodeForSellerDto, LoginCodeForShopDto, ShopAuthDto } from './seller-auth.dtos';
+import { 
+  LoginCodeForSellerResponseDto,
+  LoginCodeForShopResponseDto,
+  ShopAuthResponseDto,
+  SellerAuthResponseDto,
+} from './seller-auth.response.dto';
+import { RegisterSellerDto } from './seller-auth.request.dto';
 import { plainToInstance } from 'class-transformer';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { SellerLoginCode } from './seller-login-code.schema';
@@ -37,8 +43,7 @@ export class SellerAuthService {
   // ====================================================
   // AUTH TO SELLER DASHBOARD 
   // ====================================================
-
-  async registerSellerViaTelegram(dto: RegisterSellerDto): Promise<SellerAuthDto> {
+  async registerSellerViaTelegram(dto: RegisterSellerDto): Promise<SellerAuthResponseDto> {
     const phoneNumber = parsePhoneNumberFromString(dto.phone, 'RU');
     if (!phoneNumber || !phoneNumber.isValid()) throw new BadRequestException('Некорректный номер телефона');
 
@@ -63,11 +68,11 @@ export class SellerAuthService {
     });
     await createdSeller.save();
 
-    return plainToInstance(SellerAuthDto, createdSeller, { excludeExtraneousValues: true });
+    return plainToInstance(SellerAuthResponseDto, createdSeller, { excludeExtraneousValues: true });
   }
 
 
-  async generateLoginCodeForSeller(): Promise<LoginCodeForSellerDto> {
+  async generateLoginCodeForSeller(): Promise<LoginCodeForSellerResponseDto> {
     const code = generateAuthCode();
     const expiresAt = new Date(Date.now() + SELLER_AUTH_CODE_EXPIRES_IN);
     await this.sellerLoginCodeModel.create({ code, expiresAt });
@@ -75,6 +80,7 @@ export class SellerAuthService {
     const tgBotUrl = `https://t.me/${botName}?start=${SELLER_BOT_LOGIN_TO_SELLER_DASHBOARD_PREFIX}_${code}`;
     return { code, expiresAt, tgBotUrl };
   }
+
 
   async confirmLoginSellerCode(code: string, telegramId: number): Promise<{token: string}> {
     const sellerLoginCode = await this.sellerLoginCodeModel.findOne({ code, confirmed: false });
@@ -96,7 +102,7 @@ export class SellerAuthService {
     // Генерируем токен для продавца
     const token = this.jwtService.sign({ id: foundSeller._id.toString(), type: 'seller' });
 
-    const seller = plainToInstance(SellerAuthDto, foundSeller, { excludeExtraneousValues: true });
+    const seller = plainToInstance(SellerAuthResponseDto, foundSeller, { excludeExtraneousValues: true });
     // Уведомляем клиента по WebSocket
     this.sellerAuthGateway.notifySellerLoginConfirmed(code, token, seller);
 
@@ -108,11 +114,12 @@ export class SellerAuthService {
     return {token}
   }
 
-  async checkSellerAuth(authedSeller: AuthenticatedUser): Promise<SellerAuthDto> {
+
+  async checkSellerAuth(authedSeller: AuthenticatedUser): Promise<SellerAuthResponseDto> {
     const seller = await this.sellerModel.findById(authedSeller.id).select('_id sellerId isBlocked telegramId verifiedStatus').lean({ virtuals: true }).exec();
     if (!seller) throw new UnauthorizedException('Продавец не найден');
     
-    return plainToInstance(SellerAuthDto, seller, { excludeExtraneousValues: true });
+    return plainToInstance(SellerAuthResponseDto, seller, { excludeExtraneousValues: true });
   }
 
 
@@ -120,8 +127,7 @@ export class SellerAuthService {
   // ====================================================
   // LOGIN TO SHOP
   // ====================================================
-
-  async generateLoginCodeForShop(): Promise<LoginCodeForShopDto> {
+  async generateLoginCodeForShop(): Promise<LoginCodeForShopResponseDto> {
     const code = generateAuthCode();
     const expiresAt = new Date(Date.now() + SHOP_AUTH_CODE_EXPIRES_IN);
     await this.shopLoginCodeModel.create({ code, expiresAt });
@@ -129,6 +135,7 @@ export class SellerAuthService {
     const tgBotUrl = `https://t.me/${botName}?start=${SELLER_BOT_LOGIN_TO_SHOP_PREFIX + code}`;
     return { code, expiresAt, tgBotUrl };
   }
+
 
   async confirmLoginCodeForShop(code: string, telegramId: number, shopId: string): Promise<{token: string}> {
     const shopLoginCode = await this.shopLoginCodeModel.findOne({ code, confirmed: false });
@@ -152,7 +159,7 @@ export class SellerAuthService {
     const token = this.jwtService.sign({ id: foundShop._id.toString(), type: 'shop' });
 
     // Уведомляем клиента по WebSocket
-    const shop = plainToInstance(ShopAuthDto, foundShop, { excludeExtraneousValues: true });
+    const shop = plainToInstance(ShopAuthResponseDto, foundShop, { excludeExtraneousValues: true });
     this.sellerAuthGateway.notifyShopLoginConfirmed(code, token, shop);
 
     // 🧹 Удаляем код после использования
@@ -164,10 +171,10 @@ export class SellerAuthService {
   }
 
 
-  async checkShopAuth(authedShop: AuthenticatedUser): Promise<ShopAuthDto> {
+  async checkShopAuth(authedShop: AuthenticatedUser): Promise<ShopAuthResponseDto> {
     const shop = await this.shopModel.findById(authedShop.id).select('_id shopId isBlocked verifiedStatus owner').lean({ virtuals: true }).exec();
     if (!shop) throw new UnauthorizedException('Магазин не найден');
     
-    return plainToInstance(ShopAuthDto, shop, { excludeExtraneousValues: true });
+    return plainToInstance(ShopAuthResponseDto, shop, { excludeExtraneousValues: true });
   }
 }

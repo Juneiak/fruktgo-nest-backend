@@ -1,6 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { OrderStatus, OrderDeclineReason, OrderCancelReason, PositiveFeedbackTag, NegativeFeedbackTag } from '../order.schema';
 import { Types } from 'mongoose';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class OrderCreatedResponseDto {
   @Expose()
@@ -19,7 +20,7 @@ class ShopDto {
 class OrderedFromDto {
   @Expose() @Type(() => ShopDto) shop: ShopDto;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage: Types.ObjectId;
+  @ExposeObjectId() shopImage: Types.ObjectId;
 }
 class HandledByDto {
   @Expose() employee: any;
@@ -46,11 +47,11 @@ class OrderRatingDto {
   @Expose() feedbackComment: string;
 }
 class OrderProductResponseDto {
-  @Expose() @Type(() => String) shopProduct: Types.ObjectId;
+  @ExposeObjectId() shopProduct: Types.ObjectId;
   @Expose() category: string;
   @Expose() productName: string;
   @Expose() price: number;
-  @Expose() @Type(() => String) cardImage: Types.ObjectId;
+  @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() measuringScale: string;
   @Expose() selectedQuantity: number;
   @Expose() actualQuantity: number | null;

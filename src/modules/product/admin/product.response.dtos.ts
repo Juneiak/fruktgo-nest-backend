@@ -2,11 +2,12 @@ import { Expose, Type } from 'class-transformer';
 import { ProductCategory, ProductMeasuringScale, ProductStepRate } from "src/modules/product/product.schema";
 import {ShopProductStatus} from 'src/modules/shop/shop-product/shop-product.schema'
 import { Types } from 'mongoose';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class ProductPreviewResponseDto {
   @Expose() productId: string;
   @Expose() createdAt: Date;
-  @Expose() @Type(() => String) cardImage: Types.ObjectId;
+  @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
   @Expose() category: ProductCategory;
@@ -24,7 +25,7 @@ export class ProductPreviewResponseDto {
 
 class ShopDto {
   @Expose()@Type(() => String) shopId: string;
-  @Expose() @Type(() => String) shopImage: string;
+  @ExposeObjectId() shopImage: string;
   @Expose() shopName: string;
 }
 class ShopProductDto {
@@ -39,7 +40,7 @@ export class ProductFullResponseDto {
   @Expose() productId: string;
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
-  @Expose() @Type(() => String) cardImage: Types.ObjectId;
+  @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
   @Expose() category: ProductCategory;

@@ -2,11 +2,11 @@ import { Expose, Type } from 'class-transformer';
 import { ShopProductStatus } from "src/modules/shop/shop-product/shop-product.schema";
 import { Types } from 'mongoose';
 import { ProductCategory, ProductMeasuringScale, ProductStepRate } from "src/modules/product/product.schema";
-
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class ProductDto {
   @Expose() productId: string;
-  @Expose() @Type(() => String) cardImage: Types.ObjectId;
+  @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
   @Expose() category: ProductCategory;
@@ -19,13 +19,13 @@ class ProductDto {
 };
 
 class ShopProductImageDto {
-  @Expose() @Type(() => String) imageId: string;
+  @ExposeObjectId() imageId: string;
   @Expose() createdAt: Date;
 }
 
 export class ShopProductPreviewResponseDto {
   @Expose() shopProductId: string;
-  @Expose() @Type(() => String) pinnedTo: string;
+  @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductDto) product: ProductDto;
   @Expose() stockQuantity: number;
   @Expose() status: ShopProductStatus;
@@ -33,7 +33,7 @@ export class ShopProductPreviewResponseDto {
 
 export class ShopProductFullResponseDto {
   @Expose() shopProductId: string;
-  @Expose() @Type(() => String) pinnedTo: string;
+  @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductDto) product: ProductDto;
   @Expose() stockQuantity: number;
   @Expose() status: ShopProductStatus;

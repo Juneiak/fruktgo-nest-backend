@@ -1,5 +1,6 @@
 import { Expose } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
+import { Blocked } from 'src/common/schemas/common-schemas';
 
 export class SystemStatsResponseDto {
   @Expose() customersCount: number;
@@ -13,7 +14,7 @@ export class UserToVerifyResponseDto {
   @Expose() id: string;
   @Expose() telegramId: number;
   @Expose() telegramUsername: string;
-  @Expose() isBlocked: boolean;
+  @Expose() blocked: Blocked;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() type: string; // Тип пользователя: Клиент, Сотрудник, Продавец, Магазин
   @Expose() createdAt: Date;

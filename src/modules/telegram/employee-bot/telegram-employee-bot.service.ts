@@ -3,7 +3,7 @@ import { Telegraf, Markup, Context } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { EmployeeAuthService } from 'src/modules/auth/employee-auth/employee-auth.service';
-import { RegisterEmployeeDto } from 'src/modules/auth/employee-auth/employee-auth.dtos';
+import { RegisterEmployeeDto } from 'src/modules/auth/employee-auth/employee-auth.response.dto';
 import { INestApplication } from '@nestjs/common';
 import { message } from 'telegraf/filters';
 import { formatEmployeeInfoMessage, formatEmployeeAvatar, formatNewOrderMessage } from './utils';

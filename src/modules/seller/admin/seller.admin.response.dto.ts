@@ -1,10 +1,11 @@
 import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
 import { Types } from 'mongoose';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class SellerPreviewResponseDto {
   @Expose() sellerId: string;
-  @Expose() @Type(() => String) sellerLogo: string;
+  @ExposeObjectId() sellerLogo: string;
   @Expose() companyName: string;
   @Expose() inn: number;
   @Expose() isBlocked: boolean;
@@ -32,7 +33,7 @@ class ShopDto {
   @Expose() shopName: string;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() @Type(() => String) shopImage: Types.ObjectId;
+  @ExposeObjectId() shopImage: Types.ObjectId;
   @Expose() address: string;
   @Expose() status: string;
   @Expose() openAt: Date;
@@ -51,19 +52,19 @@ class EmployeeDto {
   @Expose() employeeId: string;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() @Type(() => String) employeeAvatar: Types.ObjectId;
+  @ExposeObjectId() employeeAvatar: Types.ObjectId;
   @Expose() employeeName: string;
   @Expose() phone: string;
   @Expose() telegramId: number;
   @Expose() telegramUsername?: string;
   @Expose() sex: string;
   @Expose() status: string;
-  @Expose() @Type(() => String) pinnedTo: Types.ObjectId;
+  @ExposeObjectId() pinnedTo: Types.ObjectId;
 }
 
 export class SellerFullResponseDto {
   @Expose() sellerId: string;
-  @Expose() @Type(() => String) sellerLogo: string;
+  @ExposeObjectId() sellerLogo: string;
   @Expose() companyName: string;
   @Expose() inn: number;
   @Expose() isBlocked: boolean;

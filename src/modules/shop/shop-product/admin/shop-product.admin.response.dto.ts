@@ -2,10 +2,11 @@ import { Expose, Type } from 'class-transformer';
 import { Types } from 'mongoose';
 import { ProductCategory, ProductMeasuringScale, ProductStepRate } from 'src/modules/product/product.schema';
 import { ShopProductStatus } from 'src/modules/shop/shop-product/shop-product.schema';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class ProductPreviewDto {
   @Expose() productId: string;
-  @Expose() @Type(() => String) cardImage: Types.ObjectId;
+  @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
   @Expose() category: ProductCategory;
@@ -17,7 +18,7 @@ export class ProductPreviewDto {
 }
 
 class ShopProductImageDto {
-  @Expose() @Type(() => String) imageId: string;
+  @ExposeObjectId() imageId: string;
   @Expose() createdAt: Date;
 }
 
@@ -25,7 +26,7 @@ export class ShopProductFullResponseDto {
   @Expose() shopProductId: string;
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
-  @Expose() @Type(() => String) pinnedTo: string;
+  @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
   @Expose() stockQuantity: number;
   @Expose() status: ShopProductStatus;
@@ -38,7 +39,7 @@ export class ShopProductPreviewResponseDto {
   @Expose() shopProductId: string;
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
-  @Expose() @Type(() => String) pinnedTo: string;
+  @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
   @Expose() stockQuantity: number;
   @Expose() status: ShopProductStatus;

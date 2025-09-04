@@ -7,7 +7,7 @@ import {
   OnGatewayConnection,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { EmployeeAuthDto } from './employee-auth.dtos';
+import { EmployeeAuthResponseDto } from './employee-auth.response.dto';
 
 @WebSocketGateway({ namespace: 'employee-auth', cors: true })
 export class EmployeeAuthGateway implements OnGatewayConnection {
@@ -27,7 +27,7 @@ export class EmployeeAuthGateway implements OnGatewayConnection {
     console.log(`🟡 Client joined room: login_${data.code}`);
   }
 
-  notifyLoginConfirmed(code: string, token: string, employee: EmployeeAuthDto) {
+  notifyLoginConfirmed(code: string, token: string, employee: EmployeeAuthResponseDto) {
     this.server.to(`login_${code}`).emit('login_confirmed', { token, employee });
     console.log(`✅ Notified login_${code}`);
   }

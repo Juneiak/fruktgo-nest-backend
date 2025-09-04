@@ -1,14 +1,14 @@
 import { Expose, Type } from 'class-transformer';
 import { Types } from 'mongoose';
-
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class OpenedByDto {
-  @Expose() @Type(() => String) employee: Types.ObjectId;
+  @ExposeObjectId() employee: Types.ObjectId;
   @Expose() employeeName: string;
 }
 
 class ClosedByDto {
-  @Expose() @Type(() => String) employee: Types.ObjectId;
+  @ExposeObjectId() employee: Types.ObjectId;
   @Expose() employeeName: string;
 }
 

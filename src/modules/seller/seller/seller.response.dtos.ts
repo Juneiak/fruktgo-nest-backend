@@ -1,9 +1,10 @@
 import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class SellerPreviewResponseDto {
   @Expose() sellerId: string;
-  @Expose() @Type(() => String) sellerLogo: string;
+  @ExposeObjectId() sellerLogo: string;
   @Expose() companyName: string;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
@@ -14,7 +15,7 @@ export class SellerPreviewResponseDto {
 
 export class SellerFullResponseDto {
   @Expose() sellerId: string;
-  @Expose() @Type(() => String) sellerLogo: string;
+  @ExposeObjectId() sellerLogo: string;
   @Expose() companyName: string;
   @Expose() inn: number;
   @Expose() isBlocked: boolean;

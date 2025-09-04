@@ -16,8 +16,8 @@ import { Employee, EmployeeSchema } from "src/modules/employees/employee.schema"
 import { Shop, ShopSchema } from "src/modules/shops/schemas/shop.schema";
 
 // DTO
-import { RegisterSellerDto, LoginSellerDto } from "src/modules/auth/seller-auth/seller-auth.dtos";
-import { RegisterEmployeeDto } from "src/modules/auth/employee-auth/employee-auth.dtos";
+import { RegisterSellerDto, LoginSellerDto } from "src/modules/auth/seller-auth/seller-auth.request.dto";
+import { RegisterEmployeeDto } from "src/modules/auth/employee-auth/employee-auth.response.dto";
 import { RegisterShopDto, LoginShopDto } from "src/modules/auth/shop-auth/shop-auth.dtos";
 
 // Общие типы

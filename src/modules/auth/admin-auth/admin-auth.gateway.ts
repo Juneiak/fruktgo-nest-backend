@@ -7,7 +7,7 @@ import {
   OnGatewayConnection,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { AdminAuthDto } from './admin-auth.dtos';
+import { AdminAuthResponseDto } from './admin-auth.response.dto';
 
 @WebSocketGateway({ namespace: 'admin-auth', cors: true })
 export class AdminAuthGateway implements OnGatewayConnection {
@@ -27,7 +27,7 @@ export class AdminAuthGateway implements OnGatewayConnection {
     console.log(`🟡 Client joined room: login_${data.code}`);
   }
 
-  notifyLoginConfirmed(code: string, token: string, admin: AdminAuthDto) {
+  notifyLoginConfirmed(code: string, token: string, admin: AdminAuthResponseDto) {
     this.server.to(`login_${code}`).emit('login_confirmed', { token, admin });
     console.log(`✅ Notified login_${code}`);
   }

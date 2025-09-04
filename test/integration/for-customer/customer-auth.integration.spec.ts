@@ -8,7 +8,7 @@ import { Model } from 'mongoose';
 import { CustomerAuthService } from 'src/modules/auth/customer-auth/customer-auth.service';
 import { Customer, CustomerSchema } from 'src/modules/customer/schemas/customer.schema';
 import { Cart, CartSchema } from 'src/modules/customer/schemas/cart.schema';
-import { RegisterCustomerDto, LoginCustomerDto } from 'src/modules/auth/customer-auth/customer-auth.dtos';
+import { RegisterCustomerDto, LoginCustomerDto } from 'src/modules/auth/customer-auth/customer-auth.response.dto';
 import { rootMongooseTestModule, closeMongoConnection } from '../../helpers/database.module';
 
 describe('CustomerAuthService - Интеграционный тест', () => {

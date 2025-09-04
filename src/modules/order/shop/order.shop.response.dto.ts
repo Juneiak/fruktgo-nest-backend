@@ -7,7 +7,7 @@ import {
   PositiveFeedbackTag,
   NegativeFeedbackTag
 } from '../order.schema';
-
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class OrderedByDto {
   @Expose() customer: any;
@@ -23,7 +23,7 @@ class ShopDto {
 class OrderedFromDto {
   @Expose() @Type(() => ShopDto) shop: ShopDto;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage: string;
+  @ExposeObjectId() shopImage: string;
 }
 class HandledByDto {
   @Expose() employee: any;
@@ -54,11 +54,11 @@ class OrderRatingDto {
 }
 
 class OrderProductResponseDto {
-  @Expose() @Type(() => String) shopProduct: any;
+  @ExposeObjectId() shopProduct: any;
   @Expose() category: string;
   @Expose() productName: string;
   @Expose() price: number;
-  @Expose() @Type(() => String) cardImage: string;
+  @ExposeObjectId() cardImage: string;
   @Expose() measuringScale: string;
   @Expose() selectedQuantity: number;
   @Expose() actualQuantity: number | null;
@@ -69,7 +69,7 @@ export class OrderPreviewResponseDto {
   @Expose() orderId: string;
   @Expose() @Type(() => OrderedByDto) orderedBy: OrderedByDto;
   @Expose() @Type(() => OrderedFromDto) orderedFrom: OrderedFromDto;
-  @Expose() @Type(() => String) shift: Types.ObjectId;
+  @ExposeObjectId() shift: Types.ObjectId;
   @Expose() orderStatus: OrderStatus;
   @Expose() orderedAt: Date;
   @Expose() acceptedAt: Date | null;
@@ -90,7 +90,7 @@ export class OrderPreviewResponseDto {
 export class OrderFullResponseDto {
   @Expose() orderId: string;
   @Expose() @Type(() => OrderedFromDto) orderedFrom: OrderedFromDto;
-  @Expose() @Type(() => String) shift: Types.ObjectId;
+  @ExposeObjectId() shift: Types.ObjectId;
   @Expose() orderStatus: OrderStatus;
   @Expose() orderedAt: Date;
   @Expose() acceptedAt: Date | null;
@@ -113,7 +113,7 @@ export class OrderFullResponseDto {
 export class ActiveOrderResponseDto {
   @Expose() orderId: string;
   @Expose() @Type(() => OrderedFromDto) orderedFrom: OrderedFromDto;
-  @Expose() @Type(() => String) shift: Types.ObjectId;
+  @ExposeObjectId() shift: Types.ObjectId;
   @Expose() orderStatus: OrderStatus;
   @Expose() orderedAt: Date;
   @Expose() acceptedAt: Date | null;

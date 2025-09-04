@@ -1,7 +1,7 @@
 import { Expose, Type } from 'class-transformer';
 import { UserSex, VerifiedStatus } from 'src/common/types';
 import { EmployeeStatus } from 'src/modules/employee/employee.schema';
-import {ShiftStatisticsDto} from 'src/modules/shop/shop.dtos';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class EmployerDto {
   @Expose() sellerId: string;
@@ -19,7 +19,7 @@ export class EmployeePreviewResponseDto {
   @Expose() updatedAt: Date;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() @Type(() => String) employeeAvatar: string | null;
+  @ExposeObjectId() employeeAvatar: string | null;
   @Expose() employeeName: string;
   @Expose() phone: string;
   @Expose() telegramId: number;
@@ -45,7 +45,7 @@ export class EmployeeFullResponseDto {
   @Expose() updatedAt: Date;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() @Type(() => String) employeeAvatar: string | null;
+  @ExposeObjectId() employeeAvatar: string | null;
   @Expose() employeeName: string;
   @Expose() phone: string;
   @Expose() telegramId: number;

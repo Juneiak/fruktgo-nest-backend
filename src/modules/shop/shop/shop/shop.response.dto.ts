@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
 import { ShopStatus } from "src/modules/shop/shop/shop.schema";
 import { ShiftPreviewResponseDto } from 'src/modules/shop/shift/shop/shift.shop.response.dto';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 // todo: handle address
 class ShopAddressDto {
@@ -17,11 +18,11 @@ class PinnedEmployeepDto {
 
 export class ShopPreviewResponseDto{
   @Expose() shopId: string;
-  @Expose() @Type(() => String) owner: any;
+  @ExposeObjectId() owner: any;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage?: string | null;
+  @ExposeObjectId() shopImage?: string | null;
   @Expose() aboutShop?: string | null;
   @Expose() address?: ShopAddressDto;
   @Expose() status: ShopStatus;

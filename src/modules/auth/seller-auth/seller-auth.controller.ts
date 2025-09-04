@@ -1,11 +1,15 @@
-import { Controller, Get, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiOkResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SellerAuthService } from './seller-auth.service';
-import { LoginCodeForShopDto, LoginCodeForSellerDto } from './seller-auth.dtos';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { SellerAuthDto, ShopAuthDto } from './seller-auth.dtos';
+import {
+  SellerAuthResponseDto,
+  ShopAuthResponseDto,
+  LoginCodeForSellerResponseDto,
+  LoginCodeForShopResponseDto,
+} from './seller-auth.response.dto';
 
 @Controller('')
 export class SellerAuthController {
@@ -13,44 +17,36 @@ export class SellerAuthController {
   
   @ApiTags('for public')
   @ApiOperation({summary: 'Получить код для входа продавца в свою панель управления'})
-  @ApiOkResponse({type: LoginCodeForSellerDto})
-  // ====================================================
   @Get('auth/seller/login-code')
-  getLoginCodeForSeller(): Promise<LoginCodeForSellerDto> {
+  getLoginCodeForSeller(): Promise<LoginCodeForSellerResponseDto> {
     return this.sellerAuthService.generateLoginCodeForSeller();
   }
-
-  @ApiTags('for seller')
-  @ApiOperation({summary: 'Проверить токен и получить данные текущего продавца'})
-  @ApiOkResponse({type: SellerAuthDto})
-  @ApiBearerAuth()
-  // ====================================================
-  @UseGuards(JwtAuthGuard)
-  @Get('auth/seller/me')
-  getSellerProfile(@GetUser() authedSeller: AuthenticatedUser): Promise<SellerAuthDto> {
-    return this.sellerAuthService.checkSellerAuth(authedSeller);
-  }
-  
 
 
   @ApiTags('for public')
   @ApiOperation({summary: 'Получить код для входа в панель управления магазина'})
-  @ApiOkResponse({type: LoginCodeForShopDto})
-  // ====================================================
   @Get('auth/shop/login-code')
-  getLoginCodeForShop(): Promise<LoginCodeForShopDto> {
+  getLoginCodeForShop(): Promise<LoginCodeForShopResponseDto> {
     return this.sellerAuthService.generateLoginCodeForShop();
+  }
+
+
+  @ApiTags('for seller')
+  @ApiOperation({summary: 'Проверить токен и получить данные текущего продавца'})
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Get('auth/seller/me')
+  getSellerProfile(@GetUser() authedSeller: AuthenticatedUser): Promise<SellerAuthResponseDto> {
+    return this.sellerAuthService.checkSellerAuth(authedSeller);
   }
 
 
   @ApiTags('for shop')
   @ApiOperation({summary: 'Проверить токен и получить данные текущего магазина'})
-  @ApiOkResponse({type: ShopAuthDto})
   @ApiBearerAuth()
-  // ====================================================
   @UseGuards(JwtAuthGuard)
   @Get('auth/shop/me')
-  getShopProfile(@GetUser() authedShop: AuthenticatedUser): Promise<ShopAuthDto> {
+  getShopProfile(@GetUser() authedShop: AuthenticatedUser): Promise<ShopAuthResponseDto> {
     return this.sellerAuthService.checkShopAuth(authedShop);
   }
 }

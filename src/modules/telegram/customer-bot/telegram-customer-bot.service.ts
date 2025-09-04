@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { Telegraf, Markup, Context } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
-import { RegisterCustomerDto } from 'src/modules/auth/customer-auth/customer-auth.dtos';
+import { RegisterCustomerDto } from 'src/modules/auth/customer-auth/customer-auth.response.dto';
 import { INestApplication } from '@nestjs/common';
 import { message } from 'telegraf/filters';
 import { CustomerAuthService } from 'src/modules/auth/customer-auth/customer-auth.service';

@@ -7,7 +7,7 @@ import {
   OnGatewayConnection,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { SellerAuthDto, ShopAuthDto } from './seller-auth.dtos';
+import { SellerAuthDto, ShopAuthDto } from './seller-auth.request.dto';
 
 
 @WebSocketGateway({ namespace: 'seller-auth', cors: true })

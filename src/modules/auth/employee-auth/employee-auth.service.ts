@@ -3,11 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import {
-  RegisterEmployeeDto,
-  EmployeeAuthDto,
-  LoginCodeForEmployeeToShopDto,
+  EmployeeAuthResponseDto,
   LoginCodeForEmployeeToShopResponseDto
-} from './employee-auth.dtos';
+} from './employee-auth.response.dto';
+import { RegisterEmployeeDto } from './employee-auth.request.dto';
 import { Employee } from 'src/modules/employee/employee.schema';
 import { EmployeeLoginCode } from './employee-login-code.schema';
 import { plainToInstance } from 'class-transformer';
@@ -35,7 +34,7 @@ export class EmployeeAuthService {
     private notificationService: NotificationService
   ) {}
 
-  async registerViaTelegram(dto: RegisterEmployeeDto): Promise<EmployeeAuthDto> {
+  async registerViaTelegram(dto: RegisterEmployeeDto): Promise<EmployeeAuthResponseDto> {
     const phoneNumber = parsePhoneNumberFromString(dto.phone, 'RU');
     if (!phoneNumber || !phoneNumber.isValid()) throw new BadRequestException('Некорректный номер телефона');
 
@@ -62,7 +61,7 @@ export class EmployeeAuthService {
 
     await createdEmployee.save();
 
-    return plainToInstance(EmployeeAuthDto, createdEmployee, { excludeExtraneousValues: true });
+    return plainToInstance(EmployeeAuthResponseDto, createdEmployee, { excludeExtraneousValues: true });
   }
 
 
@@ -90,6 +89,7 @@ export class EmployeeAuthService {
     return { code, expiresAt, tgBotUrl};
   }
 
+  
   async confirmLoginCode( telegramId: number, code: string): Promise<{token: string}> {
     const loginCode = await this.employeeLoginCodeModel.findOne({ code, confirmed: false });
 
@@ -123,7 +123,7 @@ export class EmployeeAuthService {
       shopId: loginCode.shop.toString()
     }, { expiresIn: '24h' });
 
-    const employee = plainToInstance(EmployeeAuthDto, foundEmployee, { excludeExtraneousValues: true });
+    const employee = plainToInstance(EmployeeAuthResponseDto, foundEmployee, { excludeExtraneousValues: true });
     // Уведомляем клиента по WebSocket
     this.employeeAuthGateway.notifyLoginConfirmed(code, token, employee);
 
@@ -163,6 +163,7 @@ export class EmployeeAuthService {
     return { code, expiresAt, tgBotUrl};
   }
 
+
   async confirmLoginToShop(loginCode: EmployeeLoginCode) {
     const foundLoginCode = await this.employeeLoginCodeModel.findById(loginCode._id).exec();
     if (!foundLoginCode) throw new NotFoundException('Код не найден');
@@ -191,7 +192,7 @@ export class EmployeeAuthService {
       shopId: loginCode.shop.toString()
     }, { expiresIn: '24h' });
 
-    const employee = plainToInstance(EmployeeAuthDto, foundEmployee, { excludeExtraneousValues: true });
+    const employee = plainToInstance(EmployeeAuthResponseDto, foundEmployee, { excludeExtraneousValues: true });
 
     this.employeeAuthGateway.notifyLoginConfirmed(loginCode.code, token, employee);
 
@@ -204,7 +205,7 @@ export class EmployeeAuthService {
   }
 
 
-  async checkEmployeeInShopAuth(authedShop: AuthenticatedUser, authedEmployee: AuthenticatedEmployee): Promise<EmployeeAuthDto> {
+  async checkEmployeeInShopAuth(authedShop: AuthenticatedUser, authedEmployee: AuthenticatedEmployee): Promise<EmployeeAuthResponseDto> {
     const foundShop = await this.shopModel.findById(authedShop.id).select('_id owner').lean({}).exec();
     if (!foundShop) throw new NotFoundException('Магазин не найден');
 
@@ -214,6 +215,6 @@ export class EmployeeAuthService {
     if (foundEmployee.employer && foundEmployee.employer.toString() !== foundShop.owner.toString()) throw new ForbiddenException('Сотрудник не прикреплен к этому продавцу');
     if (foundEmployee.pinnedTo && foundEmployee.pinnedTo.toString() !== foundShop._id.toString()) throw new ForbiddenException('Сотрудник не прикреплен к этому магазину');
 
-    return plainToInstance(EmployeeAuthDto, foundEmployee, { excludeExtraneousValues: true });
+    return plainToInstance(EmployeeAuthResponseDto, foundEmployee, { excludeExtraneousValues: true });
   }
 } 

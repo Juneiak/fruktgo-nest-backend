@@ -5,6 +5,7 @@ import { ShopProductStatus } from 'src/modules/shop/shop-product/shop-product.sc
 import { ProductMeasuringScale } from 'src/modules/product/product.schema';
 import { Types } from 'mongoose';
 import { ProductCategory, ProductStepRate } from 'src/modules/product/product.schema';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class ShopAddressDto {
   @Expose() city: string;
@@ -18,7 +19,7 @@ export class ShopPreviewResponseDto {
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage?: string | null;
+  @ExposeObjectId() shopImage?: string | null;
   @Expose() aboutShop?: string | null;
   @Expose() @Type(() => ShopAddressDto) address?: ShopAddressDto | null;
   @Expose() status: ShopStatus;
@@ -32,7 +33,7 @@ export class ShopPreviewResponseDto {
 }
 class ProductPreviewDto {
   @Expose() productId: string;
-  @Expose() @Type(() => String) cardImage: Types.ObjectId;
+  @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
   @Expose() category: ProductCategory;
@@ -43,12 +44,12 @@ class ProductPreviewDto {
   @Expose() origin?: string;
 }
 class ShopProductImageDto {
-  @Expose() @Type(() => String) imageId: string;
+  @ExposeObjectId() imageId: string;
   @Expose() createdAt: Date;
 }
 export class ShopProductesponseDto {
   @Expose() shopProductId: string;
-  @Expose() @Type(() => String) pinnedTo: string;
+  @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
   @Expose() stockQuantity: number;
   @Expose() status: ShopProductStatus;
@@ -60,7 +61,7 @@ export class ShopFullResponseDto {
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage?: string | null;
+  @ExposeObjectId() shopImage?: string | null;
   @Expose() aboutShop?: string | null;
   @Expose() @Type(() => ShopAddressDto) address?: ShopAddressDto | null;
   @Expose() status: ShopStatus;

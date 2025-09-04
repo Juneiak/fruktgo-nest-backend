@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
-import { RegisterCustomerDto, CustomerAuthDto, LoginCodeForCustomerDto } from './customer-auth.dtos';
+import { CustomerAuthResponseDto, LoginCodeResponseDto } from './customer-auth.response.dto';
 import { Customer } from 'src/modules/customer/schemas/customer.schema';
 import { plainToInstance } from 'class-transformer';
 import { Cart } from 'src/modules/customer/schemas/cart.schema';
@@ -13,6 +13,7 @@ import { CustomerLoginCode } from './customer-login-code.schema';
 import { CustomerAuthGateway } from './customer-auth.gateway';
 import { ConfigService } from '@nestjs/config';
 import { AuthenticatedUser } from 'src/common/types';
+import { RegisterCustomerDto } from './customer-auth.request.dto';
 
 @Injectable()
 export class CustomerAuthService {
@@ -26,7 +27,7 @@ export class CustomerAuthService {
   ) {}
 
  
-   async registerViaTelegram(dto: RegisterCustomerDto): Promise<CustomerAuthDto> {
+   async registerViaTelegram(dto: RegisterCustomerDto): Promise<CustomerAuthResponseDto> {
     const phoneNumber = parsePhoneNumberFromString(dto.phone, 'RU');
     if (!phoneNumber || !phoneNumber.isValid()) throw new BadRequestException('Некорректный номер телефона');
 
@@ -57,11 +58,11 @@ export class CustomerAuthService {
     createdCart.customer = createdCustomer._id;
     await createdCart.save();
 
-    return plainToInstance(CustomerAuthDto, createdCustomer, { excludeExtraneousValues: true });
+    return plainToInstance(CustomerAuthResponseDto, createdCustomer, { excludeExtraneousValues: true });
    }
    
  
-   async generateLoginCode(): Promise<LoginCodeForCustomerDto> {
+   async generateLoginCode(): Promise<LoginCodeResponseDto> {
     const code = generateAuthCode();
     const expiresAt = new Date(Date.now() + CUSTOMER_AUTH_CODE_EXPIRES_IN);
     await this.customerLoginCodeModel.create({ code, expiresAt });
@@ -91,7 +92,7 @@ export class CustomerAuthService {
     // Генерируем токен для клиента
     const token = this.jwtService.sign({ id: foundCustomer._id.toString(), type: 'customer' });
 
-    const customer = plainToInstance(CustomerAuthDto, foundCustomer, { excludeExtraneousValues: true });
+    const customer = plainToInstance(CustomerAuthResponseDto, foundCustomer, { excludeExtraneousValues: true });
     // Уведомляем клиента по WebSocket
     this.customerAuthGateway.notifyLoginConfirmed(code, token, customer);
 
@@ -103,9 +104,10 @@ export class CustomerAuthService {
     return {token}
    }
 
-  async checkAuth(authedCustomer: AuthenticatedUser): Promise<CustomerAuthDto> {
+
+  async checkAuth(authedCustomer: AuthenticatedUser): Promise<CustomerAuthResponseDto> {
     const customer = await this.customerModel.findById(authedCustomer.id).select('_id customerId isBlocked verifiedStatus').lean({ virtuals: true }).exec();
     if (!customer) throw new UnauthorizedException('Клиент не найден');
-    return plainToInstance(CustomerAuthDto, customer, { excludeExtraneousValues: true });
+    return plainToInstance(CustomerAuthResponseDto, customer, { excludeExtraneousValues: true });
   }
 }

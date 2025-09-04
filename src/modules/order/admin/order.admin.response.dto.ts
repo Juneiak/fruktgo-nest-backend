@@ -7,6 +7,7 @@ import {
   PositiveFeedbackTag,
   NegativeFeedbackTag
 } from '../order.schema';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class OrderedByDto {
   @Expose() customer: any;
@@ -20,7 +21,7 @@ class OrderedFromDto {
 }
 
 class HandledByDto {
-  @Expose() @Type(() => String) employee: string;
+  @ExposeObjectId() employee: string;
   @Expose() employeeName: string;
 }
 
@@ -52,7 +53,7 @@ class OrderProductDto {
   @Expose() category: string;
   @Expose() productName: string;
   @Expose() price: number;
-  @Expose() @Type(() => String) cardImage: string;
+  @ExposeObjectId() cardImage: string;
   @Expose() measuringScale: string;
   @Expose() selectedQuantity: number;
   @Expose() actualQuantity: number | null;
@@ -61,7 +62,7 @@ class OrderProductDto {
 
 export class OrderFullResponseDto {
   @Expose() orderId: string;
-  @Expose() @Type(() => String) shift: Types.ObjectId;
+  @ExposeObjectId() shift: Types.ObjectId;
   @Expose() orderedFrom: OrderedFromDto;
   @Expose() orderedBy: OrderedByDto;
   @Expose() orderStatus: OrderStatus;
@@ -90,7 +91,7 @@ export class OrderPreviewResponseDto {
   @Expose() orderStatus: OrderStatus;
   @Expose() @Type(() => OrderedByDto) orderedBy: OrderedByDto;
   @Expose() @Type(() => OrderedFromDto) orderedFrom: OrderedFromDto;
-  @Expose() @Type(() => String) shift: Types.ObjectId;
+  @ExposeObjectId() shift: Types.ObjectId;
   @Expose() orderedAt: Date;
   @Expose() @Type(() => HandledByDto) handledBy: HandledByDto | null;
   @Expose() @Type(() => OrderFinanceInfoDto) finances: OrderFinanceInfoDto;

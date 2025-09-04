@@ -2,6 +2,7 @@ import { Expose } from 'class-transformer';
 import { OrderStatus, OrderCancelReason, OrderDeclineReason, PositiveFeedbackTag, NegativeFeedbackTag } from '../order.schema';
 import { Type } from 'class-transformer';
 import { Types } from 'mongoose';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class OrderedByDto {
   @Expose() customer: any;
@@ -15,7 +16,7 @@ export class OrderedFromDto {
 }
 
 export class HandledByDto {
-  @Expose() @Type(() => String) employee: string;
+  @ExposeObjectId() employee: string;
   @Expose() employeeName: string;
 }
 
@@ -47,7 +48,7 @@ export class OrderProductDto {
   @Expose() category: string;
   @Expose() productName: string;
   @Expose() price: number;
-  @Expose() @Type(() => String) cardImage: string;
+  @ExposeObjectId() cardImage: string;
   @Expose() measuringScale: string;
   @Expose() selectedQuantity: number;
   @Expose() actualQuantity: number | null;
@@ -56,7 +57,7 @@ export class OrderProductDto {
 
 export class OrderFullResponseDto {
   @Expose() orderId: string;
-  @Expose() @Type(() => String) shift: Types.ObjectId;
+  @ExposeObjectId() shift: Types.ObjectId;
   @Expose() orderedFrom: OrderedFromDto;
   @Expose() orderStatus: OrderStatus;
   @Expose() orderedAt: Date;
@@ -82,7 +83,7 @@ export class OrderFullResponseDto {
 export class OrderPreviewResponseDto {
   @Expose() orderId: string;
   @Expose() orderStatus: OrderStatus;
-  @Expose() @Type(() => String) shift: Types.ObjectId;
+  @ExposeObjectId() shift: Types.ObjectId;
   @Expose() orderedAt: Date;
   @Expose() @Type(() => HandledByDto) handledBy: HandledByDto | null;
   @Expose() @Type(() => OrderFinanceInfoDto) finances: OrderFinanceInfoDto;

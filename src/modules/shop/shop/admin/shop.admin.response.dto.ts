@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
 import { ShopStatus } from 'src/modules/shop/shop/shop.schema';
 import { Types } from 'mongoose';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class OwnerDto {
   @Expose() sellerId: string;
@@ -21,7 +22,7 @@ export class ShopPreviewResponseDto {
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage: Types.ObjectId;
+  @ExposeObjectId() shopImage: Types.ObjectId;
   @Expose() @Type(() => ShopAddressDto) address: ShopAddressDto;
   @Expose() status: ShopStatus;
   @Expose() openAt: string;
@@ -45,7 +46,7 @@ export class ShopPreviewResponseDto {
 class PinnedEmployeeDto {
   @Expose() employeeId: string;
   @Expose() employeeName: string;
-  @Expose() @Type(() => String) employeeAvatar?: Types.ObjectId;
+  @ExposeObjectId() employeeAvatar?: Types.ObjectId;
   @Expose() phone?: string | null;
   @Expose() telegramUsername?: string | null;
   @Expose() position?: string | null;
@@ -66,7 +67,7 @@ export class ShopFullResponseDto {
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage?: Types.ObjectId | null;
+  @ExposeObjectId() shopImage?: Types.ObjectId | null;
   @Expose() aboutShop?: string | null;
   @Expose() @Type(() => ShopAddressDto) address?: ShopAddressDto | null;
   @Expose() status: ShopStatus;

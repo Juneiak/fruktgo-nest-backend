@@ -2,6 +2,7 @@ import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
 import { ShopStatus } from 'src/modules/shop/shop/shop.schema';
 import { ShiftPreviewResponseDto } from 'src/modules/shop/shift/seller/shift.seller.response.dto';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 class ShopAddressDto {
   @Expose() city: string;
@@ -16,7 +17,7 @@ export class ShopPreviewResponseDto {
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage?: string | null;
+  @ExposeObjectId() shopImage?: string | null;
   @Expose() aboutShop?: string | null;
   @Expose() @Type(() => ShopAddressDto) address?: ShopAddressDto | null;
   @Expose() status: ShopStatus;
@@ -39,12 +40,12 @@ export class ShopPreviewResponseDto {
 
 export class ShopFullResponseDto {
   @Expose() shopId: string;
-  @Expose() @Type(() => String) owner: any;
+  @ExposeObjectId() owner: any;
   @Expose() phone: string | null;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @Expose() @Type(() => String) shopImage?: string | null;
+  @ExposeObjectId() shopImage?: string | null;
   @Expose() aboutShop?: string | null;
   @Expose() @Type(() => ShopAddressDto) address?: ShopAddressDto | null;
   @Expose() status: ShopStatus;
