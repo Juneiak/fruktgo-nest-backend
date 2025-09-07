@@ -9,7 +9,7 @@ import { ShiftModel } from '../shift.schema';
 import { ShopModel } from '../../shop/shop.schema';
 import { AuthenticatedUser } from 'src/common/types';
 import { LogsService } from 'src/common/modules/logs/logs.service';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 
 @Injectable()
 export class ShiftSellerService {

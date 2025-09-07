@@ -11,7 +11,7 @@ import {
   OrderPreviewResponseDto,
   OrderFullResponseDto
 } from './order.admin.response.dto';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { OrderQueryFilterDto } from './order.admin.filter.dto';
 
 @ApiTags('for admin')

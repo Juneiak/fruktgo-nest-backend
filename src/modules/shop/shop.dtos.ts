@@ -2,7 +2,7 @@ import { Exclude, Expose } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/types';
 import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
-import { LogDto } from 'src/common/modules/logs/logs.dtos';
+import { LogDto } from 'src/common/modules/logs/logs.response.dto';
 import {ShopStatus} from 'src/modules/shop/shop/shop.schema'
 import {ShopProductStatus} from 'src/modules/shop/shop-product/shop-product.schema'
 import { ProductCategory, ProductMeasuringScale, ProductStepRate } from "src/modules/product/product.schema";

@@ -11,6 +11,7 @@ import { GetUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
+import { ShopProductQueryFilterDto } from './shop-product.admin.filter.dto';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -24,10 +25,10 @@ export class ShopProductAdminController {
   @Get('/')
   getShopProducts(
     @GetUser() authedAdmin: AuthenticatedUser,
-    @Param('shopId') shopId: string,
+    @Query() shopProductQueryFilter: ShopProductQueryFilterDto,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductPreviewResponseDto>> {
-    return this.shopProductAdminService.getShopProducts(authedAdmin, shopId, paginationQuery);
+    return this.shopProductAdminService.getShopProducts(authedAdmin, shopProductQueryFilter, paginationQuery);
   }
 
 

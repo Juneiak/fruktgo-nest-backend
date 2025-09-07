@@ -11,8 +11,8 @@ import {
   ProductFullResponseDto,
 } from './product.response.dtos';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
-
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
+import { ProductQueryFilterDto } from './product.admin.filter.dto';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -26,10 +26,10 @@ export class ProductAdminController {
   @Get('/')
   getAllSellerProducts(
     @GetUser() authedAdmin: AuthenticatedUser,
-    @Query('sellerId') sellerId: string,
+    @Query() productQueryFilter: ProductQueryFilterDto,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ProductPreviewResponseDto>> {
-    return this.productAdminService.getSellerProducts(authedAdmin, sellerId, paginationQuery);
+    return this.productAdminService.getProducts(authedAdmin, productQueryFilter, paginationQuery);
   }
 
   
@@ -39,7 +39,7 @@ export class ProductAdminController {
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('productId') productId: string,
   ): Promise<ProductFullResponseDto> {
-    return this.productAdminService.getSellerProduct(authedAdmin, productId);
+    return this.productAdminService.getProduct(authedAdmin, productId);
   }
 
 

@@ -5,7 +5,6 @@ import {
   ShopFullResponseDto,
 } from './shop.admin.response.dto';
 import { UpdateShopDto } from './shop.admin.request.dto';
-
 import { ApiTags, ApiOperation, ApiBearerAuth} from '@nestjs/swagger';
 import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
@@ -13,11 +12,11 @@ import { GetUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
-@Controller('shops/for-admin')
+@Controller('admin/shops')
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
 export class ShopAdminController {

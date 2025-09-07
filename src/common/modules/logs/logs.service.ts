@@ -7,10 +7,17 @@ import {
   LogLevel,
   LogEntityType,
   LogModel,
- } from './logs.schemas';
-import { LogDto, PaginatedLogDto } from './logs.dtos';
+ } from './logs.schema';
+import { LogDto, PaginatedLogDto } from './logs.response.dto';
 import { transformPaginatedResult } from 'src/common/utils';
 import { plainToInstance } from 'class-transformer';
+import { UserType } from 'src/common/types';
+
+type CreateLogSettings = {
+  logLevel?: LogLevel;
+  forRoles?: UserType[];
+  session?: ClientSession;
+}
 
 @Injectable()
 export class LogsService {
@@ -22,26 +29,29 @@ export class LogsService {
   // УНИВЕРСАЛЬНЫЕ МЕТОДЫ ДЛЯ ВСЕХ ТИПОВ ЛОГОВ
   // ====================================================
   
+
   /**
    * Создание лога
-   */
+   */ 
   async createLog(
     entityType: LogEntityType,
     entityId: string,
     text: string,
-    logLevel: LogLevel = LogLevel.LOW,
-    session?: ClientSession
+    settings: CreateLogSettings = {
+      logLevel: LogLevel.LOW,
+      forRoles: [],
+      session: undefined
+    }
   ): Promise<BaseLog> {
-    
     const logData = {
       entityType,
       entityId: new Types.ObjectId(entityId),
       text,
-      logLevel,
+      logLevel: settings.logLevel,
+      forRoles: [UserType.ADMIN, ...(settings.forRoles || [])],
     }
-    
-    if (session) {
-      return await this.logModel.create([logData], { session }).then(docs => docs[0]);
+    if (settings.session) {
+      return await this.logModel.create([logData], { session: settings.session }).then(docs => docs[0]);
     } else {
       return await this.logModel.create(logData);
     }
@@ -55,12 +65,22 @@ export class LogsService {
   async getEntityLogs(
     entityType: LogEntityType,
     entityId: string,
-    paginationQuery: PaginationQueryDto
+    paginationQuery: PaginationQueryDto,
+    forRoles?: UserType[]
   ): Promise<PaginatedLogDto> {
     const { page = 1, pageSize = 10 } = paginationQuery;
     
+    // Строим фильтр
+    const filter: any = { 
+      entityType, 
+      entityId: new Types.ObjectId(entityId) 
+    };
+    
+    // Добавляем фильтр по ролям только если роли переданы
+    if (forRoles && forRoles.length > 0) filter.forRoles = { $in: forRoles }; // Пересечение массивов
+    
     const result = await this.logModel.paginate(
-      { entityType, entityId: new Types.ObjectId(entityId)},
+      filter,
       { page, limit: pageSize, sort: { createdAt: -1 } }
     );
     
@@ -118,15 +138,19 @@ export class LogsService {
   // ====================================================
   
   // Customer logs
-  async addCustomerLog(customerId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.CUSTOMER, customerId, text, level, session);
+  async addCustomerLog(customerId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.CUSTOMER, customerId, text, settings);
   }
   
-  async getAllCustomerLogs(customerId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.CUSTOMER, customerId, paginationQuery);
+  async getAllCustomerLogs(customerId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.CUSTOMER, customerId, paginationQuery, forRoles);
   }
   
-  async deleteCustomerLog(customerId: string, logId: string, session?: ClientSession) {
+  async deleteCustomerLog(customerId: string, logId: string, session?: ClientSession, ) {
     return this.deleteLog(LogEntityType.CUSTOMER, customerId, logId, session);
   }
   
@@ -135,12 +159,16 @@ export class LogsService {
   }
 
   // Employee logs
-  async addEmployeeLog(employeeId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.EMPLOYEE, employeeId, text, level, session);
+  async addEmployeeLog(employeeId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.EMPLOYEE, employeeId, text, settings);
   }
   
-  async getAllEmployeeLogs(employeeId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.EMPLOYEE, employeeId, paginationQuery);
+  async getAllEmployeeLogs(employeeId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.EMPLOYEE, employeeId, paginationQuery, forRoles);
   }
   
   async deleteEmployeeLog(employeeId: string, logId: string, session?: ClientSession) {
@@ -154,12 +182,16 @@ export class LogsService {
 
 
   // Order logs
-  async addOrderLog(orderId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.ORDER, orderId, text, level, session);
+  async addOrderLog(orderId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.ORDER, orderId, text, settings);
   }
   
-  async getAllOrderLogs(orderId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.ORDER, orderId, paginationQuery);
+  async getAllOrderLogs(orderId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.ORDER, orderId, paginationQuery, forRoles);
   }
   
   async deleteOrderLog(orderId: string, logId: string, session?: ClientSession) {
@@ -173,12 +205,16 @@ export class LogsService {
 
 
   // Product logs
-  async addProductLog(productId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.PRODUCT, productId, text, level, session);
+  async addProductLog(productId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.PRODUCT, productId, text, settings);
   }
   
-  async getAllProductLogs(productId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.PRODUCT, productId, paginationQuery);
+  async getAllProductLogs(productId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.PRODUCT, productId, paginationQuery, forRoles);
   }
   
   async deleteProductLog(productId: string, logId: string, session?: ClientSession) {
@@ -192,12 +228,16 @@ export class LogsService {
 
 
   // Seller logs
-  async addSellerLog(sellerId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.SELLER, sellerId, text, level, session);
+  async addSellerLog(sellerId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.SELLER, sellerId, text, settings);
   }
   
-  async getAllSellerLogs(sellerId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.SELLER, sellerId, paginationQuery);
+  async getAllSellerLogs(sellerId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.SELLER, sellerId, paginationQuery, forRoles);
   }
   
   async deleteSellerLog(sellerId: string, logId: string, session?: ClientSession) {
@@ -211,12 +251,16 @@ export class LogsService {
 
 
   // ShopProduct logs
-  async addShopProductLog(shopProductId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.SHOP_PRODUCT, shopProductId, text, level, session);
+  async addShopProductLog(shopProductId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.SHOP_PRODUCT, shopProductId, text, settings);
   }
   
-  async getAllShopProductLogs(shopProductId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.SHOP_PRODUCT, shopProductId, paginationQuery);
+  async getAllShopProductLogs(shopProductId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.SHOP_PRODUCT, shopProductId, paginationQuery, forRoles);
   }
   
   async deleteShopProductLog(shopProductId: string, logId: string, session?: ClientSession) {
@@ -230,12 +274,16 @@ export class LogsService {
 
 
   // Shift logs
-  async addShiftLog(shiftId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.SHIFT, shiftId, text, level, session);
+  async addShiftLog(shiftId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.SHIFT, shiftId, text, settings);
   }
   
-  async getAllShiftLogs(shiftId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.SHIFT, shiftId, paginationQuery);
+  async getAllShiftLogs(shiftId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.SHIFT, shiftId, paginationQuery, forRoles);
   }
   
   async deleteShiftLog(shiftId: string, logId: string, session?: ClientSession) {
@@ -249,12 +297,16 @@ export class LogsService {
 
 
   // Shop logs
-  async addShopLog(shopId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.SHOP, shopId, text, level, session);
+  async addShopLog(shopId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.SHOP, shopId, text, settings);
   }
   
-  async getAllShopLogs(shopId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.SHOP, shopId, paginationQuery);
+  async getAllShopLogs(shopId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.SHOP, shopId, paginationQuery, forRoles);
   }
   
   async deleteShopLog(shopId: string, logId: string, session?: ClientSession) {
@@ -266,12 +318,16 @@ export class LogsService {
   }
 
   // ShopAccount logs
-  async addShopAccountLog(shopAccountId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.SHOP_ACCOUNT, shopAccountId, text, level, session);
+  async addShopAccountLog(shopAccountId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.SHOP_ACCOUNT, shopAccountId, text, settings);
   }
   
-  async getAllShopAccountLogs(shopAccountId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.SHOP_ACCOUNT, shopAccountId, paginationQuery);
+  async getAllShopAccountLogs(shopAccountId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.SHOP_ACCOUNT, shopAccountId, paginationQuery, forRoles);
   }
   
   async deleteShopAccountLog(shopAccountId: string, logId: string, session?: ClientSession) {
@@ -283,12 +339,16 @@ export class LogsService {
   }
 
   // SellerAccount logs
-  async addSellerAccountLog(sellerAccountId: string, level: LogLevel, text: string, session?: ClientSession) {
-    return this.createLog(LogEntityType.SELLER_ACCOUNT, sellerAccountId, text, level, session);
+  async addSellerAccountLog(sellerAccountId: string, text: string, settings: CreateLogSettings = {
+    logLevel: LogLevel.LOW,
+    forRoles: [],
+    session: undefined
+  }) {
+    return this.createLog(LogEntityType.SELLER_ACCOUNT, sellerAccountId, text, settings);
   }
   
-  async getAllSellerAccountLogs(sellerAccountId: string, paginationQuery: PaginationQueryDto) {
-    return this.getEntityLogs(LogEntityType.SELLER_ACCOUNT, sellerAccountId, paginationQuery);
+  async getAllSellerAccountLogs(sellerAccountId: string, paginationQuery: PaginationQueryDto, forRoles?: UserType[]) {
+    return this.getEntityLogs(LogEntityType.SELLER_ACCOUNT, sellerAccountId, paginationQuery, forRoles);
   }
   
   async deleteSellerAccountLog(sellerAccountId: string, logId: string, session?: ClientSession) {

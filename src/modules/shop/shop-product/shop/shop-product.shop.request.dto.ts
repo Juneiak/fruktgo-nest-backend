@@ -1,20 +1,23 @@
-import { IsNotEmpty, IsString, IsOptional, IsEnum, IsNumber, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsNumber, Min } from 'class-validator';
 import { ShopProductStatus } from "src/modules/shop/shop-product/shop-product.schema";
+import { ToNumber } from 'src/common/transformers/to-number.transformer';
 
 export class RemoveShopProductImageDto {
-  @IsString()
   @IsOptional()
+  @IsString()
   comment?: string;
 }
 
 export class UpdateShopProductByEmployeeDto {
   @IsOptional()
+  @ToNumber()
   @IsNumber()
-  newStockQuantity?: number;
+  @Min(0, { message: 'Количество должно быть больше 0' })
+  stockQuantity?: number;
 
   @IsOptional()
   @IsEnum(ShopProductStatus)
-  newStatus?: ShopProductStatus;
+  status?: ShopProductStatus;
 
   @IsString()
   @IsOptional()

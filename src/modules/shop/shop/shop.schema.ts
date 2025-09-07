@@ -5,7 +5,7 @@ import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Order } from 'src/modules/order/order.schema';
 import { Shift } from 'src/modules/shop/shift/shift.schema';
-import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
+import { BlockedSchema, Blocked, AddressSchema, Address } from 'src/common/schemas/common-schemas';
 import { BlockStatus } from 'src/common/enums/common.enum';
 import { DEFAULT_MIN_WEIGHT_PERCENTAGE, DEFAULT_ACCEPTANCE_LIMIT, DEFAULT_ASSEMBLY_LIMIT } from 'src/common/constants';
 
@@ -15,22 +15,6 @@ export enum ShopStatus {
   PAUSED='paused',
 }
 
-
-const ShopAddressSchema = {
-  city: { type: String, required: false, default: null },
-  street: { type: String, required: false, default: null },
-  house: { type: String, required: false, default: null },
-  latitude: { type: Number, required: false, default: null },
-  longitude: { type: Number, required: false, default: null },
-  _id: false,
-};
-export interface ShopAddress {
-  city: string;
-  street: string;
-  house: string;
-  latitude: number;
-  longitude: number;
-}
 
 @Schema({
   toJSON: { virtuals: true },
@@ -48,7 +32,7 @@ export class Shop {
   @Prop({ type: Types.ObjectId, ref: 'Seller', required: true })
   owner: Types.ObjectId;
 
-  @Prop({ type: BlockedSchema, required: true, _id: false, default: { status: BlockStatus.ACTIVE }})
+  @Prop({ type: BlockedSchema, required: true, default: { status: BlockStatus.ACTIVE }})
   blocked: Blocked;
 
   @Prop({ type: String, enum: Object.values(VerifiedStatus), default: VerifiedStatus.IS_CHECKING, required: true })
@@ -63,8 +47,8 @@ export class Shop {
   @Prop({ type: String, required: false, default: null })
   aboutShop?: string | null;
 
-  @Prop({ type: ShopAddressSchema, required: false, default: {} })
-  address?: ShopAddress | null;
+  @Prop({ type: AddressSchema, required: false, default: {} })
+  address?: Address | null;
 
   @Prop({ type: String, enum: Object.values(ShopStatus), default: ShopStatus.CLOSED, required: true })
   status: ShopStatus;
@@ -99,10 +83,10 @@ export class Shop {
   @Prop({ type: Number, min: 0, default: 0, required: true })
   pinnedEmployeesCount: number;
 
-  @Prop({ type: String, required: false, select: false, default: null })
+  @Prop({ type: String, required: false, default: null })
   sellerNote?: string | null;
 
-  @Prop({ type: String, required: false, select: false, default: null })
+  @Prop({ type: String, required: false, default: null })
   internalNote?: string | null;
 
   @Prop({ type: Types.ObjectId, ref: 'Shift', required: false, default: null })

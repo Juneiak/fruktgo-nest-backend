@@ -1,6 +1,6 @@
-import { Controller, Get, Body, Param, Patch, Delete, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Body, Param, Patch, Delete, Query, UseGuards, Post } from '@nestjs/common';
 import { ShopProductSellerService } from './shop-product.seller.service';
-import { PaginationQueryDto, PaginatedResponseDto } from "src/common/dtos";
+import { PaginationQueryDto, PaginatedResponseDto, MessageResponseDto } from "src/common/dtos";
 import { UpdateShopProductDto} from './shop-product.seller.request.dto';
 import { ShopProductResponseDto } from './shop-product.seller.response.dto';
 import { UserType } from 'src/common/decorators/type.decorator';
@@ -9,8 +9,8 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { MessageResponseDto } from 'src/common/dtos';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
+import { ShopProductQueryFilterDto } from '../admin/shop-product.admin.filter.dto';
 
 @ApiTags('for seller')
 @ApiBearerAuth('JWT-auth')
@@ -23,69 +23,64 @@ export class ShopProductSellerController {
   ) {}
 
   @ApiOperation({summary: 'Получение всех продуктов из магазина с пагинацией'})
-  @Get('/:shopId/shop-products')
+  @Get('/')
   getShopProducts(
     @GetUser() authedSeller: AuthenticatedUser,
-    @Param('shopId') shopId: string,
+    @Query() shopProductQueryFilter: ShopProductQueryFilterDto,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
-    return this.shopProductSellerService.getShopProducts(authedSeller, shopId, paginationQuery);
+    return this.shopProductSellerService.getShopProducts(authedSeller, shopProductQueryFilter, paginationQuery);
+  }
+
+
+  @ApiOperation({summary: 'изменение кол-во и/или статуса продукта в магазине'})
+  @Post('/:shopProductId')
+  updateShopProduct(
+    @GetUser() authedSeller: AuthenticatedUser,
+    @Body() dto: UpdateShopProductDto
+  ): Promise<ShopProductResponseDto> {
+    return this.shopProductSellerService.updateShopProduct(authedSeller, dto);
   }
 
 
   @ApiOperation({summary: 'Получение продукта из магазина'})
-  @Get('/:shopId/shop-products/:shopProductId')
+  @Get('/:shopProductId')
   getShopProduct(
     @GetUser() authedSeller: AuthenticatedUser,
     @Param('shopProductId') shopProductId: string,
-    @Param('shopId') shopId: string
   ): Promise<ShopProductResponseDto> {
-    return this.shopProductSellerService.getShopProduct(authedSeller, shopId, shopProductId);
+    return this.shopProductSellerService.getShopProduct(authedSeller, shopProductId);
   }
 
 
   @ApiOperation({summary: 'Получение логов продукта из магазина'})
-  @Get('/:shopId/shop-products/:shopProductId/logs')
+  @Get('/:shopProductId/logs')
   getShopProductLogs(
     @GetUser() authedSeller: AuthenticatedUser,
     @Param('shopProductId') shopProductId: string,
-    @Param('shopId') shopId: string,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedLogDto> {
-    return this.shopProductSellerService.getShopProductLogs(authedSeller, shopId, shopProductId, paginationQuery);
-  }
-
-  
-  @ApiOperation({summary: 'изменение кол-во и/или статуса продукта в магазине'})
-  @Patch('/:shopId/shop-products')
-  updateShopProduct(
-    @Param('shopId') shopId: string,
-    @GetUser() authedSeller: AuthenticatedUser,
-    @Body() dto: UpdateShopProductDto
-  ): Promise<ShopProductResponseDto> {
-    return this.shopProductSellerService.updateShopProduct(authedSeller, shopId, dto);
+    return this.shopProductSellerService.getShopProductLogs(authedSeller, shopProductId, paginationQuery);
   }
 
 
   @ApiOperation({summary: 'Удаление продукта из магазина'})
-  @Delete('/:shopId/shop-products/:shopProductId')
-  removeProductFromShop(
+  @Delete('/:shopProductId')
+  removeShopProduct(
     @GetUser() authedSeller: AuthenticatedUser,
     @Param('shopProductId') shopProductId: string,
-    @Param('shopId') shopId: string
   ): Promise<MessageResponseDto> {
-    return this.shopProductSellerService.removeProductFromShop(authedSeller, shopId, shopProductId);
+    return this.shopProductSellerService.removeShopProduct(authedSeller, shopProductId);
   }
 
 
   @ApiOperation({summary: 'Удаление фото продукта из магазина'})
-  @Delete('/:shopId/shop-products/:shopProductId/images/:imageId')
+  @Delete('/:shopProductId/images/:imageId')
   removeShopProductImage(
     @GetUser() authedSeller: AuthenticatedUser,
     @Param('shopProductId') shopProductId: string,
-    @Param('shopId') shopId: string,
     @Param('imageId') imageId: string
-  ): Promise<MessageResponseDto> {
-    return this.shopProductSellerService.removeShopProductImage(authedSeller, shopId, shopProductId, imageId);
+  ): Promise<ShopProductResponseDto> {
+    return this.shopProductSellerService.removeShopProductImage(authedSeller, shopProductId, imageId);
   }
 }

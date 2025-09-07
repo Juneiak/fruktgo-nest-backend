@@ -69,7 +69,7 @@ export class Customer {
   @Prop({ type: Number, minimum: 0, required: true, default: 0 })
   totalSpent: number;
 
-  @Prop({ type: String, select: false })
+  @Prop({ type: String, default: null })
   internalNote?: string | null;
 
   @Prop({ type: [AddressSchema], default: [] })

@@ -1,31 +1,19 @@
-import { Model, PaginateResult, Types } from 'mongoose';
+import { PaginateResult, Types, ClientSession } from 'mongoose';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { VerifiedStatus } from 'src/common/types';
-import * as crypto from 'crypto';
+import { BlockStatus } from 'src/common/enums/common.enum';
 import { PaginatedResponseDto } from '../dtos';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
+import { Blocked } from '../schemas/common-schemas';
 
-export function checkIsBlocked<T extends { isBlocked?: boolean }>(user: T): void {
-  // if (user.isBlocked) throw new ForbiddenException('Пользователь заблокирован');
-}
-
-export function checkVerifiedStatus<T extends { verifiedStatus?: VerifiedStatus }>(
-  user: T,
-  allowedStatuses: VerifiedStatus[] = [VerifiedStatus.VERIFIED], 
-): void {
-  if (!user.verifiedStatus || !allowedStatuses.includes(user.verifiedStatus)) {
-    // throw new ForbiddenException('Пользователь не верифицирован');
-  }
-}
 
 //TODO: довести до ума, пока просто отключу
-export function verifyUserStatus<T extends { isBlocked?: boolean; verifiedStatus?: VerifiedStatus }>(
+export function verifyUserStatus<T extends { blocked?: Blocked; verifiedStatus?: VerifiedStatus }>(
   user: T,
   allowedStatuses: VerifiedStatus[] = [VerifiedStatus.VERIFIED],
 ): void {
-  
-  checkIsBlocked(user);
-  checkVerifiedStatus(user, allowedStatuses);
+  if (user.blocked?.status === BlockStatus.BLOCKED) throw new ForbiddenException('Пользователь заблокирован');
+  if (user.verifiedStatus && !allowedStatuses.includes(user.verifiedStatus)) throw new ForbiddenException('Пользователь не верифицирован');
 }
 
 export function checkId(ids: string[]): void {
@@ -89,3 +77,49 @@ export const transformPaginatedResult = <T, D>(
     }
   }
 };
+
+/**
+ * Утилита для проверки существования сущности с учетом статуса блокировки и верификации
+ * @param model - Модель Mongoose для поиска
+ * @param filter - Базовый фильтр поиска
+ * @param options - Опции проверки
+ * @returns Promise<boolean> - true если сущность найдена и соответствует критериям
+ */
+export async function checkEntityStatus(
+  model: any,
+  filter: any,
+  options: {
+    checkVerification?: boolean;
+    checkBlocked?: boolean;
+    allowedVerificationStatuses?: VerifiedStatus[];
+    allowedBlockStatuses?: BlockStatus[];
+    session?: ClientSession
+  } = {},
+): Promise<boolean> {
+  const {
+    checkVerification = true,
+    checkBlocked = true,
+    allowedVerificationStatuses = [VerifiedStatus.VERIFIED],
+    allowedBlockStatuses = [BlockStatus.ACTIVE],
+    session
+  } = options;
+
+  // Создаем итоговый фильтр
+  const finalFilter: any = { ...filter };
+
+  // Добавляем проверку верификации
+  if (checkVerification) {
+    finalFilter.verifiedStatus = { $in: allowedVerificationStatuses };
+  }
+
+  // Добавляем проверку блокировки
+  if (checkBlocked) {
+    finalFilter['blocked.status'] = { $in: allowedBlockStatuses };
+  }
+
+  // Проверяем существование
+  const query = model.exists(finalFilter);
+  if (session) query.session(session);
+  const entity = await query.exec();
+  return !!entity;
+}

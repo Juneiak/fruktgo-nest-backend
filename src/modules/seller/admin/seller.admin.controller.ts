@@ -11,7 +11,7 @@ import { UpdateSellerByAdminDto } from './seller.admin.request.dto';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { SellerAdminService } from './seller.admin.service';
 
 @ApiTags('for admin')

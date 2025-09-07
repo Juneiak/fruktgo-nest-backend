@@ -19,13 +19,13 @@ export class ProductPreviewResponseDto {
   @Expose() totalLast7daysWriteOff: number;
   @Expose() origin?: string;
   @Expose() totalStockQuantity: number;
-  @Expose() owner: any;
+  @ExposeObjectId() owner: Types.ObjectId;
 }
 
 
 class ShopDto {
-  @Expose()@Type(() => String) shopId: string;
-  @ExposeObjectId() shopImage: string;
+  @ExposeObjectId() shopId: string;
+  @ExposeObjectId() shopImage: Types.ObjectId;
   @Expose() shopName: string;
 }
 class ShopProductDto {
@@ -52,6 +52,6 @@ export class ProductFullResponseDto {
   @Expose() totalLast7daysWriteOff: number;
   @Expose() origin?: string;
   @Expose() totalStockQuantity: number;
-  @Expose() owner: any;
+  @ExposeObjectId() owner: Types.ObjectId;
   @Expose() @Type(() => ShopProductDto) shopProducts: ShopProductDto;
 }

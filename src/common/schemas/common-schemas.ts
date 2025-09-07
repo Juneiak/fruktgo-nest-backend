@@ -12,6 +12,7 @@ export const BlockedSchema = {
   by: { type: Types.ObjectId, ref: 'Admin', default: null }, // кто установил (опц.)
   blockedAt: { type: Date, default: null },
   blockedUntil: { type: Date, default: null },       // для SUSPENDED
+  _id: false,
 }
 export interface Blocked {
   status: BlockStatus;
@@ -20,6 +21,7 @@ export interface Blocked {
   by?: Types.ObjectId | null;
   blockedAt?: Date | null;
   blockedUntil?: Date | null;
+  _id: Types.ObjectId;
 }
 
 

@@ -2,7 +2,7 @@ import { Injectable, Inject, forwardRef, NotFoundException, UnauthorizedExceptio
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
-import { LogLevel } from "src/common/modules/logs/logs.schemas";
+import { LogLevel } from "src/common/modules/logs/logs.schema";
 import { ShopProduct } from "src/modules/shop/shop-product/shop-product.schema";
 import { Shop } from "src/modules/shop/shop/shop.schema";
 import { Customer } from "src/modules/customer/schemas/customer.schema";

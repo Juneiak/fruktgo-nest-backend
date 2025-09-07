@@ -23,6 +23,24 @@ export class ShopSellerController {
     private readonly shopSellerService: ShopSellerService,
   ) {}
 
+  @ApiOperation({summary: 'Возвращает список превью информации о магазинах'})
+  @Get('/')
+  getShops(
+    @GetUser() authedSeller: AuthenticatedUser
+  ): Promise<ShopPreviewResponseDto[]> {
+    return this.shopSellerService.getShops(authedSeller);
+  }
+  
+
+  @ApiOperation({summary: 'возвращает полную информацию о магазине'})
+  @Get('/:shopId')
+  getShop(
+    @GetUser() authedSeller: AuthenticatedUser,
+    @Param('shopId')shopId: string
+  ): Promise<ShopFullResponseDto> {
+    return this.shopSellerService.getFullShop(authedSeller, shopId);
+  }
+
 
   @ApiOperation({summary: 'создание магазина продавцом'})
   @Post('/')
@@ -40,34 +58,14 @@ export class ShopSellerController {
   @Patch('/:shopId')
   @UseInterceptors(ImageUploadInterceptor('shopImage'))
   updateShop(
-    @Param('shopId') shopId: string, 
     @GetUser() authedSeller: AuthenticatedUser, 
+    @Param('shopId') shopId: string, 
     @Body() dto: UpdateShopDto,
     @UploadedFile() shopImage?: Express.Multer.File
   ): Promise<ShopFullResponseDto> {
     return this.shopSellerService.updateShop(authedSeller, shopId, dto, shopImage);
   }
 
-
-  @ApiOperation({summary: 'возвращает полную информацию о магазине'})
-  @Get('/:shopId')
-  getShop(@GetUser() authedSeller: AuthenticatedUser, @Param('shopId') shopId: string): Promise<ShopFullResponseDto> {
-    return this.shopSellerService.getFullShop(authedSeller, shopId);
-  }
-
-
-  @ApiOperation({summary: 'возвращает краткую информацию о магазине'})
-  @Get('/:shopId/preview')
-  getShopPreview(@GetUser() authedSeller: AuthenticatedUser, @Param('shopId') shopId: string): Promise<ShopPreviewResponseDto> {
-    return this.shopSellerService.getPreviewShop(authedSeller, shopId);
-  }
-
-
-  @ApiOperation({summary: 'Возвращает список превью информации о магазинах'})
-  @Get('/')
-  getShops(@GetUser() authedSeller: AuthenticatedUser): Promise<ShopPreviewResponseDto[]> {
-    return this.shopSellerService.getShops(authedSeller);
-  }
 
 
 }

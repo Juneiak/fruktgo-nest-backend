@@ -8,15 +8,18 @@ import {
 } from './customer.request.dto';
 import { CustomerResponseDto } from './customer.response.dto';
 import { checkId } from 'src/common/utils';
-import { AuthenticatedUser } from 'src/common/types';
+import { AuthenticatedUser, UserType } from 'src/common/types';
 import { Types } from 'mongoose';
 import { Address } from 'src/common/schemas/common-schemas';
+import { LogsService } from 'src/common/modules/logs/logs.service';
+import { LogLevel } from 'src/common/modules/logs/logs.schema';
 
 
 @Injectable()
 export class CustomerService {
   constructor(
     @InjectModel('Customer') private customerModel: CustomerModel,
+    private readonly logsService: LogsService
   ) {}
 
   // ====================================================
@@ -93,8 +96,7 @@ export class CustomerService {
   async getCustomer(authedCustomer: AuthenticatedUser): Promise<CustomerResponseDto> {
     const customer = await this.customerModel.findById(new Types.ObjectId(authedCustomer.id))
       .select('telegramId customerName phone sex birthDate email bonusPoints savedAddresses selectedAddress cart activeOrders')
-      .populate('cart')
-      .populate('activeOrders')
+      .populate(['cart', 'activeOrders'])
       .lean({virtuals: true}).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
     return plainToInstance(CustomerResponseDto, customer, { excludeExtraneousValues: true, enableCircularCheck: true });
@@ -105,12 +107,36 @@ export class CustomerService {
     const customer = await this.customerModel.findById(new Types.ObjectId(authedCustomer.id)).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
     
-    if (dto.customerName !== undefined) customer.customerName = dto.customerName;
-    if (dto.sex !== undefined) customer.sex = dto.sex;
-    if (dto.birthDate !== undefined) customer.birthDate = dto.birthDate;
-    if (dto.email !== undefined) customer.email = dto.email;
+    const changes: string[] = [];
+    if (dto.customerName !== undefined) {
+      const oldValue = customer.customerName;
+      customer.customerName = dto.customerName;
+      changes.push(`Имя: "${oldValue}" -> "${dto.customerName}"`);
+    }
+    if (dto.sex !== undefined) {
+      const oldValue = customer.sex;
+      customer.sex = dto.sex;
+      changes.push(`Пол: "${oldValue}" -> "${dto.sex}"`);
+    }
+    if (dto.birthDate !== undefined) {
+      const oldValue = customer.birthDate;
+      customer.birthDate = dto.birthDate;
+      changes.push(`Дата рождения: "${oldValue}" -> "${dto.birthDate}"`);
+    }
+    if (dto.email !== undefined) {
+      const oldValue = customer.email;
+      customer.email = dto.email;
+      changes.push(`Email: "${oldValue}" -> "${dto.email}"`);
+    }
     
-    await customer.save();
+    if (changes.length > 0 && customer.isModified()) {
+      await customer.save();
+      await this.logsService.addCustomerLog(
+        customer._id.toString(), 
+        `Администратор обновил данные клиента: ${changes.join(', ')}`,
+        { logLevel: LogLevel.LOW, forRoles: [UserType.CUSTOMER] }
+      );
+    }
 
     return this.getCustomer(authedCustomer);
   }

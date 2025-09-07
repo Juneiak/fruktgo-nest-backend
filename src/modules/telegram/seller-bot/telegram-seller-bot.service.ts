@@ -5,7 +5,7 @@ import { Request, Response } from 'express';
 import { SellerAuthService } from 'src/modules/auth/seller-auth/seller-auth.service';
 import { INestApplication } from '@nestjs/common';
 import { RegisterSellerDto } from 'src/modules/auth/seller-auth/seller-auth.request.dto';
-import { SellerSharedService } from 'src/modules/seller/seller.shared.service';
+import { SellerSharedService } from 'src/modules/seller/shared/seller.shared.service';
 import {
   SELLER_BOT_LOGIN_TO_SELLER_DASHBOARD_PREFIX, SELLER_BOT_LOGIN_TO_SHOP_PREFIX} from 'src/common/constants';
 import { Seller } from 'src/modules/seller/seller.schema';

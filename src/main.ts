@@ -42,8 +42,9 @@ async function bootstrap() {
 
   app.use(express.json());
   app.useGlobalPipes(new ValidationPipe({
-    transform: true, // Включаем автоматическое преобразование типов
-    whitelist: true, // Удаляем лишние поля
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
   }));
   app.useGlobalFilters(new MongooseExceptionFilter())
 

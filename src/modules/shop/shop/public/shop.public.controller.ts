@@ -7,7 +7,7 @@ import {
 import { ApiTags, ApiOperation} from '@nestjs/swagger';
 
 @ApiTags('for public')
-@Controller('shops/for-public')
+@Controller('public/shops')
 export class ShopPublicController {
   constructor(private readonly shopPublicService: ShopPublicService) {}
 

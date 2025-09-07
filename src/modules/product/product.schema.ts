@@ -30,6 +30,7 @@ export enum ProductStepRate {
 
 @Schema({ toJSON: { virtuals: true }, toObject: { virtuals: true }, timestamps: true, id: false })
 export class Product {
+  readonly productId: string;
   _id: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false, default: null })
@@ -75,7 +76,6 @@ export class Product {
   owner: Types.ObjectId;
 
   // virtuals (TS-объявления)
-  readonly productId: string;
   readonly shopProducts: any[];
 }
 

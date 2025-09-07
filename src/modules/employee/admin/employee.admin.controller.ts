@@ -12,7 +12,7 @@ import { UserType } from 'src/common/decorators/type.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { BlockDto } from 'src/common/dtos/block.dto';
 
 

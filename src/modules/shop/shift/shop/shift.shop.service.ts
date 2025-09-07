@@ -12,7 +12,7 @@ import { verifyUserStatus } from 'src/common/utils';
 import { ShopModel, ShopStatus } from "src/modules/shop/shop/shop.schema";
 import { EmployeeModel, EmployeeStatus } from "src/modules/employee/employee.schema";
 import {checkId} from 'src/common/utils';
-import { LogLevel } from "src/common/modules/logs/logs.schemas";
+import { LogLevel } from "src/common/modules/logs/logs.schema";
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import {AuthenticatedUser, AuthenticatedEmployee} from 'src/common/types';
@@ -33,7 +33,7 @@ export class ShiftShopService {
   // COMMON 
   // ====================================================
   async getShopPreviewInfo(authedShop: AuthenticatedUser): Promise<ShiftPreviewResponseDto> {
-    const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).populate('currentShift pinnedEmployees').exec();
+    const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).populate(['currentShift', 'pinnedEmployees']).exec();
     if (!shop) throw new NotFoundException('Магазин не найден');
   
     return plainToInstance(ShiftPreviewResponseDto, shop, { excludeExtraneousValues: true });

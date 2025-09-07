@@ -22,16 +22,7 @@ class ShopProductImageDto {
   @ExposeObjectId() imageId: string;
   @Expose() createdAt: Date;
 }
-
-export class ShopProductPreviewResponseDto {
-  @Expose() shopProductId: string;
-  @ExposeObjectId() pinnedTo: string;
-  @Expose() @Type(() => ProductDto) product: ProductDto;
-  @Expose() stockQuantity: number;
-  @Expose() status: ShopProductStatus;
-}
-
-export class ShopProductFullResponseDto {
+export class ShopProductResponseDto {
   @Expose() shopProductId: string;
   @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductDto) product: ProductDto;

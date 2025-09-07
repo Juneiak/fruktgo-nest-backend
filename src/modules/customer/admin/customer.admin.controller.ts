@@ -12,7 +12,7 @@ import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthenticatedUser } from 'src/common/types';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { PaginatedResponseDto, PaginationQueryDto, TelegramNotificationResponseDto } from 'src/common/dtos';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { BlockDto } from 'src/common/dtos/block.dto';
 
 @ApiTags('for admin')

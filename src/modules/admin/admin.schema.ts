@@ -18,16 +18,16 @@ export class Admin extends Document {
   @Prop({ type: String, required: false })
   phone: string;
 
-  @Prop({ type: Number, required: true, unique: true, select: false })
+  @Prop({ type: Number, required: true, unique: true })
   telegramId: number;
 
-  @Prop({ type: String, required: false, default: null, select: false })
+  @Prop({ type: String, required: false, default: null })
   telegramUsername?: string;
 
-  @Prop({ type: String, required: false, default: null, select: false })
+  @Prop({ type: String, required: false, default: null })
   telegramFirstName?: string;
 
-  @Prop({ type: String, required: false, default: null, select: false })
+  @Prop({ type: String, required: false, default: null })
   telegramLastName?: string;
 }
 

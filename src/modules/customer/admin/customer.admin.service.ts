@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { plainToInstance } from 'class-transformer';
-import { LogLevel } from "src/common/modules/logs/logs.schemas";
+import { LogLevel } from "src/common/modules/logs/logs.schema";
 import { Customer, CustomerModel } from '../schemas/customer.schema';
 import {
   CustomerFullResponseDto,
@@ -11,9 +11,9 @@ import {
 } from './customer.admin.response.dto';
 import { NotifyCustomerDto, UpdateCustomerDto } from './customer.admin.request.dto';
 import { LogsService } from 'src/common/modules/logs/logs.service';
-import { AuthenticatedUser } from 'src/common/types';
+import { AuthenticatedUser, UserType } from 'src/common/types';
 import { PaginatedResponseDto, PaginationQueryDto, TelegramNotificationResponseDto } from 'src/common/dtos';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { BlockDto } from 'src/common/dtos/block.dto';
 
@@ -35,11 +35,10 @@ export class CustomerAdminService {
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<CustomerPreviewResponseDto>> {
     const { page = 1, pageSize = 10 } = paginationQuery;
-    
+
     const result = await this.customerModel.paginate({}, {
       page,
       limit: pageSize,
-      select: '+internalNote +email +phone +telegramId +telegramUsername +telegramFirstName +telegramLastName',
       lean: true,
       leanWithId: false,
       sort: { createdAt: -1 },
@@ -50,68 +49,55 @@ export class CustomerAdminService {
 
   async getCustomer(authedAdmin: AuthenticatedUser, customerId: string): Promise<CustomerFullResponseDto> {
     checkId([customerId]);
-    const customer = await this.customerModel
-      .findById(new Types.ObjectId(customerId))
-      .select('+internalNote +email +phone +telegramId +telegramUsername +telegramFirstName +telegramLastName')
-      .lean({ virtuals: true })
-      .exec();
+    const customer = await this.customerModel.findById(new Types.ObjectId(customerId)).lean({ virtuals: true }).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
+
     return plainToInstance(CustomerFullResponseDto, customer, { excludeExtraneousValues: true });
   }
 
 
   async getCustomerLogs(authedAdmin: AuthenticatedUser, customerId: string, paginationQuery: PaginationQueryDto): Promise<PaginatedLogDto> {
     checkId([customerId]);
-    return await this.logsService.getAllCustomerLogs(customerId, paginationQuery);
+    return await this.logsService.getAllCustomerLogs(customerId, paginationQuery, [UserType.ADMIN]);
   }
 
 
   async updateCustomer(
     authedAdmin: AuthenticatedUser,
     customerId: string,
-    dto: UpdateCustomerDto)
-    : Promise<CustomerFullResponseDto> {
-
+    dto: UpdateCustomerDto
+  ): Promise<CustomerFullResponseDto> {
     checkId([customerId]);
     const customer = await this.customerModel.findById(new Types.ObjectId(customerId)).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
 
-    const updateData: Partial<Customer> = {};
-
-    // Подготовим массив для хранения изменений для лога
-    const changedFields: string[] = [];
+    const changes: string[] = [];
 
     if (dto.verifiedStatus !== undefined) {
-      updateData.verifiedStatus = dto.verifiedStatus;
-      changedFields.push(`статус верификации: ${customer.verifiedStatus} -> ${dto.verifiedStatus}`);
+      const oldValue = customer.verifiedStatus;
+      customer.verifiedStatus = dto.verifiedStatus;
+      changes.push(`статус верификации: ${oldValue} -> ${dto.verifiedStatus}`);
     }
 
     if (dto.bonusPoints !== undefined) {
-      updateData.bonusPoints = dto.bonusPoints;
-      changedFields.push(`бонусные баллы: ${customer.bonusPoints} -> ${dto.bonusPoints}`);
+      const oldValue = customer.bonusPoints;
+      customer.bonusPoints = dto.bonusPoints;
+      changes.push(`бонусные баллы: ${oldValue} -> ${dto.bonusPoints}`);
     }
 
     if (dto.internalNote !== undefined) {
-      updateData.internalNote = dto.internalNote;
-      const oldNote = customer.internalNote || 'пусто';
-      const newNote = dto.internalNote || 'пусто';
-      changedFields.push(`примечание админа: ${oldNote} -> ${newNote}`);
+      const oldValue = customer.internalNote;
+      customer.internalNote = dto.internalNote;
+      changes.push(`примечание админа: ${oldValue} -> ${dto.internalNote}`);
     }
 
-    // Если нет изменений, возвращаем текущего клиента
-    if (changedFields.length === 0) return this.getCustomer(authedAdmin, customerId);
-
-    // Обновляем клиента в базе данных и получаем обновленный документ
-    const updatedCustomer = await this.customerModel.findByIdAndUpdate(new Types.ObjectId(customerId), { $set: updateData }, { new: true }).exec();
-    if (!updatedCustomer) throw new NotFoundException('Ошибка при обновлении клиента');
-
-    // Формируем текст лога
-    const logText = `Админ ${authedAdmin.id} изменил данные клиента: ${changedFields.join('; ')}`;
-
-    // Добавляем запись в лог
-    await this.logsService.addCustomerLog(customerId, LogLevel.SERVICE, logText);
-
-    // Преобразуем документ в DTO для ответа
+    if (changes.length > 0 && customer.isModified()) {
+      await customer.save();
+      await this.logsService.addCustomerLog(
+        customerId,
+        `Админ ${authedAdmin.id} изменил данные клиента: ${changes.join('; ')}`,
+        { logLevel: LogLevel.LOW, forRoles: [UserType.CUSTOMER] });
+    }
     return this.getCustomer(authedAdmin, customerId);
   }
 
@@ -120,30 +106,38 @@ export class CustomerAdminService {
     checkId([customerId]);
     const customer = await this.customerModel.findById(new Types.ObjectId(customerId)).exec();
     if (!customer) throw new NotFoundException('Клиент не найден');
-    
-    const changedFields: string[] = [];
+
+    const changes: string[] = [];
 
     if (dto.status !== undefined) {
+      const oldValue = customer.blocked.status;
       customer.blocked.status = dto.status;
-      changedFields.push(`статус блокировки: ${customer.blocked.status} -> ${dto.status}`);
+      changes.push(`статус блокировки: ${oldValue} -> ${dto.status}`);
     }
     if (dto.reason !== undefined) {
+      const oldValue = customer.blocked.reason;
       customer.blocked.reason = dto.reason;
-      changedFields.push(`причина блокировки: ${customer.blocked.reason} -> ${dto.reason}`);
+      changes.push(`причина блокировки: ${oldValue} -> ${dto.reason}`);
     }
     if (dto.code !== undefined) {
+      const oldValue = customer.blocked.code;
       customer.blocked.code = dto.code;
-      changedFields.push(`код блокировки: ${customer.blocked.code} -> ${dto.code}`);
+      changes.push(`код блокировки: ${oldValue} -> ${dto.code}`);
     }
     if (dto.blockedUntil !== undefined) {
+      const oldValue = customer.blocked.blockedUntil;
       customer.blocked.blockedUntil = dto.blockedUntil;
-      changedFields.push(`срок блокировки: ${customer.blocked.blockedUntil} -> ${dto.blockedUntil}`);
+      changes.push(`срок блокировки: ${oldValue} -> ${dto.blockedUntil}`);
     }
-    customer.blocked = dto;
-    await customer.save();
 
-    const changes = `блокировка: ${changedFields.join(', ')}`;
-    await this.logsService.addCustomerLog(customerId, LogLevel.SERVICE, `Админ ${authedAdmin.id} изменил статус блокировки клиента: ${changes}`);
+    if (changes.length > 0 && customer.isModified()) {
+      await customer.save();
+      await this.logsService.addCustomerLog(
+        customerId, 
+        `Админ ${authedAdmin.id} изменил статус блокировки клиента: ${changes.join(', ')}`, 
+        { logLevel: LogLevel.LOW, forRoles: [UserType.CUSTOMER] }
+      );
+    }
 
     return this.getCustomer(authedAdmin, customerId);
   }

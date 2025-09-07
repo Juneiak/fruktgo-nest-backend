@@ -3,13 +3,13 @@ import { Document, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { PaginateModel } from 'mongoose';
+import { UserType } from 'src/common/types';
 
 export enum LogLevel {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high',
-  CRITICAL = 'critical',
-  SERVICE = 'service',
+  CRITICAL = 'critical'
 }
 
 export enum LogEntityType {
@@ -41,6 +41,9 @@ export class BaseLog {
 
   @Prop({ type: Types.ObjectId, required: true, refPath: 'entityType' })
   entityId: Types.ObjectId;
+
+  @Prop({ type: [String], enum: Object.values(UserType), default: [UserType.ADMIN] })
+  forRoles: UserType[];
 
   @Prop({ type: String, enum: Object.values(LogLevel), default: LogLevel.LOW, required: true })
   logLevel: LogLevel;

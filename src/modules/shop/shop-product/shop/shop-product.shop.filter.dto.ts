@@ -1,8 +1,8 @@
-import { IsArray, IsString, IsNotEmpty } from 'class-validator';
+import { IsArray, IsNotEmpty, IsMongoId } from 'class-validator';
 
 export class ShopProductStockQueryFilterDto {
-  @IsArray()
-  @IsString({ each: true })
   @IsNotEmpty({ each: true })
+  @IsArray()
+  @IsMongoId({ each: true })
   shopProductIds: string[];
 }

@@ -1,8 +1,5 @@
 import { Controller, Delete, Post, Patch, Body, Get, Param, UseGuards } from '@nestjs/common';
-import { 
-  CustomerResponseDto,
-  AddressResponseDto
-} from './customer.response.dto';
+import { CustomerResponseDto } from './customer.response.dto';
 import { CreateAddressDto, UpdateCustomerDto } from './customer.request.dto';
 import { CustomerService } from './customer.service'; 
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
@@ -26,7 +23,7 @@ export class CustomerController {
   addAddress( 
     @GetUser() authedCustomer: AuthenticatedUser, 
     @Body() dto: CreateAddressDto
-  ): Promise<AddressResponseDto[]> {
+  ): Promise<CustomerResponseDto> {
     return this.customerService.addAddress(authedCustomer, dto);
   }
 
@@ -36,7 +33,7 @@ export class CustomerController {
   deleteAddress(
     @GetUser() authedCustomer: AuthenticatedUser, 
     @Param('addressId') addressId: string
-  ): Promise<AddressResponseDto[]> {
+  ): Promise<CustomerResponseDto> {
     return this.customerService.deleteSavedAddress(authedCustomer, addressId);
   }
 
@@ -46,7 +43,7 @@ export class CustomerController {
   selectAddress(
     @GetUser() authedCustomer: AuthenticatedUser, 
     @Param('addressId') addressId: string
-  ): Promise<AddressResponseDto[]> {
+  ): Promise<CustomerResponseDto> {
     return this.customerService.selectAddress(authedCustomer, addressId);
   }
 

@@ -70,10 +70,10 @@ export class Employee {
   @Prop({ type: String, required: false, default: null })
   salary?: string | null;
 
-  @Prop({ type: String, required: false, default: null, select: false })
+  @Prop({ type: String, required: false, default: null })
   sellerNote?: string | null;
 
-  @Prop({ type: String, required: false, default: null, select: false })
+  @Prop({ type: String, required: false, default: null })
   internalNote?: string | null;
 
   @Prop({ type: Date, required: false, default: null })

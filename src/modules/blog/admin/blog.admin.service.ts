@@ -38,32 +38,42 @@ export class BlogAdminService {
   ): Promise<ArticleFullResponseDto> {
     const session = await this.articleModel.db.startSession();
     try {
-      return await session.withTransaction(async () => {
-        const article = await new this.articleModel({
-          title: dto.title,
-          content: dto.content,
-          contentPreview: dto.content.slice(0, 200),
-          targetAudience: dto.targetAudience,
-          authorType: ArticleAuthorType.ADMIN,
-          status: ArticleStatus.PUBLISHED,
-          publishedAt: new Date()
-        }).save({ session });
 
-        if (articleImage) {
-          const createdImage = await this.uploadsService.uploadImage({
-            file: articleImage,
-            accessLevel: 'public',
-            entityType: EntityType.article,
-            entityId: article._id.toString(),
-            imageType: ImageType.articleImage,
-            session
-          });
-          article.articleImage = createdImage._id;
-          await article.save({ session });
-        }
-
-        return this.getArticleDetail(authedAdmin, article._id.toString());
+    const createdArticleId = await session.withTransaction(async () => {
+      // 1) создаём статью и сразу сохраняем
+      const article = new this.articleModel({
+        title: dto.title,
+        content: dto.content,
+        contentPreview: dto.content.slice(0, 200),
+        targetAudience: dto.targetAudience,
+        authorType: ArticleAuthorType.ADMIN,
+        status: ArticleStatus.PUBLISHED,
+        publishedAt: new Date(),
+        articleImage: null,
       });
+
+      await article.save({ session });
+
+      // 2) опциональная загрузка изображения
+      if (articleImage) {
+        const createdImage = await this.uploadsService.uploadImage({
+          file: articleImage,
+          accessLevel: 'public',
+          entityType: EntityType.article,
+          entityId: article._id.toString(),
+          imageType: ImageType.articleImage,
+          session,
+        });
+
+        article.articleImage = createdImage._id;
+        await article.save({ session });
+      }
+      return article._id.toString();
+    });
+
+      if (!createdArticleId) throw new NotFoundException('Не удалось создать статью');
+      return this.getArticleDetail(authedAdmin, createdArticleId);
+
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
       console.error('Ошибка при создании статьи:', error);
@@ -85,11 +95,9 @@ export class BlogAdminService {
     
     const session = await this.articleModel.db.startSession();
     try {
-      return await session.withTransaction(async () => {
+      const updatedArticleId = await session.withTransaction(async () => {
         const article = await this.articleModel.findById(new Types.ObjectId(articleId)).session(session);
         if (!article) throw new NotFoundException('Статья не найдена');
-
-        const oldImageId = article.articleImage || null;
 
         if (dto.title !== undefined) article.title = dto.title;
         if (dto.content !== undefined) {
@@ -98,10 +106,9 @@ export class BlogAdminService {
         }
         if (dto.targetAudience !== undefined) article.targetAudience = dto.targetAudience;
         if (dto.status !== undefined) article.status = dto.status;
-
         if (dto.status === ArticleStatus.PUBLISHED && !article.publishedAt) article.publishedAt = new Date();
-
         if (articleImage) {
+          const oldImageId = article.articleImage || null;
           const createdImage = await this.uploadsService.uploadImage({
             file: articleImage,
             accessLevel: 'public',
@@ -112,13 +119,14 @@ export class BlogAdminService {
             session
           });
           article.articleImage = createdImage._id;
+          if (oldImageId) await this.uploadsService.deleteFile(oldImageId.toString(), session);
         }
-
-        if (article.isModified()) await article.save({ session });
-        if (articleImage && oldImageId) await this.uploadsService.deleteFile(oldImageId.toString(), session);
-
-        return this.getArticleDetail(authedAdmin, article._id.toString());
+        await article.save({ session });
+        return article._id.toString();
       });
+      if (!updatedArticleId) throw new NotFoundException('Не удалось обновить статью');
+      return this.getArticleDetail(authedAdmin, updatedArticleId);
+
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
       console.error('Ошибка при обновлении статьи:', error);

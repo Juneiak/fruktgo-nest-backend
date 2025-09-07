@@ -11,7 +11,7 @@ import {
   ProductOfShopResponseDto,
 } from './product.seller.response.dtos';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.interceptor';
 import { CreateProductDto, UpdateProductDto } from './product.seller.request.dto';
 import { MessageResponseDto } from 'src/common/dtos';
@@ -40,7 +40,7 @@ export class ProductSellerController {
 
   @ApiOperation({summary: 'получение списка продуктов продавцом с пагинацией'})
   @Get('/')
-  getAllSellerProducts(
+  getSellerProducts(
     @GetUser() authedSeller: AuthenticatedUser,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise< PaginatedResponseDto<ProductPreviewResponseDto> > {
@@ -55,7 +55,7 @@ export class ProductSellerController {
     @Query() paginationQuery: PaginationQueryDto,
     @Query('shopId') shopId: string
   ): Promise< PaginatedResponseDto<ProductOfShopResponseDto> > {
-    return this.productSellerService.getProductsOfShops(authedSeller, paginationQuery, shopId);
+    return this.productSellerService.getProductsOfShop(authedSeller, shopId, paginationQuery);
   }
 
 
@@ -63,10 +63,10 @@ export class ProductSellerController {
   @Patch('/:productId')
   @UseInterceptors(ImageUploadInterceptor('cardImage'))
   updateProduct(
-    @Param('productId') productId: string, 
     @GetUser() authedSeller: AuthenticatedUser, 
-    @Body() dto: UpdateProductDto, 
-    @UploadedFile() cardImage?: Express.Multer.File
+    @Body() dto: UpdateProductDto,
+    @Param('productId') productId: string,
+    @UploadedFile() cardImage?: Express.Multer.File,
   ): Promise<ProductFullResponseDto> {
     return this.productSellerService.updateProduct(authedSeller, productId, dto, cardImage);
   }

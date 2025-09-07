@@ -6,13 +6,13 @@ import {
 } from './employee.admin.response.dto';
 import { UpdateEmployeeDto } from './employee.admin.request.dto';
 import { plainToInstance } from 'class-transformer';
-import { LogLevel } from "src/common/modules/logs/logs.schemas";
+import { LogLevel } from "src/common/modules/logs/logs.schema";
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import { checkId } from 'src/common/utils';
-import { AuthenticatedUser } from 'src/common/types';
+import { AuthenticatedUser, UserType } from 'src/common/types';
 import { PaginatedResponseDto, PaginationQueryDto } from 'src/common/dtos';
 import { transformPaginatedResult } from 'src/common/utils';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { EmployeeModel } from '../employee.schema';
 import { BlockDto } from 'src/common/dtos/block.dto';
 import { Types } from 'mongoose';
@@ -34,7 +34,6 @@ export class EmployeeAdminService {
     const result = await this.employeeModel.paginate({}, {
       page,
       limit: pageSize,
-      select: '+internalNote',
       populate: [
         { path: 'pinnedTo', select: 'shopId shopName' },
         { path: 'employer', select: 'sellerId companyName' },
@@ -48,7 +47,7 @@ export class EmployeeAdminService {
 
   async getEmployee(authedAdmin: AuthenticatedUser, employeeId: string): Promise<EmployeeFullResponseDto> {
     checkId([employeeId]);
-    const employee = await this.employeeModel.findOne({ _id: employeeId }).select('+internalNote')
+    const employee = await this.employeeModel.findOne({ _id: employeeId })
       .populate('pinnedTo', 'shopId shopName')
       .populate('employer', 'sellerId companyName')
       .lean({ virtuals: true })
@@ -69,10 +68,9 @@ export class EmployeeAdminService {
     checkId([employeeId]);
     const employee = await this.employeeModel.findById(employeeId);
     if (!employee) throw new NotFoundException(`Сотрудник с ID ${employeeId} не найден`);
-    if (employee.blocked.status === BlockStatus.BLOCKED) throw new ForbiddenException('Сотрудник заблокирован');
+    
     // Собираем изменения для лога
     const changes: string[] = [];
-
 
     if (dto.verifiedStatus && dto.verifiedStatus !== employee.verifiedStatus) {
       const oldValue = employee.verifiedStatus;
@@ -87,12 +85,17 @@ export class EmployeeAdminService {
     }
 
     // Если были изменения, сохраняем и логируем
-    if (changes.length > 0) {
+    if (changes.length > 0 && employee.isModified()) {
       await employee.save();
-      const logText = `Администратор обновил данные сотрудника (${employee.employeeName}):\n${changes.join('\n')}`;
-      await this.logsService.addEmployeeLog(employee._id.toString(), LogLevel.SERVICE, logText);
-    }
-
+      await this.logsService.addEmployeeLog(
+        employee._id.toString(), 
+        `Администратор обновил данные сотрудника (${employee.employeeName}):\n${changes.join('\n')}`, 
+        {
+          forRoles: [UserType.ADMIN],
+          session: undefined
+        }
+      );
+    } 
     return this.getEmployee(authedAdmin, employeeId);
   }
 
@@ -102,29 +105,32 @@ export class EmployeeAdminService {
     const employee = await this.employeeModel.findById(new Types.ObjectId(employeeId)).exec();
     if (!employee) throw new NotFoundException('Сотрудник не найден');
 
-    const changedFields: string[] = [];
+    const changes: string[] = [];
 
     if (dto.status !== undefined) {
       employee.blocked.status = dto.status;
-      changedFields.push(`статус блокировки: ${employee.blocked.status} -> ${dto.status}`);
+      changes.push(`статус блокировки: ${employee.blocked.status} -> ${dto.status}`);
     }
     if (dto.reason !== undefined) {
       employee.blocked.reason = dto.reason;
-      changedFields.push(`причина блокировки: ${employee.blocked.reason} -> ${dto.reason}`);
+      changes.push(`причина блокировки: ${employee.blocked.reason} -> ${dto.reason}`);
     }
     if (dto.code !== undefined) {
       employee.blocked.code = dto.code;
-      changedFields.push(`код блокировки: ${employee.blocked.code} -> ${dto.code}`);
+      changes.push(`код блокировки: ${employee.blocked.code} -> ${dto.code}`);
     }
     if (dto.blockedUntil !== undefined) {
       employee.blocked.blockedUntil = dto.blockedUntil;
-      changedFields.push(`срок блокировки: ${employee.blocked.blockedUntil} -> ${dto.blockedUntil}`);
+      changes.push(`срок блокировки: ${employee.blocked.blockedUntil} -> ${dto.blockedUntil}`);
     }
-    employee.blocked = dto;
-    await employee.save();
-
-    const changes = `блокировка: ${changedFields.join(', ')}`;
-    await this.logsService.addEmployeeLog(employeeId, LogLevel.SERVICE, `Админ ${authedAdmin.id} изменил статус блокировки сотрудника: ${changes}`);
+    if (changes.length > 0 && employee.isModified()) {
+      await employee.save();
+      await this.logsService.addEmployeeLog(
+        employeeId,
+        `Админ ${authedAdmin.id} изменил статус блокировки сотрудника: ${changes.join(', ')}`,
+        { forRoles: [UserType.ADMIN], session: undefined }
+      );
+    }
 
     return this.getEmployee(authedAdmin, employeeId);
   }

@@ -19,10 +19,7 @@ export class ShopPublicService {
 
 
   async getPublicShops(): Promise<ShopPreviewResponseDto[]> {
-    const shops = await this.shopModel.find({
-      // isBlocked: false,
-      // verifiedStatus: VerifiedStatus.VERIFIED
-    }).lean({ virtuals: true }).exec();
+    const shops = await this.shopModel.find({}).lean({ virtuals: true }).exec();
     return plainToInstance(ShopPreviewResponseDto, shops, { excludeExtraneousValues: true });
   }
 

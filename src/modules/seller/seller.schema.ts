@@ -16,6 +16,7 @@ import { BlockStatus } from 'src/common/enums/common.enum';
 })
 export class Seller {
   _id: Types.ObjectId;
+  readonly sellerId: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -81,9 +82,6 @@ export class Seller {
   shops?: Types.ObjectId[];
 
   // virtuals (TS-объявления)
-  readonly sellerId: string;
-  readonly logs?: any[];
-  readonly products?: any[];
   readonly employees?: any[];
   readonly requestsToEmployees?: RequestToEmployee[];
 }

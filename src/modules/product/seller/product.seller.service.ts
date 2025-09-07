@@ -7,17 +7,17 @@ import {
   UpdateProductDto,
 } from "./product.seller.request.dto";
 import { ProductPreviewResponseDto, ProductFullResponseDto, ProductOfShopResponseDto } from "./product.seller.response.dtos";
-import { checkId, transformPaginatedResult, verifyUserStatus } from "src/common/utils";
+import { checkEntityStatus, checkId, transformPaginatedResult } from "src/common/utils";
 import { ProductModel } from "../product.schema";
 import { SellerModel } from "src/modules/seller/seller.schema";
 import { LogsService } from "src/common/modules/logs/logs.service";
-import { LogLevel } from "src/common/modules/logs/logs.schemas";
+import { LogLevel } from "src/common/modules/logs/logs.schema";
 import { MessageResponseDto, PaginatedResponseDto, PaginationQueryDto } from "src/common/dtos";
 import { UploadsService } from "src/common/modules/uploads/uploads.service";
 import { UserType } from "src/common/types";
 import { EntityType, ImageType } from "src/common/modules/uploads/uploaded-file.schema";
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedLogDto } from "src/common/modules/logs/logs.dtos";
+import { PaginatedLogDto } from "src/common/modules/logs/logs.response.dto";
 
 @Injectable()
 export class ProductSellerService {
@@ -34,26 +34,28 @@ export class ProductSellerService {
     cardImage?: Express.Multer.File
   ): Promise<ProductFullResponseDto> {
     const session = await this.productModel.db.startSession();
-    let newImageIdForCompensation: string | null = null;
-
     try {
-      return await session.withTransaction(async () => {
+      const createdProductId = await session.withTransaction(async () => {
         // 1) проверка продавца
-        const seller = await this.sellerModel.findById(authedSeller.id).select('_id verifiedStatus isBlocked').session(session).lean().exec();
-        if (!seller) throw new NotFoundException('Продавец не найден');
-        verifyUserStatus(seller);
+        const okSeller = await checkEntityStatus(
+          this.sellerModel,
+          { _id: new Types.ObjectId(authedSeller.id) },
+          { session }
+        );
+        if (!okSeller) throw new NotFoundException('Продавец не найден');
 
         // 2) создание продукта (save → сработают pre/post save)
-        const product = await new this.productModel({
+        const createdProduct = new this.productModel({
           productName: dto.productName,
           price: dto.price,
           stepRate: dto.stepRate,
           aboutProduct: dto.aboutProduct ?? null,
           origin: dto.origin ?? null,
           productArticle: dto.productArticle ?? null,
-          owner: seller._id,
+          owner: new Types.ObjectId(authedSeller.id),
           cardImage: null,
-        }).save({ session });
+        });
+        await createdProduct.save({ session });
 
         // 3) опциональная загрузка изображения
         if (cardImage) {
@@ -61,27 +63,26 @@ export class ProductSellerService {
             file: cardImage,
             accessLevel: 'public',
             entityType: EntityType.product,
-            entityId: product._id.toString(),
+            entityId: createdProduct._id.toString(),
             imageType: ImageType.productCardImage,
-            allowedUsers: [{ userId: seller._id.toString(), role: UserType.SELLER }],
+            allowedUsers: [{ userId: authedSeller.id, role: UserType.SELLER }],
             session,
           });
-          newImageIdForCompensation = createdImage._id.toString();
-
-          product.cardImage = createdImage._id;
-          await product.save({ session });
+          createdProduct.cardImage = createdImage._id;
+          await createdProduct.save({ session });
         }
 
         // 4) лог
         await this.logsService.addProductLog(
-          product._id.toString(),
-          LogLevel.LOW,
-          `Создан продукт ${product.productName}`,
-          session
+          createdProduct._id.toString(),
+          `Создан продукт ${createdProduct.productName}`,
+          { forRoles: [UserType.SELLER], logLevel: LogLevel.LOW, session,}
         );
-
-        return this.getProduct(authedSeller, product._id.toString());
+        return createdProduct._id.toString();
       });
+
+      if (!createdProductId) throw new NotFoundException('Не удалось создать продукт');
+      return this.getProduct(authedSeller, createdProductId);
 
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
@@ -100,40 +101,48 @@ export class ProductSellerService {
   ): Promise<ProductFullResponseDto> {
     checkId([productId]);
     const session = await this.productModel.db.startSession();
-    let createdImageIdForCompensation: string | null = null;
-
     try {
-      return await session.withTransaction(async () => {
+      const updatedProductId = await session.withTransaction(async () => {
         // 1) Проверка продавца
-        const seller = await this.sellerModel.findById(new Types.ObjectId(authedSeller.id)).select('_id verifiedStatus isBlocked').session(session).lean().exec();
-        if (!seller) throw new NotFoundException('Продавец не найден');
-        verifyUserStatus(seller);
+        const okSeller = await checkEntityStatus(
+          this.sellerModel,
+          { _id: new Types.ObjectId(authedSeller.id) },
+          { session }
+        );
+        if (!okSeller) throw new NotFoundException('Продавец не найден');
 
         // 2) Берём «живой» документ продукта (не lean)
-        const product = await this.productModel
-          .findOne({ _id: new Types.ObjectId(productId), owner: new Types.ObjectId(authedSeller.id) })
-          .session(session);
+        const product = await this.productModel.findOne({ _id: new Types.ObjectId(productId), owner: new Types.ObjectId(authedSeller.id) }).session(session);
         if (!product) throw new NotFoundException('Продукт не найден');
 
         // Снимок старых значений для лога
-        const old = {
-          productName: product.productName,
-          price: product.price,
-          stepRate: product.stepRate,
-          aboutProduct: product.aboutProduct,
-          origin: product.origin,
-          productArticle: product.productArticle,
-          cardImage: product.cardImage as Types.ObjectId | null,
-        };
-
+        const old = product.toObject();
+        const changes: string[] = [];
         // 3) Вайтлист обновляемых полей (обновляем только если переданы)
-        if (dto.productName !== undefined) product.productName = dto.productName;
-        if (dto.price !== undefined) product.price = dto.price;
-        if (dto.stepRate !== undefined) product.stepRate = dto.stepRate;
-        if (dto.aboutProduct !== undefined) product.aboutProduct = dto.aboutProduct ?? null;
-        if (dto.origin !== undefined) product.origin = dto.origin ?? null;
-        if (dto.productArticle !== undefined) product.productArticle = dto.productArticle ?? null;
-
+        if (dto.productName !== undefined) {
+          product.productName = dto.productName;
+          changes.push(`Название: c "${old.productName}" на "${dto.productName}"`);
+        }
+        if (dto.price !== undefined) {
+          product.price = dto.price;
+          changes.push(`Цена: с ${old.price} на ${dto.price}`);
+        }
+        if (dto.stepRate !== undefined) {
+          product.stepRate = dto.stepRate;
+          changes.push(`Шаг: с ${old.stepRate} на ${dto.stepRate}`);
+        }
+        if (dto.aboutProduct !== undefined) {
+          product.aboutProduct = dto.aboutProduct ?? null;
+          changes.push('Описание: изменено');
+        }
+        if (dto.origin !== undefined) {
+          product.origin = dto.origin ?? null;
+          changes.push(`Происхождение: с "${old.origin ?? '-'}" на "${dto.origin ?? '-'}"`);
+        }
+        if (dto.productArticle !== undefined) {
+          product.productArticle = dto.productArticle ?? null;
+          changes.push(`Артикул: с "${old.productArticle ?? '-'}" на "${dto.productArticle ?? '-'}"`);
+        }
         // 4) Опциональная загрузка новой карточки
         if (cardImage) {
           const uploaded = await this.uploadsService.uploadImage({
@@ -142,11 +151,11 @@ export class ProductSellerService {
             entityType: EntityType.product,
             entityId: product._id.toString(),
             imageType: ImageType.productCardImage,
-            allowedUsers: [{ userId: seller._id.toString(), role: UserType.SELLER }],
+            allowedUsers: [{ userId: authedSeller.id, role: UserType.SELLER }],
             session,
           });
-          createdImageIdForCompensation = uploaded._id.toString();
           product.cardImage = uploaded._id;
+          changes.push('Карточка: обновлена');
         }
 
         // 5) Сохраняем документ (сработают pre/post save хуки)
@@ -155,29 +164,20 @@ export class ProductSellerService {
         // 6) Удаляем старую картинку, если реально сменили
         if (cardImage && old.cardImage) await this.uploadsService.deleteFile(old.cardImage.toString(), session);
 
-        // 7) Логируем изменения (по разнице)
-        const changes: string[] = [];
-        if (dto.productName && dto.productName !== old.productName) changes.push(`Название: c "${old.productName}" на "${dto.productName}"`);
-        if (dto.price !== undefined && dto.price !== old.price) changes.push(`Цена: с ${old.price} на ${dto.price}`);
-        if (dto.stepRate && dto.stepRate !== old.stepRate) changes.push(`Шаг: с ${old.stepRate} на ${dto.stepRate}`);
-        if (dto.aboutProduct !== undefined) changes.push('Описание: изменено');
-        if (dto.origin !== undefined && dto.origin !== old.origin) changes.push(`Происхождение: с "${old.origin ?? '-'}" на "${dto.origin ?? '-'}"`);
-        if (dto.productArticle !== undefined && dto.productArticle !== old.productArticle) changes.push(`Артикул: с "${old.productArticle ?? '-'}" на "${dto.productArticle ?? '-'}"`);
-        if (cardImage) changes.push('Карточка: обновлена');
-
         await this.logsService.addProductLog(
           product._id.toString(),
-          LogLevel.LOW,
           `Продавец обновил продукт ${product._id}: ${changes.join('; ')}`,
-          session
+          { forRoles: [UserType.SELLER], logLevel: LogLevel.LOW, session }
         );
-        return this.getProduct(authedSeller, productId);
+        return product._id.toString();
       });
 
+      // 7) Возвращаем продукт
+      if (!updatedProductId) throw new NotFoundException('Не удалось обновить продукт');
+      return this.getProduct(authedSeller, updatedProductId);
 
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
-
       console.error('Ошибка при обновлении продукта:', error);
       throw new InternalServerErrorException('Не удалось обновить продукт');
     } finally {
@@ -185,29 +185,37 @@ export class ProductSellerService {
     }
   }
 
-
+  //TODO: довести до ума, например лучше добавить метод скрытия продукта. А удалять только после удаление продукта из всех магазинов
   async deleteProduct(authedSeller: AuthenticatedUser, productId: string): Promise<MessageResponseDto> {
     checkId([productId]);
 
     const session = await this.productModel.db.startSession();
     try {
       await session.withTransaction(async () => {
-        const foundSeller = await this.sellerModel.findById(new Types.ObjectId(authedSeller.id)).select('_id verifiedStatus isBlocked').session(session).lean().exec();
-        if (!foundSeller) throw new NotFoundException('Продавец не найден');
-        verifyUserStatus(foundSeller);
+        const okSeller = await checkEntityStatus(
+          this.sellerModel,
+          { _id: new Types.ObjectId(authedSeller.id) },
+          { session }
+        );
+        if (!okSeller) throw new NotFoundException('Продавец не найден');
 
-        const foundProduct = await this.productModel.findOne({ _id: new Types.ObjectId(productId), owner: foundSeller._id }).session(session).lean({ virtuals: true }).exec();
+        const foundProduct = await this.productModel.findOne({ _id: new Types.ObjectId(productId), owner: new Types.ObjectId(authedSeller.id) }).session(session).lean({ virtuals: true }).exec();
         if (!foundProduct) throw new NotFoundException('Продукт не найден');
 
         if (foundProduct.cardImage) await this.uploadsService.deleteFile(foundProduct.cardImage.toString(), session);
         await this.logsService.deleteAllProductLogs(foundProduct._id.toString(), session);
         await this.productModel.findByIdAndDelete(foundProduct._id).session(session).exec();
+
+        await this.logsService.addSellerLog(
+          authedSeller.id,
+          `Продавец удалил продукт ${foundProduct.productName}`,
+          { logLevel: LogLevel.MEDIUM, forRoles: [UserType.SELLER], session }
+        );
       });
       return plainToInstance(MessageResponseDto, { message: 'Продукт успешно удален' });
       
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
-
       console.error('Ошибка при удалении продукта:', error);
       throw new InternalServerErrorException('Не удалось удалить продукт');
     } finally {
@@ -246,22 +254,19 @@ export class ProductSellerService {
   }
 
 
-  async getProductsOfShops(
+  async getProductsOfShop(
     authedSeller: AuthenticatedUser,
+    shopId: string,
     paginationQuery: PaginationQueryDto,
-    shopId: string
   ): Promise<PaginatedResponseDto<ProductOfShopResponseDto>> {
     checkId([shopId]);
     const { page = 1, pageSize = 10 } = paginationQuery;
-
-    // Ищем продавца и проверяем его существование
-    const foundSeller = await this.sellerModel.findById(new Types.ObjectId(authedSeller.id)).lean().exec();
-    if (!foundSeller) throw new NotFoundException('Продавец не найден');
 
     const paginateOptions = {
       page,
       limit: pageSize,
       lean: true,
+      leanWithId: false, // Для поддержки виртуальных полей
       populate: {
         path: 'shopProducts',
         select: 'shopProductId pinnedTo stockQuantity status last7daysSales last7daysWriteOff',
@@ -270,10 +275,9 @@ export class ProductSellerService {
           : { _id: { $exists: false } }
       },
       sort: { createdAt: -1 }, // Сортировка по дате создания (новые первыми)
-      leanWithId: false // Для поддержки виртуальных полей
     };
 
-    const result = await this.productModel.paginate({ owner: foundSeller._id }, paginateOptions);
+    const result = await this.productModel.paginate({ owner: new Types.ObjectId(authedSeller.id) }, paginateOptions);
 
     return transformPaginatedResult(result, ProductOfShopResponseDto);
   }

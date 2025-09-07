@@ -7,7 +7,7 @@ import { checkId } from "src/common/utils";
 import { LogsService } from 'src/common/modules/logs/logs.service';
 import {AuthenticatedUser} from 'src/common/types';
 import { PaginatedResponseDto, PaginationMetaDto, PaginationQueryDto } from 'src/common/dtos';
-import { PaginatedLogDto } from 'src/common/modules/logs/logs.dtos';
+import { PaginatedLogDto } from 'src/common/modules/logs/logs.response.dto';
 import { ShiftPreviewResponseDto, ShiftFullResponseDto } from './shift.admin.response.dto';
 import { ShiftFilterQuery } from './shift.admin.filter.dto';
 

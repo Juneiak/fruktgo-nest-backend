@@ -10,7 +10,7 @@ import { AuthenticatedUser } from 'src/common/types';
 
 @ApiTags('for shop')
 @ApiBearerAuth('JWT-auth')
-@Controller('shops/for-shop')
+@Controller('shop/me')
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('shop')
 export class ShopController {
