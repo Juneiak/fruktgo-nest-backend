@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
-import { UserType } from "src/common/types";
+import { UserType } from "src/common/enums/common.enum";
 
 export enum NotificationType {
   ORDER_STATUS_CHANGED = "order_status_changed",

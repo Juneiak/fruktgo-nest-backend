@@ -5,7 +5,7 @@ import { PlatformAccount } from './schemas/platform-account.schema';
 import { PlatformAccountTransaction, PlatformAccountTransactionDirection, PlatformAccountTransactionStatus, PlatformAccountTransactionType } from './schemas/platform-account-transaction.schema';
 import { PaginationQueryDto, PaginationMetaDto } from 'src/common/dtos';
 import { checkId } from 'src/common/utils';
-import { CreatePlatformAccountTransactionDto, UpdatePlatformAccountTransactionDto } from './shared/platform-account.shared.request.dto';
+import { CreatePlatformAccountTransactionDto, UpdatePlatformAccountTransactionDto } from './shared/platform-account.shared.request.dtos';
 
 
 @Injectable()

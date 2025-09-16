@@ -8,8 +8,8 @@ import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { PaginationQueryDto, PaginatedResponseDto } from 'src/common/dtos';
 import { AuthenticatedUser } from 'src/common/types';
 import { GetUser } from 'src/common/decorators/user.decorator';
-import { PlatformAccountResponseDto, PlatformAccountTransactionResponseDto } from './platform-account.admin.response.dto';
-import { CreateCorrectionDto } from './platform-account.admin.request.dto';
+import { PlatformAccountResponseDto, PlatformAccountTransactionResponseDto } from './platform-account.admin.response.dtos';
+import { CreateCorrectionDto } from './platform-account.admin.request.dtos';
 import { PlatformAccountAdminService } from './platform-account.admin.service';
 
 @ApiTags('for admin')

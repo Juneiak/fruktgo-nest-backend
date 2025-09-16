@@ -1,4 +1,4 @@
-import { CustomerPreviewResponseDto } from "src/modules/customer/shared/customer.shared.response.dto";
+import { CustomerPreviewResponseDto } from "src/modules/customer/shared/customer.shared.response.dtos";
 import { IssueStatusText } from "src/modules/support/issue.schema";
 import * as moment from 'moment';
 import { Order } from 'src/modules/order/order.schema';

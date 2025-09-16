@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
-import { ProductSellerController } from "./seller/product.seller.controller";
-import { ProductSellerService } from "./seller/product.seller.service";
-import { ProductAdminController } from "./admin/product.admin.controller";
-import { ProductAdminService } from "./admin/product.admin.service";
+import { ProductSellerController } from "./roles/seller/product.seller.controller";
+import { ProductSellerService } from "./roles/seller/product.seller.service";
+import { ProductAdminController } from "./roles/admin/product.admin.controller";
+import { ProductAdminService } from "./roles/admin/product.admin.service";
 import { ProductSharedService } from "./shared/product.shared.service";
 
 @Module({

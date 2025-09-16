@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreatePlatformAccountTransactionDto, UpdatePlatformAccountTransactionDto } from './platform-account.shared.request.dto';
+import { CreatePlatformAccountTransactionDto, UpdatePlatformAccountTransactionDto } from './platform-account.shared.request.dtos';
 import { PlatformAccountService } from '../platform-account.service';
 import { PlatformAccountTransaction } from '../schemas/platform-account-transaction.schema';
 

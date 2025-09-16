@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { Shift } from '../shift.schema';
-import { ShiftTelegramBotPreviewResponseDto } from './shift.shared.response.dto';
+import { ShiftTelegramBotPreviewResponseDto } from './shift.shared.response.dtos';
 
 @Injectable()
 export class ShiftSharedService {
@@ -20,6 +20,7 @@ export class ShiftSharedService {
       .populate({ path: 'shops', select: '_id' })
       .lean();
     if (!seller || !seller.shops || seller.shops.length === 0) return [];
+
     const shopIds = seller.shops.map((shop: any) => shop._id);
     const activeShifts = await this.shiftModel.find({
       shop: { $in: shopIds },

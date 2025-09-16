@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types, ClientSession } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Employee } from '../employee.schema';
 import { plainToInstance } from 'class-transformer';
 import {
@@ -18,7 +18,8 @@ import { LogsService } from 'src/common/modules/logs/logs.service';
 import * as path from 'path';
 import { EmployeeStatus } from 'src/modules/employee/employee.schema';
 import { RequestToEmployeeStatus } from 'src/modules/employee/request-to-employee.schema';
-import { UserType } from 'src/common/types';
+import { UserType } from "src/common/enums/common.enum";
+
 
 @Injectable()
 export class EmployeeSharedService {

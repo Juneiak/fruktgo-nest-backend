@@ -5,7 +5,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 
 import { OrdersForAdminService } from "src/modules/orders/for-admin/orders-for-admin.service";
-import { Order, OrderSchema, OrderLog, OrderLogSchema } from "src/modules/orders/order.schema";
+import { Order, OrderSchema, OrderLog, OrderLogSchema } from "src/modules/order/order.schema";
 import { UserType, OrderStatus, ProductCategory, ProductMeasuringScale } from "src/common/types";
 import { rootMongooseTestModule, closeMongoConnection } from "../../helpers/database.module";
 

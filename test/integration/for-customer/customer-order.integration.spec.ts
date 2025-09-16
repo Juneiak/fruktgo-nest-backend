@@ -6,13 +6,13 @@ import { Model, Types, Document } from "mongoose";
 import { InjectModel } from "@nestjs/mongoose";
 
 import { OrdersForCustomerService } from "src/modules/orders/for-customer/orders-for-customer.service";
-import { CartForCustomerService } from "src/modules/customer/customer/cart.customer.service";
+import { CartForCustomerService } from "src/modules/customer/roles/customer/cart.customer.service";
 import { OrdersCommonService } from "src/modules/orders/orders-common.service";
 import { Customer, CustomerSchema } from "src/modules/customer/schemas/customer.schema";
 import { Cart, CartSchema } from "src/modules/customer/schemas/cart.schema";
 import { Shop, ShopSchema } from "src/modules/shops/schemas/shop.schema";
 import { ShopProduct, ShopProductSchema } from "src/modules/shops/schemas/shop-product.schema";
-import { Order, OrderSchema, OrderLog, OrderLogSchema } from "src/modules/orders/order.schema";
+import { Order, OrderSchema, OrderLog, OrderLogSchema } from "src/modules/order/order.schema";
 import { Shift, ShiftSchema } from "src/modules/shops/schemas/shift.schema";
 import { Product, ProductSchema } from "src/modules/product/product.schema";
 import { Seller, SellerSchema } from "src/modules/seller/seller.schema";

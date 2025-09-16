@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
-import { VerifiedStatus } from 'src/common/types';
+import { VerifiedStatus } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Order } from 'src/modules/order/order.schema';
@@ -47,7 +47,7 @@ export class Shop {
   @Prop({ type: String, required: false, default: null })
   aboutShop?: string | null;
 
-  @Prop({ type: AddressSchema, required: false, default: {} })
+  @Prop({ type: AddressSchema, required: false, default: null })
   address?: Address | null;
 
   @Prop({ type: String, enum: Object.values(ShopStatus), default: ShopStatus.CLOSED, required: true })
@@ -70,9 +70,9 @@ export class Shop {
 
   @Prop({ type: Number, min: 1, default: 1, required: true })
   minOrderSum: number;
-  
-  @Prop({ type: Date, required: false, default: null })
-  lastShiftDate?: Date | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'Shift', required: false, default: null })
+  currentShift: Types.ObjectId | Shift | null;
 
   @Prop({ type: Number, min: 0, default: 0, required: true })
   shopOrdersCount: number;
@@ -89,11 +89,8 @@ export class Shop {
   @Prop({ type: String, required: false, default: null })
   internalNote?: string | null;
 
-  @Prop({ type: Types.ObjectId, ref: 'Shift', required: false, default: null })
-  currentShift: Types.ObjectId | Shift | null;
-
   @Prop({ type: [Types.ObjectId], ref: 'Order', required: false, default: [] })
-  activeOrders: Types.ObjectId[] | Order[];
+  activeOrders: Types.ObjectId[];
 
   @Prop({ type: Types.ObjectId, ref: 'ShopAccount', required: false, default: null })
   shopAccount: Types.ObjectId | null;

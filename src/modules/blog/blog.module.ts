@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ArticleSchema } from './article.schema';
-import { BlogPublicService } from './public/blog.public.service';
-import { BlogPublicController } from './public/blog.public.controller';
-import { BlogAdminController } from './admin/blog.admin.controller';
+import { BlogPublicService } from './roles/public/blog.public.service';
+import { BlogPublicController } from './roles/public/blog.public.controller';
+import { BlogAdminController } from './roles/admin/blog.admin.controller';
 import { UploadsModule } from 'src/common/modules/uploads/uploads.module';
-import { BlogAdminService } from './admin/blog.admin.service';
+import { BlogAdminService } from './roles/admin/blog.admin.service';
 
 @Module({
   imports: [

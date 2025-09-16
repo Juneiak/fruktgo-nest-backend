@@ -6,7 +6,7 @@ import { IsInt, IsOptional, Min } from 'class-validator';
 export class MessageResponseDto {
   @Expose()
   message: string;
-}
+};
 
 export class TelegramNotificationResponseDto {
   @Expose()
@@ -14,7 +14,7 @@ export class TelegramNotificationResponseDto {
 
   @Expose()
   error?: string;
-}
+};
 
 
 export class PaginationQueryDto {
@@ -29,7 +29,8 @@ export class PaginationQueryDto {
   @IsInt()
   @Min(1)
   pageSize?: number = 10;
-}
+};
+
 
 export class PaginationMetaDto {
   @Expose()
@@ -43,7 +44,8 @@ export class PaginationMetaDto {
   
   @Expose()
   totalPages: number;
-}
+};
+
 
 export class PaginatedResponseDto<T> {
   @Expose()
@@ -52,5 +54,4 @@ export class PaginatedResponseDto<T> {
   @Expose()
   @Type(() => PaginationMetaDto)
   pagination: PaginationMetaDto;
-}
-
+};

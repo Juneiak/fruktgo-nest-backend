@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
-import { VerifiedStatus, UserSex } from 'src/common/types/index';
+import { VerifiedStatus, UserSex } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { Cart } from './cart.schema';
 import * as mongoosePaginate from 'mongoose-paginate-v2';

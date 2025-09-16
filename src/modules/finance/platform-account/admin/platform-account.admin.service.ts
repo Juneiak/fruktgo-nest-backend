@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PlatformAccountService } from '../platform-account.service';
 import { AuthenticatedUser } from 'src/common/types'; 
-import { PlatformAccountResponseDto } from './platform-account.admin.response.dto';
+import { PlatformAccountResponseDto } from './platform-account.admin.response.dtos';
 import { plainToInstance } from 'class-transformer';
 import { PaginationQueryDto, PaginatedResponseDto } from 'src/common/dtos';
-import { PlatformAccountTransactionResponseDto } from './platform-account.admin.response.dto';
-import { CreateCorrectionDto } from './platform-account.admin.request.dto';
+import { PlatformAccountTransactionResponseDto } from './platform-account.admin.response.dtos';
+import { CreateCorrectionDto } from './platform-account.admin.request.dtos';
 import { BadRequestException } from '@nestjs/common';
 import { PlatformAccountTransactionType, PlatformAccountTransactionDirection } from '../schemas/platform-account-transaction.schema';
 

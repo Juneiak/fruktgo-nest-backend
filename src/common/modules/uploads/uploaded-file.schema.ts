@@ -1,6 +1,5 @@
 import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { UserType } from 'src/common/types';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 
 export enum EntityType {

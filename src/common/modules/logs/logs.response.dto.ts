@@ -1,7 +1,7 @@
 import { Expose, Type} from "class-transformer";
 import { LogLevel } from "src/common/modules/logs/logs.schema";
 import { PaginationMetaDto } from "src/common/dtos";
-import { UserType } from "src/common/types";
+import { UserType } from "src/common/enums/common.enum";
 
 export class LogResponseDto {
   @Expose() id: string;

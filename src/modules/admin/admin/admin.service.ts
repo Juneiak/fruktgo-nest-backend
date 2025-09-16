@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
 import {  SystemStatsResponseDto, UserToVerifyResponseDto } from './admin.response.dto';
-import { UserType, VerifiedStatus } from 'src/common/types';
+import { UserType, VerifiedStatus} from "src/common/enums/common.enum";
 import { AuthenticatedUser } from 'src/common/types';
 
 @Injectable()

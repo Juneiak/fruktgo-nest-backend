@@ -4,17 +4,17 @@ import { OrderModule } from 'src/modules/order/order.module'
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { UploadsModule } from 'src/common/modules/uploads/uploads.module';
 
-import { ShopProductAdminService } from './admin/shop-product.admin.service';
-import { ShopProductPublicController } from './public/shop-product.public.controller';
+import { ShopProductAdminService } from './roles/admin/shop-product.admin.service';
+import { ShopProductPublicController } from './roles/public/shop-product.public.controller';
 
-import { ShopProductPublicService } from './public/shop-product.public.service'
-import { ShopProductAdminController } from './admin/shop-product.admin.controller';
+import { ShopProductPublicService } from './roles/public/shop-product.public.service'
+import { ShopProductAdminController } from './roles/admin/shop-product.admin.controller';
 
-import { ShopProductShopService } from './shop/shop-product.shop.service';
-import { ShopProductShopController } from './shop/shop-product.shop.controller';
+import { ShopProductShopService } from './roles/shop/shop-product.shop.service';
+import { ShopProductShopController } from './roles/shop/shop-product.shop.controller';
 
-import { ShopProductSellerController } from './seller/shop-product.seller.controller';
-import { ShopProductSellerService } from './seller/shop-product.seller.service';
+import { ShopProductSellerController } from './roles/seller/shop-product.seller.controller';
+import { ShopProductSellerService } from './roles/seller/shop-product.seller.service';
 
 import { ShopProductSharedService } from './shared/shop-product.shared.service';
 

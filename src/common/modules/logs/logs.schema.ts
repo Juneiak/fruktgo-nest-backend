@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { PaginateModel } from 'mongoose';
-import { UserType } from 'src/common/types';
+import { UserType } from "src/common/enums/common.enum";
 
 export enum LogLevel {
   LOW = 'low',

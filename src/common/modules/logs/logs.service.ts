@@ -11,7 +11,7 @@ import {
 import { LogDto, PaginatedLogDto } from './logs.response.dto';
 import { transformPaginatedResult } from 'src/common/utils';
 import { plainToInstance } from 'class-transformer';
-import { UserType } from 'src/common/types';
+import { UserType } from "src/common/enums/common.enum";
 
 type CreateLogSettings = {
   logLevel?: LogLevel;

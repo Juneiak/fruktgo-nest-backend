@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 
-import { SellerAdminService } from './admin/seller.admin.service';
-import { SellerService } from './seller/seller.service';
-import { SellerController } from './seller/seller.controller';
-import { SellerAdminController } from './admin/seller.admin.controller';
+import { SellerAdminService } from './roles/admin/seller.admin.service';
+import { SellerService } from './roles/seller/seller.service';
+import { SellerController } from './roles/seller/seller.controller';
+import { SellerAdminController } from './roles/admin/seller.admin.controller';
 import { SellerSharedService } from './shared/seller.shared.service';
 @Module({
   imports: [],

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -9,8 +10,6 @@ import { AppService } from './app.service';
 import { CustomerAuthModule } from './modules/auth/customer-auth/customer-auth.module';
 import { SellerAuthModule } from './modules/auth/seller-auth/seller-auth.module';
 import { EmployeeAuthModule } from './modules/auth/employee-auth/employee-auth.module';
-
-import { CommonModule } from './common/common.module';
 
 import { CustomerModule } from './modules/customer/customer.module'
 import { ShopModule } from './modules/shop/shop/shop.module';
@@ -32,7 +31,9 @@ import { FinanceModule } from './modules/finance/finance.module';
     ConfigModule.forRoot({ isGlobal: true }), // Загружаем .env
     MongooseModule.forRoot(process.env.MONGO_URI ?? ''),
     CacheModule.register({ isGlobal: true, ttl: 300 }), // 5 минут глобальный кэш
-    CommonModule,
+    EventEmitterModule.forRoot(),
+    
+    SharedModule, // Глобальный модуль с общими провайдерами
 
     AdminModule,
     CustomerAuthModule,

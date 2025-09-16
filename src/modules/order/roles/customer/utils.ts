@@ -1,0 +1,22 @@
+import { OrderPreviewResponseDto } from "src/modules/order/roles/customer/order.customer.response.dtos";
+import { Order } from "../../order.schema";
+import { plainToInstance } from "class-transformer";
+
+export const transformOrderToPreview = (order: Order): OrderPreviewResponseDto => {
+  return plainToInstance(OrderPreviewResponseDto, {
+    orderId: order._id.toString(),
+    orderStatus: order.orderStatus,
+    orderedBy: order.orderedBy,
+    orderedFrom: order.orderedFrom,
+    orderedAt: order.orderedAt,
+    acceptedAt: order.acceptedAt,
+    deliveredAt: order.deliveredAt,
+    canceledAt: order.canceledAt,
+    canceledReason: order.canceledReason,
+    customerComment: order.customerComment,
+    settedRating: order.rating?.settedRating || null,
+    sentSum: order.finances.sentSum,
+    usedBonusPoints: order.finances.usedBonusPoints,
+    totalWeightCompensationBonus: order.finances.totalWeightCompensationBonus
+  }, { excludeExtraneousValues: true });
+};
