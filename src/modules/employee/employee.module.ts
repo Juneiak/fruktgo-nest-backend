@@ -3,10 +3,10 @@ import { EmployeeSellerController } from './roles/seller/employee.seller.control
 import { EmployeeSellerService } from './roles/seller/employee.seller.service';
 import { EmployeeAdminController } from './roles/admin/employee.admin.controller';
 import { EmployeeAdminService } from './roles/admin/employee.admin.service';
-import { EmployeeController } from './roles/employee/employee.controller';
-import { EmployeeService } from './roles/employee/employee.service';
+import { EmployeeController } from '../../interface/http/employee/me/employee.me.controller';
+import { EmployeeService } from '../../interface/http/employee/me/employee.me.role.service';
 import { forwardRef } from '@nestjs/common';
-import { NotificationModule } from '../notification/notification.module';
+import { NotificationModule } from '../../infra/notification/notification.module';
 import { EmployeeSharedService } from './shared/employee.shared.service';
 
 @Module({

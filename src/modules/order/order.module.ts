@@ -10,7 +10,7 @@ import { OrderShopController } from './roles/shop/order.shop.controller';
 import { OrderShopService } from './roles/shop/order.shop.service';
 
 import { CustomerModule } from '../customer/customer.module';
-import { NotificationModule } from '../notification/notification.module';
+import { NotificationModule } from '../../infra/notification/notification.module';
 import { OrderAdminService } from './roles/admin/order.admin.service';
 import { OrderAdminController } from './roles/admin/order.admin.controller';
 import { OrderSharedService } from './shared/order.shared.service';

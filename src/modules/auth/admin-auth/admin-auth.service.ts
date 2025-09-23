@@ -4,7 +4,7 @@ import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import { LoginCodeResponseDto, AdminAuthResponseDto } from './admin-auth.response.dto';
 import { plainToInstance } from 'class-transformer';
-import { Admin } from 'src/modules/admin/admin.schema';
+import { Admin } from 'src/modules/platform/platform.schema';
 import { generateAuthCode } from 'src/common/utils';
 import { ConfigService } from '@nestjs/config';
 import { ADMIN_AUTH_CODE_EXPIRES_IN, ADMIN_BOT_LOGIN_TO_SYSTEM_PREFIX } from 'src/common/constants';

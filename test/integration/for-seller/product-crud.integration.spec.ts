@@ -8,7 +8,7 @@ import { ConfigService } from "@nestjs/config";
 // Сервисы
 import { ProductsForSellerService } from "src/modules/product/for-seller/products-for-seller.service";
 import { ProductsCommonService } from "src/modules/products/products-common.service";
-import { UploadsService } from "src/common/modules/uploads/uploads.service";
+import { UploadsService } from "src/infra/uploads/uploads.service";
 
 // Схемы
 import { Product, ProductSchema, ProductLog, ProductLogSchema } from "src/modules/product/product.schema";

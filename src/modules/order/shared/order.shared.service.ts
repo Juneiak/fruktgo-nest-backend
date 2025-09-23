@@ -5,7 +5,7 @@ import { Types } from 'mongoose';
 import { NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { CustomerModel } from 'src/modules/customer/schemas/customer.schema';
-import { transformOrderToPreview } from '../roles/customer/utils';
+import { transformOrderToPreview } from 'src/interface/http/customer/orders/utils';
 import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()

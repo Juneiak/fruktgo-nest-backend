@@ -5,7 +5,7 @@ import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { Shop } from 'src/modules/shop/shop/shop.schema';
 import { RequestToEmployee } from './request-to-employee.schema';
-import { Shift } from 'src/modules/shop/shift/shift.schema';
+import { Shift } from 'src/modules/shift/shift.schema';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
 import { BlockStatus } from 'src/common/enums/common.enum';

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
-import { VerifiedStatus } from 'src/common/types';
+import { VerifiedStatus } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { RequestToEmployee } from 'src/modules/employee/request-to-employee.schema'
@@ -92,20 +92,6 @@ SellerSchema.plugin(mongoosePaginate);
 
 SellerSchema.virtual('sellerId').get(function (this: Seller): string {
   return this._id.toString();
-});
-
-SellerSchema.virtual('requestsToEmployees', {
-  ref: 'RequestToEmployee',
-  localField: '_id',
-  foreignField: 'from',
-  justOne: false
-});
-
-SellerSchema.virtual('employees', {
-  ref: 'Employee',
-  localField: '_id',
-  foreignField: 'employer',
-  justOne: false
 });
 
 export type SellerDocument = HydratedDocument<Seller>;

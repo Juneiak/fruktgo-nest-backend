@@ -4,7 +4,7 @@ import { SellerAuthModule } from 'src/modules/auth/seller-auth/seller-auth.modul
 import { SellerModule } from 'src/modules/seller/seller.module';
 import { ShopModule } from 'src/modules/shop/shop/shop.module';
 import { SupportModule } from 'src/modules/support/support.module';
-import { ShiftModule } from 'src/modules/shop/shift/shift.module';
+import { ShiftModule } from 'src/modules/shift/shift.module';
 
 @Module({
   imports: [

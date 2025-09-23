@@ -1,6 +1,6 @@
 import { Issue, IssueStatusText } from "src/modules/support/issue.schema";
 import * as moment from 'moment';
-import { Shift } from "src/modules/shop/shift/shift.schema";
+import { Shift } from "src/modules/shift/shift.schema";
 
 export function formatIssueMessage(issue: Issue, options: {isUpdated: boolean}={isUpdated: false}): string {
   const { createdAt, status, issueText, result, issueId } = issue;

@@ -19,12 +19,15 @@ import { EmployeeModule } from './modules/employee/employee.module';
 import { OrderModule } from './modules/order/order.module';
 
 import { AdminAuthModule } from './modules/auth/admin-auth/admin-auth.module';
-import { AdminModule } from './modules/admin/admin.module';
+import { AdminModule } from './modules/platform/platform.module';
 import { SupportModule } from './modules/support/support.module';
 
 import { BlogModule } from './modules/blog/blog.module';
-import { DadataModule } from './modules/dadata/dadata.module';
+import { DadataModule } from './interface/http/public/dadata/public.dadata.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { AuthModule } from './infra/auth/auth.module';
+import { LogsModule } from './infra/logs/logs.module';
+import { UploadsModule } from './infra/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -32,8 +35,10 @@ import { FinanceModule } from './modules/finance/finance.module';
     MongooseModule.forRoot(process.env.MONGO_URI ?? ''),
     CacheModule.register({ isGlobal: true, ttl: 300 }), // 5 минут глобальный кэш
     EventEmitterModule.forRoot(),
-    
-    SharedModule, // Глобальный модуль с общими провайдерами
+
+    AuthModule,
+    LogsModule,
+    UploadsModule,
 
     AdminModule,
     CustomerAuthModule,

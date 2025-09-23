@@ -5,7 +5,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 
 import { rootMongooseTestModule, closeMongoConnection } from '../../helpers/database.module';
-import { CartForCustomerService } from "src/modules/customer/roles/customer/cart.customer.service";
+import { CartForCustomerService } from "src/interface/http/customer/cart/customer.cart.role.service";
 import { Customer, CustomerSchema } from "src/modules/customer/schemas/customer.schema";
 import { Cart, CartSchema } from "src/modules/customer/schemas/cart.schema";
 import { Shop, ShopSchema } from "src/modules/shops/schemas/shop.schema";
@@ -15,7 +15,7 @@ import {
   SelectShopForCartDto, 
   UpdateProductInCartDto, 
   RemoveProductInCartDto 
-} from 'src/modules/customer/roles/customer/cart.customer.response.dtos';
+} from 'src/interface/http/customer/cart/customer.cart.response.dtos';
 import { ShopStatus, VerifiedStatus, ProductMeasuringScale, ProductStepRate, ShopProductStatus, ProductCategory} from "src/common/types";
 import { AuthenticatedUser, UserType } from "src/common/types";
 

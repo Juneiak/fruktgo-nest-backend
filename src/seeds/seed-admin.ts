@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { Admin, AdminSchema } from '../modules/admin/admin.schema';
+import { Admin, AdminSchema } from '../modules/platform/platform.schema';
 import * as bcrypt from 'bcrypt';
 import { MongooseModule, getModelToken } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';

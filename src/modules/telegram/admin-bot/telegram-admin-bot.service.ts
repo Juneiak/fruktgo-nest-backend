@@ -6,10 +6,10 @@ import { INestApplication } from '@nestjs/common';
 import { setupWebhook } from "../telegram-utils";
 import { message } from 'telegraf/filters';
 import { AdminAuthService } from 'src/modules/auth/admin-auth/admin-auth.service';
-import { AdminSharedService } from 'src/modules/admin/shared/admin.shared.service';
+import { AdminSharedService } from 'src/modules/platform/shared/admin.shared.service';
 import { ADMIN_BOT_LOGIN_TO_SYSTEM_PREFIX } from 'src/common/constants';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
-import { Admin } from 'src/modules/admin/admin.schema';
+import { Admin } from 'src/modules/platform/platform.schema';
 
 enum MENU_BUTTONS {
   main = '🏠 Главное меню',

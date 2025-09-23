@@ -4,7 +4,7 @@ import { EmployeeAuthService } from './employee-auth.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EmployeeLoginCodeSchema } from './employee-login-code.schema';
 import { EmployeeAuthGateway } from './employee-auth.gateway';
-import { NotificationModule } from 'src/modules/notification/notification.module';
+import { NotificationModule } from 'src/infra/notification/notification.module';
 
 @Module({
   imports: [

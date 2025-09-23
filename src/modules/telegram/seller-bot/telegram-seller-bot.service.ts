@@ -10,12 +10,12 @@ import {
   SELLER_BOT_LOGIN_TO_SELLER_DASHBOARD_PREFIX, SELLER_BOT_LOGIN_TO_SHOP_PREFIX} from 'src/common/constants';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { setupWebhook } from "../telegram-utils";
-import { ShiftSharedService } from 'src/modules/shop/shift/shared/shift.shared.service';
+import { ShiftSharedService } from 'src/modules/shift/shared/shift.shared.service';
 import { SupportService } from 'src/modules/support/support.service';
 import {IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';
 import * as moment from 'moment';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
-import { Shift } from 'src/modules/shop/shift/shift.schema';
+import { Shift } from 'src/modules/shift/shift.schema';
 import { formatIssueMessage, formatShiftMessage } from './utils';
 import { message } from 'telegraf/filters';
      

@@ -12,13 +12,13 @@ import { EmployeeLoginCode } from './employee-login-code.schema';
 import { plainToInstance } from 'class-transformer';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { AuthenticatedUser, AuthenticatedEmployee } from 'src/common/types';
-import { Shift } from 'src/modules/shop/shift/shift.schema';
+import { Shift } from 'src/modules/shift/shift.schema';
 import { Shop } from 'src/modules/shop/shop/shop.schema';
 import { EMPLOYEE_AUTH_CODE_EXPIRES_IN, EMPLOYEE_BOT_LOGIN_TO_SHOP_PREFIX } from 'src/common/constants';
 import { EmployeeAuthGateway } from './employee-auth.gateway';
 import { ConfigService } from '@nestjs/config';
 import { checkId, generateAuthCode } from 'src/common/utils';
-import { NotificationService } from 'src/modules/notification/notification.service';
+import { NotificationService } from 'src/infra/notification/notification.service';
 
 @Injectable()
 export class EmployeeAuthService {

@@ -1,13 +1,13 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 
-import { CustomerService } from './roles/customer/customer.service';
-import { CustomerController } from './roles/customer/customer.controller';
-import { CartCustomerService } from './roles/customer/cart.customer.service';
-import { CartCustomerController } from './roles/customer/cart.customer.controller';
+import { CustomerService } from '../../interface/http/customer/me/customer.me.role.service';
+import { CustomerController } from '../../interface/http/customer/me/customer.me.controller';
+import { CartCustomerService } from '../../interface/http/customer/cart/customer.cart.role.service';
+import { CartCustomerController } from '../../interface/http/customer/cart/customer.cart.controller';
 import { CustomerAdminController } from './roles/admin/customers.admin.controller';
 import { CustomerAdminService } from './roles/admin/customer.admin.service';
-import { NotificationModule } from '../notification/notification.module';
+import { NotificationModule } from '../../infra/notification/notification.module';
 import { CustomerSchema } from './schemas/customer.schema';
 import { CustomerSharedService } from './shared/customer.shared.service';
 
