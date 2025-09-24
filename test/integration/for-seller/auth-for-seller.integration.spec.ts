@@ -6,7 +6,7 @@ import { BadRequestException, UnauthorizedException, NotFoundException, Forbidde
 import { Model, Types } from "mongoose";
 
 // Сервисы авторизации
-import { SellerAuthService } from "src/modules/auth/seller-auth/seller-auth.service";
+import { SellerAuthService } from "src/interface/http/shop/auth/shop.auth.role.service";
 import { EmployeeAuthService } from "src/modules/auth/employee-auth/employee-auth.service";
 import { ShopAuthService } from "src/modules/auth/shop-auth/shop-auth.service";
 
@@ -16,7 +16,7 @@ import { Employee, EmployeeSchema } from "src/modules/employees/employee.schema"
 import { Shop, ShopSchema } from "src/modules/shops/schemas/shop.schema";
 
 // DTO
-import { RegisterSellerDto, LoginSellerDto } from "src/modules/auth/seller-auth/seller-auth.request.dto";
+import { RegisterSellerDto, LoginSellerDto } from "src/interface/http/shop/auth/shop.auth.request.dtos";
 import { RegisterEmployeeDto } from "src/modules/auth/employee-auth/employee-auth.response.dto";
 import { RegisterShopDto, LoginShopDto } from "src/modules/auth/shop-auth/shop-auth.dtos";
 

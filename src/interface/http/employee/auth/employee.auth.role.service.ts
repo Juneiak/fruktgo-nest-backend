@@ -5,8 +5,8 @@ import { JwtService } from '@nestjs/jwt';
 import {
   EmployeeAuthResponseDto,
   LoginCodeForEmployeeToShopResponseDto
-} from './employee-auth.response.dto';
-import { RegisterEmployeeDto } from './employee-auth.request.dto';
+} from './employee.auth.response.dto';
+import { RegisterEmployeeDto } from './employee.auth.request.dto';
 import { Employee } from 'src/modules/employee/employee.schema';
 import { EmployeeLoginCode } from './employee-login-code.schema';
 import { plainToInstance } from 'class-transformer';
@@ -21,7 +21,7 @@ import { checkId, generateAuthCode } from 'src/common/utils';
 import { NotificationService } from 'src/infra/notification/notification.service';
 
 @Injectable()
-export class EmployeeAuthService {
+export class EmployeeAuthRoleService {
   constructor(
     @InjectModel('Employee') private employeeModel: Model<Employee>,
     @InjectModel('EmployeeLoginCode') private employeeLoginCodeModel: Model<EmployeeLoginCode>,

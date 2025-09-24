@@ -2,9 +2,9 @@ import { Injectable, OnModuleInit, BadRequestException } from '@nestjs/common';
 import { Telegraf, Markup, Context } from 'telegraf';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
-import { SellerAuthService } from 'src/modules/auth/seller-auth/seller-auth.service';
+import { SellerAuthService } from 'src/interface/http/shop/auth/shop.auth.role.service';
 import { INestApplication } from '@nestjs/common';
-import { RegisterSellerDto } from 'src/modules/auth/seller-auth/seller-auth.request.dto';
+import { RegisterSellerDto } from 'src/interface/http/shop/auth/shop.auth.request.dtos';
 import { SellerSharedService } from 'src/modules/seller/shared/seller.shared.service';
 import {
   SELLER_BOT_LOGIN_TO_SELLER_DASHBOARD_PREFIX, SELLER_BOT_LOGIN_TO_SHOP_PREFIX} from 'src/common/constants';

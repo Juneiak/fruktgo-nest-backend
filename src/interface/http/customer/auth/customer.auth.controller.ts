@@ -1,11 +1,11 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { CustomerAuthService } from './customer-auth.service';
-import { LoginCodeResponseDto} from './customer-auth.response.dto';
+import { CustomerAuthService } from './customer.auth.role.service';
+import { LoginCodeResponseDto} from './customer.auth.response.dtos';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { CustomerAuthResponseDto } from './customer-auth.response.dto';
+import { CustomerAuthResponseDto } from './customer.auth.response.dtos';
 
 
 @Controller('')

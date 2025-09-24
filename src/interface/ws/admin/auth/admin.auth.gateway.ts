@@ -7,7 +7,7 @@ import {
   OnGatewayConnection,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { AdminAuthResponseDto } from './admin-auth.response.dto';
+import { AdminAuthResponseDto } from '../../../http/admin/auth/admin.auth.response.dtos';
 
 @WebSocketGateway({ namespace: 'admin-auth', cors: true })
 export class AdminAuthGateway implements OnGatewayConnection {

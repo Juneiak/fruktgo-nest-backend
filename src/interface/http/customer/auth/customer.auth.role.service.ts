@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
-import { CustomerAuthResponseDto, LoginCodeResponseDto } from './customer-auth.response.dto';
+import { CustomerAuthResponseDto, LoginCodeResponseDto } from './customer.auth.response.dtos';
 import { Customer } from 'src/modules/customer/schemas/customer.schema';
 import { plainToInstance } from 'class-transformer';
 import { Cart } from 'src/modules/customer/schemas/cart.schema';
@@ -13,7 +13,7 @@ import { CustomerLoginCode } from './customer-login-code.schema';
 import { CustomerAuthGateway } from './customer-auth.gateway';
 import { ConfigService } from '@nestjs/config';
 import { AuthenticatedUser } from 'src/common/types';
-import { RegisterCustomerDto } from './customer-auth.request.dto';
+import { RegisterCustomerDto } from './customer.auth.request.dtos';
 
 @Injectable()
 export class CustomerAuthService {

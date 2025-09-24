@@ -1,5 +1,5 @@
 import { Expose } from 'class-transformer';
-import { VerifiedStatus } from 'src/common/types/index';
+import { VerifiedStatus } from 'src/common/enums/common.enum';
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class EmployeeAuthResponseDto {

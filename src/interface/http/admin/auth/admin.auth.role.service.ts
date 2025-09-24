@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
-import { LoginCodeResponseDto, AdminAuthResponseDto } from './admin-auth.response.dto';
+import { LoginCodeResponseDto, AdminAuthResponseDto } from './admin.auth.response.dtos';
 import { plainToInstance } from 'class-transformer';
 import { Admin } from 'src/modules/platform/platform.schema';
 import { generateAuthCode } from 'src/common/utils';
@@ -13,7 +13,7 @@ import { AdminAuthGateway } from './admin-auth.gateway';
 import { AuthenticatedUser } from 'src/common/types';
 
 @Injectable()
-export class AdminAuthService {
+export class AdminAuthRoleService {
   constructor(
     @InjectModel('Admin') private adminModel: Model<Admin>,
     private jwtService: JwtService,

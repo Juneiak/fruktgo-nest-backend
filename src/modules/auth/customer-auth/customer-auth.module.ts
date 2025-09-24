@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CustomerAuthController } from './customer-auth.controller';
 import { CustomerAuthService } from './customer-auth.service';
-import { CustomerAuthGateway } from './customer-auth.gateway';
+import { CustomerAuthGateway } from '../../../interface/ws/customer/auth/customer.auth.gateway';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CustomerLoginCodeSchema } from './customer-login-code.schema';
 

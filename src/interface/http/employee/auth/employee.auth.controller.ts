@@ -1,6 +1,6 @@
 import { Controller, Get, Post, UseGuards, Param } from '@nestjs/common';
-import { EmployeeAuthService } from './employee-auth.service';
-import { LoginCodeForEmployeeToShopResponseDto, EmployeeAuthResponseDto } from './employee-auth.response.dto';
+import { EmployeeAuthRoleService } from './employee.auth.role.service';
+import { LoginCodeForEmployeeToShopResponseDto, EmployeeAuthResponseDto } from './employee.auth.response.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
@@ -12,7 +12,7 @@ import {GetEmployee} from 'src/common/decorators/employee.decorator';
 
 @Controller('')
 export class EmployeeAuthController {
-  constructor(private readonly employeeAuthService: EmployeeAuthService) {}
+  constructor(private readonly employeeAuthRoleService: EmployeeAuthRoleService) {}
 
 
   @ApiTags('for employee')
@@ -24,7 +24,7 @@ export class EmployeeAuthController {
   getLoginCodeForEmployee(
     @GetUser() authedShop: AuthenticatedUser,
   ): Promise<LoginCodeForEmployeeToShopResponseDto> {
-    return this.employeeAuthService.generateLoginCode(authedShop);
+    return this.employeeAuthRoleService.generateLoginCode(authedShop);
   }
 
 
@@ -38,7 +38,7 @@ export class EmployeeAuthController {
     @GetUser() authedShop: AuthenticatedUser,
     @Param('employeeId') employeeId: string,
   ): Promise<LoginCodeForEmployeeToShopResponseDto> {
-    return this.employeeAuthService.loginViaTelegram(authedShop, employeeId);
+    return this.employeeAuthRoleService.loginViaTelegram(authedShop, employeeId);
   }
   
 
@@ -52,6 +52,6 @@ export class EmployeeAuthController {
     @GetUser() authedShop: AuthenticatedUser,
     @GetEmployee() authedEmployee: AuthenticatedEmployee,
   ): Promise<EmployeeAuthResponseDto> {
-    return this.employeeAuthService.checkEmployeeInShopAuth(authedShop, authedEmployee);
+    return this.employeeAuthRoleService.checkEmployeeInShopAuth(authedShop, authedEmployee);
   }
 }
