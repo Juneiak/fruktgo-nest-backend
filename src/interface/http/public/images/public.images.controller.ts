@@ -1,9 +1,8 @@
-import { Controller, Get, Param, Res, BadRequestException, NotFoundException, UseInterceptors, UploadedFile, Post, Body, Query } from "@nestjs/common";
+import { Controller, Get, Param, Res, BadRequestException, NotFoundException } from "@nestjs/common";
 import { Response } from "express";
-import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiBody } from "@nestjs/swagger";
-import { UploadsService } from "./uploads.service";
-import { EntityType, ImageType } from "./uploaded-file.schema";
-
+import { ApiTags, ApiOperation } from "@nestjs/swagger";
+import { UploadsService } from "../../../../infra/images/images.service";
+import { ImageSize } from '@/infra/uploads/images.enums'
 
 @ApiTags('images')
 @Controller('images')
@@ -11,15 +10,9 @@ export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {}
 
   @ApiOperation({ summary: 'Получение изображения определенного размера' })
-  @ApiParam({ 
-    name: 'size', 
-    enum: ['mobile', 'desktop'], 
-    description: 'Размер изображения (mobile: 430px, desktop: 1440px)' 
-  })
-  @ApiParam({ name: 'imageId', description: 'ID изображения' })
   @Get(':size/:imageId')
   async getImage(
-    @Param('size') size: 'mobile' | 'desktop',
+    @Param('size') size: ,
     @Param('imageId') imageId: string,
     @Res() res: Response
   ) {

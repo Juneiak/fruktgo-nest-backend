@@ -12,7 +12,7 @@ import {
 } from './seller.products.response.dtos';
 import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.interceptor';
 import { CreateProductDto, UpdateProductDto } from './seller.products.request.dtos';
 import { SellerProductsRoleService } from './seller.products.role.service';

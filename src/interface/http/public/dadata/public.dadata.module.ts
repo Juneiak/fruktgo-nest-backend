@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PublicDadataController } from "./public.dadata.controller";
-import { PublicDadataService } from "./public.dadata.service";
+import { PublicDadataService } from "./public.dadata.role.service";
 
 @Module({
   imports: [ConfigModule],

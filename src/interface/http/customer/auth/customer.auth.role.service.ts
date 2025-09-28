@@ -16,7 +16,7 @@ import { AuthenticatedUser } from 'src/common/types';
 import { RegisterCustomerDto } from './customer.auth.request.dtos';
 
 @Injectable()
-export class CustomerAuthService {
+export class CustomerAuthRoleService {
   constructor(
     @InjectModel('Customer') private customerModel: Model<Customer>,
     @InjectModel('Cart') private cartModel: Model<Cart>,

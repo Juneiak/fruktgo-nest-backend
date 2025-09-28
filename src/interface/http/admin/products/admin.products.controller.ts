@@ -12,7 +12,7 @@ import {
 } from './admin.products.response.dtos';
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ProductQueryFilterDto } from './admin.products.query.dtos';
 
 @ApiTags('for admin')

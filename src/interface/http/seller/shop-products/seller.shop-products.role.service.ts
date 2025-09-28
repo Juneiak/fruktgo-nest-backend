@@ -1,7 +1,7 @@
 import { Injectable, ForbiddenException, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
-import { UploadsService } from 'src/infra/uploads/uploads.service';
+import { UploadsService } from 'src/infra/images/images.service';
 import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { plainToInstance } from 'class-transformer';
@@ -9,15 +9,15 @@ import { UpdateShopProductDto } from './seller.shop-products.request.dtos';
 import { SellerModel } from 'src/modules/seller/seller.schema';
 import { transformPaginatedResult, checkEntityStatus } from 'src/common/utils';
 import { ShopProductModel, ShopProductStatus } from "src/modules/shop-product/shop-product.schema";
-import { ShopProductResponseDto } from './seller.shop-product.response.dtos';
+import { ShopProductResponseDto } from './seller.shop-products.response.dtos';
 import { ProductModel } from 'src/modules/product/product.schema';
 import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import {checkId} from 'src/common/utils';
-import { LogsService } from 'src/infra/logs/logs.service';
-import { LogLevel } from "src/infra/logs/logs.schema";
+import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ShopModel } from 'src/modules/shop/shop.schema';
 import { ShopProductsQueryDto } from './seller.shop-products.query.dtos';
 

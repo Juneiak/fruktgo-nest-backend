@@ -7,8 +7,8 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
-import { UploadsService } from 'src/infra/uploads/uploads.service';
-import { EntityType, ImageType } from 'src/infra/uploads/uploaded-file.schema';
+import { UploadsService } from 'src/infra/images/images.service';
+import { EntityType, ImageType } from 'src/infra/images/infrastructure/image.schema';
 import { plainToInstance } from 'class-transformer';
 import {
   UpdateShopDto,
@@ -18,8 +18,8 @@ import { ShopFullResponseDto, ShopPreviewResponseDto } from './seller.shops.resp
 import { SellerModel } from 'src/modules/seller/seller.schema';
 import { checkEntityStatus } from 'src/common/utils';
 import { checkId } from 'src/common/utils';
-import { LogsService } from 'src/infra/logs/logs.service';
-import { LogLevel } from "src/infra/logs/logs.schema";
+import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { ShopModel } from 'src/modules/shop/shop.schema';

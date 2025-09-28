@@ -1,9 +1,8 @@
-import { CustomerMeController } from "./customer.me.controller";
 import { Module } from "@nestjs/common";
+import { CustomerMeController } from "./customer.me.controller";
 import { CustomerMeRoleService } from "./customer.me.role.service";
 
 @Module({
-  imports: [],
   controllers: [CustomerMeController],
   providers: [CustomerMeRoleService],
 })

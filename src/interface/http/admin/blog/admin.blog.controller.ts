@@ -17,13 +17,14 @@ import {
 } from './admin.blog.response.dtos';
 import { ArticleQueryDto } from './admin.blog.query.dtos';
 
+
 // Административный контроллер для блога (требует авторизации)
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
 @Controller()
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
-export class BlogAdminController {
+export class AdminBlogController {
   constructor(private readonly adminBlogRoleService: AdminBlogRoleService) {}
 
   @ApiOperation({ summary: 'Создать новую статью' })

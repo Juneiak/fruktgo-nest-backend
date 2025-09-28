@@ -12,8 +12,8 @@ import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { Types } from 'mongoose';
 import { Address } from 'src/common/schemas/common-schemas';
-import { LogsService } from 'src/infra/logs/logs.service';
-import { LogLevel } from 'src/infra/logs/logs.schema';
+import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogLevel } from 'src/infra/logs/infrastructure/log.schema';
 
 
 @Injectable()

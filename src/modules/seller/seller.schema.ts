@@ -87,6 +87,8 @@ export class Seller {
 }
 
 export const SellerSchema = SchemaFactory.createForClass(Seller);
+
+// плагины
 SellerSchema.plugin(mongooseLeanVirtuals as any);
 SellerSchema.plugin(mongoosePaginate);
 

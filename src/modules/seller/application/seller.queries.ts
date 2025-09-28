@@ -1,5 +1,7 @@
 // application/seller.queries.ts
-export class GetSellerQuery {
+
+
+export class FindSellerQuery {
   constructor(public readonly sellerId: string) {}
 }
 

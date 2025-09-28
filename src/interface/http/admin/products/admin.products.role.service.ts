@@ -8,8 +8,8 @@ import { ProductModel } from "src/modules/product/product.schema";
 import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedResponseDto } from "src/interface/http/common/common.response.dtos";
 import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
-import { LogsService } from 'src/infra/logs/logs.service';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { LogsService } from 'src/infra/logs/application/log.service';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ProductQueryFilterDto } from './admin.products.query.dtos';
 
 

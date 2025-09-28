@@ -19,8 +19,8 @@ import { plainToInstance } from 'class-transformer';
 import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from "src/common/types";
 import { UserType } from "src/common/enums/common.enum";
-import { UploadsService } from "src/infra/uploads/uploads.service";
-import { EntityType, ImageType } from "src/infra/uploads/uploaded-file.schema";
+import { UploadsService } from "src/infra/images/images.service";
+import { EntityType, ImageType } from "src/infra/images/infrastructure/image.schema";
 import { ArticleQueryDto } from './admin.blog.query.dtos';
 
 

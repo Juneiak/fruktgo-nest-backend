@@ -14,8 +14,8 @@ import {
 import { plainToInstance } from 'class-transformer';
 import { checkId } from 'src/common/utils';
 import {AuthenticatedUser} from 'src/common/types';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
-import { LogsService } from 'src/infra/logs/logs.service';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
+import { LogsService } from 'src/infra/logs/application/log.service';
 import { OrderQueryDto } from './admin.orders.query.dtos';
 
 

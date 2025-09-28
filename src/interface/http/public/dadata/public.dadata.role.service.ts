@@ -4,7 +4,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { AddressSuggestionDto } from './public.dadato.request.dtos';
 
 @Injectable()
-export class PublicDadataService {
+export class PublicDadataRoleService {
   private readonly apiToken: string;
   private readonly apiUrl: string = 'https://suggestions.dadata.ru/suggestions/api/4_1/rs/suggest/address';
 

@@ -1,6 +1,6 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { PublicDadataService } from "./public.dadata.service";
+import { PublicDadataService } from "./public.dadata.role.service";
 import { AddressSuggestionDto } from "./public.dadato.request.dtos";
 
 @ApiTags('for public')

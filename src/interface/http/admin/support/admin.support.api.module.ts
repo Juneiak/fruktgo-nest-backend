@@ -5,6 +5,5 @@ import { AdminSupportController } from './admin.support.controller';
 @Module({
   controllers: [AdminSupportController],
   providers: [AdminSupportRoleService],
-  exports: [AdminSupportRoleService],
 })
-export class AdminSupportModule {}
+export class AdminSupportApiModule {}

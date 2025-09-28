@@ -12,7 +12,7 @@ import {
   OrderPreviewResponseDto,
   OrderFullResponseDto
 } from './admin.orders.response.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { OrderQueryDto } from './admin.orders.query.dtos';
 
 @ApiTags('for admin')

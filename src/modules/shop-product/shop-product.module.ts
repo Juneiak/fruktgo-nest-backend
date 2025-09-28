@@ -2,7 +2,7 @@ import { Module, forwardRef} from '@nestjs/common';
 
 import { OrderModule } from 'src/modules/order/order.module'
 import { NotificationModule } from 'src/infra/notification/notification.module';
-import { UploadsModule } from 'src/infra/uploads/uploads.module';
+import { UploadsModule } from 'src/infra/images/images.module';
 
 import { ShopProductAdminService } from './roles/admin/shop-product.admin.service';
 import { ShopProductPublicController } from '../../interface/http/public/shop-products/public.shop-products.controller';

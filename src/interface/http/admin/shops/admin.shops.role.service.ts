@@ -7,13 +7,13 @@ import {
 } from './admin.shops.response.dtos';
 import { UpdateShopDto } from './admin.shops.request.dtos';
 import { checkId, transformPaginatedResult } from "src/common/utils";
-import { LogsService } from 'src/infra/logs/logs.service';
+import { LogsService } from 'src/infra/logs/application/log.service';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ShopModel } from 'src/modules/shop/shop.schema';
 import { Types } from 'mongoose';
 import { BlockDto } from 'src/interface/http/common/common.request.dtos';

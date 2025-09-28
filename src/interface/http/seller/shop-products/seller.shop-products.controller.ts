@@ -4,14 +4,14 @@ import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos"
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { UpdateShopProductDto} from './seller.shop-products.request.dtos';
-import { ShopProductResponseDto } from './seller.shop-product.response.dtos';
+import { ShopProductResponseDto } from './seller.shop-products.response.dtos';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { ApiBearerAuth, ApiTags, ApiOperation} from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ShopProductsQueryDto } from './seller.shop-products.query.dtos';
 
 @ApiTags('for seller')

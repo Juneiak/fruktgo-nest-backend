@@ -6,14 +6,14 @@ import {
 } from './admin.employees.response.dtos';
 import { UpdateEmployeeDto } from './admin.employees.request.dtos';
 import { plainToInstance } from 'class-transformer';
-import { LogsService } from 'src/infra/logs/logs.service';
+import { LogsService } from 'src/infra/logs/application/log.service';
 import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { transformPaginatedResult } from 'src/common/utils';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { EmployeeModel } from 'src/modules/employee/employee.schema';
 import { BlockDto } from 'src/interface/http/common/common.request.dtos';
 import { Types } from 'mongoose';

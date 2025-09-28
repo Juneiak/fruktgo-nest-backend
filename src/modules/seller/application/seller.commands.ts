@@ -1,4 +1,5 @@
-// application/seller.commands.ts
+
+
 export class UpdateSellerCommand {
   constructor(
     public readonly sellerId: string,

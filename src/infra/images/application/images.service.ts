@@ -4,21 +4,24 @@ import { Model, Types, ClientSession } from "mongoose";
 import { promises as fs } from "fs";
 import { join, extname } from "path";
 import * as sharp from "sharp";
-import { UploadedFile } from "./uploaded-file.schema";
-import { EntityType, ImageType } from "./uploaded-file.schema";
+import { Image } from "../infrastructure/image.schema";
+import { ImageEntityType, ImageType } from '../images.enums';
+import {
+  UPLOAD_DIR,
+  MAX_FILE_SIZE,
+  ALLOWED_MIME_TYPES,
+  ALLOWED_EXTENSIONS,
+  MOBILE_WIDTH,
+  DESKTOP_WIDTH
+} from "../images.constants";
+import { UpdateImageCommand, UploadImageCommand } from "./images.commands";
+import { CommonCommandOptions } from "src/common/types/comand-options";
 
-// Константы для работы с изображениями
-const UPLOAD_DIR = 'uploads';
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
-const MOBILE_WIDTH = 430; // Размер для мобильных устройств
-const DESKTOP_WIDTH = 1440; // Размер для десктопа
 
 @Injectable()
-export class UploadsService {
+export class LocalImagesService {
   constructor(
-    @InjectModel('UploadedFile') private readonly uploadedFileModel: Model<UploadedFile>
+    @InjectModel(Image.name) private readonly imageModel: Model<Image>
   ) {
     // Создаем директории при инициализации сервиса
     this.ensureDirectoriesExist();
@@ -30,8 +33,11 @@ export class UploadsService {
       // Создаем основную директорию для загрузок и поддиректории для разных размеров
       // Опция { recursive: true } позволяет не выбрасывать ошибку, если директории уже существуют
       await fs.mkdir(UPLOAD_DIR, { recursive: true });
-      await fs.mkdir(join(UPLOAD_DIR, 'mobile'), { recursive: true }); // Директория для мобильных (430px)
-      await fs.mkdir(join(UPLOAD_DIR, 'desktop'), { recursive: true }); // Директория для десктопных (1440px)
+      await fs.mkdir(join(UPLOAD_DIR, 'xs'), { recursive: true }); // Директория для мобильных (430px)
+      await fs.mkdir(join(UPLOAD_DIR, 'sm'), { recursive: true }); // Директория для десктопных (1440px)
+      await fs.mkdir(join(UPLOAD_DIR, 'md'), { recursive: true }); // Директория для десктопных (1440px)
+      await fs.mkdir(join(UPLOAD_DIR, 'lg'), { recursive: true }); // Директория для десктопных (1440px)
+      await fs.mkdir(join(UPLOAD_DIR, 'xl'), { recursive: true }); // Директория для десктопных (1440px)
       
       // console.log('Директории для загрузки файлов готовы');
     } catch (error) {
@@ -42,26 +48,26 @@ export class UploadsService {
 
 
   // Валидация изображения
-  private validateFile(file: Express.Multer.File): void {
+  private validateFile(image: Express.Multer.File): void {
     // Проверяем наличие файла
-    if (!file) {
+    if (!image) {
       throw new BadRequestException("Файл не был предоставлен");
     }
 
     // Проверяем размер файла
-    if (file.size > MAX_FILE_SIZE) {
+    if (image.size > MAX_FILE_SIZE) {
       throw new BadRequestException(`Размер файла превышает ${MAX_FILE_SIZE / 1024 / 1024} MB`);
     }
 
     // Проверяем тип файла
-    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    if (!ALLOWED_MIME_TYPES.includes(image.mimetype)) {
       throw new BadRequestException(
         `Недопустимый тип файла. Разрешены только: ${ALLOWED_MIME_TYPES.join(", ")}`
       );
     }
 
     // Проверяем расширение файла
-    const ext = extname(file.originalname).toLowerCase();
+    const ext = extname(image.originalname).toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
       throw new BadRequestException(
         `Недопустимое расширение файла. Разрешены только: ${ALLOWED_EXTENSIONS.join(", ")}`
@@ -108,35 +114,21 @@ export class UploadsService {
     }
   }
 
+  private async getImageById(fileId: string): Promise<Image> {    
+    const file = await this.imageModel.findById(fileId).exec();
+    if (!file) throw new NotFoundException("Изображение не найдено");
+    return file;
+  }
 
-  /**
-   * Обработка и сохранение изображения
-   * @param file - Загруженный файл из Multer
-   * @param accessLevel - Уровень доступа к изображению (public/private/restricted)
-   * @param entityType - Тип сущности, к которой относится изображение
-   * @param entityId - ID сущности, к которой относится изображение
-   * @param imageType - Тип изображения
-   * @param allowedUsers - Массив пользователей, которым разрешен доступ (для restricted)
-   * @param session - Сессия MongoDB для транзакций (опционально)
-   * @returns Данные о сохраненном изображении
-   */
-  async uploadImage({ 
-    file, 
-    accessLevel, 
-    entityType = null, 
-    entityId = null, 
-    imageType = null, 
-    allowedUsers = [],
-    session = null
-  }: {
-    file: Express.Multer.File, 
-    accessLevel: 'public' | 'private' | 'restricted', 
-    entityType?: EntityType | null, 
-    entityId?: string | null, 
-    imageType?: ImageType | null, 
-    allowedUsers?: { userId: string, role: string }[],
-    session?: ClientSession | null
-  }): Promise<UploadedFile> {
+
+  async uploadImage(
+    command: UploadImageCommand,
+    options: CommonCommandOptions
+  ): Promise<Image> {
+    // const { file, accessLevel, entityType, entityId, imageType, allowedUsers } = command;
+    const { file } = command;
+    const { session } = options;
+
     // Валидируем файл
     this.validateFile(file);
 
@@ -144,7 +136,7 @@ export class UploadsService {
     const fileId = new Types.ObjectId();
     const filename = `${fileId.toString()}.webp`; // Всегда сохраняем как WebP
     
-    let savedFile: UploadedFile | null = null;
+    let savedFile: Image | null = null;
     let filesToCleanUp: {mobilePath: string, desktopPath: string} | null = null;
     
     try {
@@ -242,22 +234,9 @@ export class UploadsService {
   }
 
 
-  /**
-   * Обновление метаданных изображения
-   * @param fileId - ID файла
-   * @param updateData - Данные для обновления
-   * @returns Обновленный файл
-   */
-  async updateImageMetadata(
-    fileId: string,
-    updateData: {
-      accessLevel?: 'public' | 'private' | 'restricted',
-      entityType?: EntityType | null,
-      entityId?: string | null,
-      imageType?: ImageType | null,
-      allowedUsers?: { userId: string, role: string }[]
-    }
-  ): Promise<UploadedFile> {
+  async updateImage(
+    command: UpdateImageCommand
+  ): Promise<Image> {
     try {
       // Проверяем валидность ID
       if (!Types.ObjectId.isValid(fileId)) throw new BadRequestException(`Некорректный ID файла: ${fileId}`);
@@ -320,27 +299,13 @@ export class UploadsService {
   }
 
 
-  /**
-   * Получение файла по ID
-   * @param fileId - ID файла
-   */
-  async getFileById(fileId: string): Promise<UploadedFile> {    
-    const file = await this.uploadedFileModel.findById(fileId).exec();
-    if (!file) throw new NotFoundException("Файл не найден");
-    return file;
-  }
+  
 
-
-  /**
-   * Получение изображения (буфер) по ID и размеру
-   * @param fileId - ID изображения
-   * @param size - Размер изображения (mobile, desktop)
-   */
   async getImageBuffer(
     fileId: string, 
     size: 'mobile' | 'desktop' = 'desktop'
   ): Promise<Buffer> {
-    const file = await this.getFileById(fileId);
+    const file = await this.getImageById(imageId);
     const filePath = join(UPLOAD_DIR, size, `${file.filename}`);
     
     try {
@@ -351,11 +316,7 @@ export class UploadsService {
   }
 
 
-  /**
-   * Получение URL для доступа к изображению
-   * @param fileId - ID изображения
-   * @param size - Размер изображения (mobile, desktop)
-   */
+
   getImageUrl(fileId: string, size: 'mobile' | 'desktop' = 'desktop'): string {
     // Базовый URL для доступа к изображениям
     return `/images/${size}/${fileId}`;
@@ -370,7 +331,10 @@ export class UploadsService {
    * @param mobilePath - Путь к мобильной версии файла
    * @param desktopPath - Путь к десктопной версии файла
    */
-  private registerFileForDeletion(session: ClientSession, mobilePath: string, desktopPath: string): void {
+  private registerFileForDeletion(
+    session: ClientSession,
+    imagePaths: string[]
+  ): void {
     if (!this.pendingFileDeletions.has(session)) {
       this.pendingFileDeletions.set(session, new Set());
       
@@ -417,50 +381,44 @@ export class UploadsService {
     }
     
     // Добавляем файл в список отложенных удалений
-    this.pendingFileDeletions.get(session)!.add({ mobilePath, desktopPath });
+    this.pendingFileDeletions.get(session)!.add({  });
   }
 
 
-  /**
-   * Удаление файла
-   * @param fileId - ID файла для удаления
-   * @param session - Сессия MongoDB для транзакций (опционально)
-   */
-  async deleteFile(fileId: string, session?: ClientSession): Promise<void> {
-    const file = await this.getFileById(fileId);
+  async deleteImage(imageId: string, options: CommonCommandOptions): Promise<void> {
+    const file = await this.getImageById(imageId);
     if (!file) throw new NotFoundException("Файл не найден");
     try {
       // Получаем полные пути к файлам
-      const mobilePath = join(UPLOAD_DIR, 'mobile', file.filename);
-      const desktopPath = join(UPLOAD_DIR, 'desktop', file.filename);
       
+      const imagePaths = [
+        join(UPLOAD_DIR, 'xs', file.filename),
+        join(UPLOAD_DIR, 'sm', file.filename),
+        join(UPLOAD_DIR, 'md', file.filename),
+        join(UPLOAD_DIR, 'lg', file.filename),
+        join(UPLOAD_DIR, 'xl', file.filename)
+      ];
       // Удаляем запись из базы данных
-      if (session) {
+      if (options.session) {
         // Если используется сессия, регистрируем файлы для отложенного удаления
-        this.registerFileForDeletion(session, mobilePath, desktopPath);
+        this.registerFileForDeletion(options.session, xsPath, smPath, mdPath, lgPath, xlPath);
         
         // Удаляем запись в рамках транзакции
-        await this.uploadedFileModel.findByIdAndDelete(file._id).session(session).exec();
+        await this.imageModel.findByIdAndDelete(file._id).session(options.session).exec();
       } else {
-        // Если сессия не используется, удаляем файлы сразу
-        await this.uploadedFileModel.findByIdAndDelete(file._id);
-        
+        // Если сессия не используется, удаляем запись в базе данных и файлы из файловой системы
+        await this.imageModel.findByIdAndDelete(file._id);
         // Удаляем файлы из файловой системы
-        await fs.unlink(mobilePath).catch(() => {});
-        await fs.unlink(desktopPath).catch(() => {});
+        await fs.unlink(xsPath).catch(() => {});
+        await fs.unlink(smPath).catch(() => {});
+        await fs.unlink(mdPath).catch(() => {});
+        await fs.unlink(lgPath).catch(() => {});
+        await fs.unlink(xlPath).catch(() => {});
       }
     } catch (error) {
       console.error('Ошибка при удалении файла:', error);
       throw new InternalServerErrorException('Не удалось удалить файл');
     }
-  }
-
-  
-  /**
-   * Получить все изображения (файлы)
-   */
-  async getAllImages(): Promise<any[]> {
-    return this.uploadedFileModel.find().lean().exec();
   }
 
 }

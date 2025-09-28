@@ -14,7 +14,7 @@ import { PaginatedResponseDto } from 'src/interface/http/common/common.response.
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { BlockDto } from 'src/interface/http/common/common.request.dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 
 
 @ApiTags('for admin')

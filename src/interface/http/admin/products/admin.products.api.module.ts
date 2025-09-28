@@ -1,5 +1,5 @@
-import { AdminProductsController } from "./admin.products.controller";
 import { Module } from "@nestjs/common";
+import { AdminProductsController } from "./admin.products.controller";
 import { AdminProductsRoleService } from "./admin.products.role.service";
 
 @Module({

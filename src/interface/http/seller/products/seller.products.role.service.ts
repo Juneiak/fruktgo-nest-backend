@@ -10,15 +10,15 @@ import { ProductPreviewResponseDto, ProductFullResponseDto, ProductOfShopRespons
 import { checkEntityStatus, checkId, transformPaginatedResult } from "src/common/utils";
 import { ProductModel } from "src/modules/product/product.schema";
 import { SellerModel } from "src/modules/seller/seller.schema";
-import { LogsService } from "src/infra/logs/logs.service";
-import { LogLevel } from "src/infra/logs/logs.schema";
+import { LogsService } from "src/infra/logs/application/log.service";
+import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { PaginatedResponseDto, MessageResponseDto } from "src/interface/http/common/common.response.dtos";
 import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
-import { UploadsService } from "src/infra/uploads/uploads.service";
+import { UploadsService } from "src/infra/images/images.service";
 import { UserType } from "src/common/enums/common.enum";
-import { EntityType, ImageType } from "src/infra/uploads/uploaded-file.schema";
+import { EntityType, ImageType } from "src/infra/images/infrastructure/image.schema";
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedLogDto } from "src/infra/logs/logs.response.dto";
+import { PaginatedLogDto } from "src/infra/logs/logs.response.dtos";
 
 @Injectable()
 export class SellerProductsRoleService {

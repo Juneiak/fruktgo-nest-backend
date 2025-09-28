@@ -26,8 +26,11 @@ import { BlogModule } from './modules/blog/blog.module';
 import { DadataModule } from './interface/http/public/dadata/public.dadata.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { AuthModule } from './infra/auth/auth.module';
-import { LogsModule } from './infra/logs/logs.module';
-import { UploadsModule } from './infra/uploads/uploads.module';
+import { LogsModule } from './infra/logs/log.module';
+import { UploadsModule } from './infra/images/images.module';
+
+import { HttpApiModule } from './interface/http/http.api.module';
+import { WsModule } from './interface/ws/ws.module';
 
 @Module({
   imports: [
@@ -35,6 +38,7 @@ import { UploadsModule } from './infra/uploads/uploads.module';
     MongooseModule.forRoot(process.env.MONGO_URI ?? ''),
     CacheModule.register({ isGlobal: true, ttl: 300 }), // 5 минут глобальный кэш
     EventEmitterModule.forRoot(),
+
 
     AuthModule,
     LogsModule,
@@ -56,6 +60,10 @@ import { UploadsModule } from './infra/uploads/uploads.module';
     BlogModule,
     DadataModule,
     FinanceModule,
+
+
+    HttpApiModule,
+    WsModule
   ],
   controllers: [AppController],
   providers: [AppService],

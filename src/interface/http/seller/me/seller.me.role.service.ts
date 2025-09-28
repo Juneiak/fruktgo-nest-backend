@@ -9,9 +9,9 @@ import { UserType } from "src/common/enums/common.enum";
 
 import { ForbiddenException } from '@nestjs/common';
 import { UpdateSellerDto } from './seller.me.request.dtos';
-import { UploadsService } from 'src/infra/uploads/uploads.service';
-import { EntityType, ImageType } from 'src/infra/uploads/uploaded-file.schema';
-import { LogsService } from 'src/infra/logs/logs.service';
+import { UploadsService } from 'src/infra/images/images.service';
+import { EntityType, ImageType } from 'src/infra/images/infrastructure/image.schema';
+import { LogsService } from 'src/infra/logs/application/log.service';
 
 @Injectable()
 export class SellerMeRoleService {

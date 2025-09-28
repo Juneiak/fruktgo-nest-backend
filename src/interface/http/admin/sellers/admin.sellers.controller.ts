@@ -11,7 +11,7 @@ import { AdminSellersRoleService } from './admin.sellers.role.service';
 import { SellerPreviewResponseDto } from './admin.sellers.response.dtos';
 import { SellerFullResponseDto } from './admin.sellers.response.dtos';
 import { UpdateSellerByAdminDto } from './admin.sellers.request.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 
 
 @ApiTags('for admin')

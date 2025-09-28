@@ -3,19 +3,19 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { plainToInstance } from 'class-transformer';
-import { LogLevel } from "src/infra/logs/logs.schema";
+import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { CustomerModel } from 'src/modules/customer/schemas/customer.schema';
 import {
   CustomerFullResponseDto,
   CustomerPreviewResponseDto
 } from './admin.customers.response.dtos';
 import { NotifyCustomerDto, UpdateCustomerDto } from './admin.customers.request.dtos';
-import { LogsService } from 'src/infra/logs/logs.service';
+import { LogsService } from 'src/infra/logs/application/log.service';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto, BlockDto } from 'src/interface/http/common/common.request.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dto';
+import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { NotificationService } from 'src/infra/notification/notification.service';
 
 @Injectable()

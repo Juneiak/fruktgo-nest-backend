@@ -7,7 +7,7 @@ import {
   RequestToEmployeeResponseDto
 } from './seller.employees.response.dtos';
 import { UpdateEmployeeDto, RequestToEmployeeDto } from './seller.employees.request.dtos';
-import { LogLevel } from "src/infra/logs/logs.schema";
+import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { checkEntityStatus } from 'src/common/utils';
 import { transformPaginatedResult } from 'src/common/utils';
 import { checkId } from 'src/common/utils';
@@ -15,7 +15,7 @@ import { SellerModel } from 'src/modules/seller/seller.schema';
 import { ShopModel } from 'src/modules/shop/shop.schema';
 import { RequestToEmployeeModel } from 'src/modules/employee/request-to-employee.schema';
 import { EmployeeModel } from 'src/modules/employee/employee.schema';
-import { LogsService } from 'src/infra/logs/logs.service';
+import { LogsService } from 'src/infra/logs/application/log.service';
 import { AuthenticatedUser } from 'src/common/types';
 import { RequestToEmployeeStatus } from 'src/modules/employee/request-to-employee.schema';
 import { EmployeeStatus } from 'src/modules/employee/employee.schema';

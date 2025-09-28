@@ -7,11 +7,11 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { SellerModel, Seller } from '../seller.schema';
-import { UploadsService } from 'src/infra/uploads/uploads.service';
-import { LogsService } from 'src/infra/logs/logs.service';
-import { EntityType, ImageType } from 'src/infra/uploads/uploaded-file.schema';
+import { UploadsService } from 'src/infra/images/images.service';
+import { LogsService } from 'src/infra/logs/application/log.service';
+import { EntityType, ImageType } from 'src/infra/images/infrastructure/image.schema';
 import { Types, PaginateResult } from 'mongoose';
-import { GetSellerQuery, FindSellersQuery } from './seller.queries';
+import { FindSellerQuery, FindSellersQuery } from './seller.queries';
 import { UpdateSellerCommand } from './seller.commands';
 import { UserType } from 'src/common/enums/common.enum';
 
@@ -23,26 +23,26 @@ export class SellerService {
     private readonly logsService: LogsService,
   ) {}
 
-  async getSeller(query: GetSellerQuery): Promise<Seller | null> {
+  async getSeller(query: FindSellerQuery): Promise<Seller | null> {
     return this.sellerModel
       .findById(new Types.ObjectId(query.sellerId))
       .lean({ virtuals: true })
       .exec();
   }
 
+
   async getSellers(query: FindSellersQuery): Promise<PaginateResult<Seller>> {
     const { page = 1, pageSize = 10 } = query;
-    return this.sellerModel.paginate(
+    const result = await this.sellerModel.paginate(
       {},
-      {
-        page,
-        limit: pageSize,
-        lean: true,
-        leanWithId: false,
+      { 
+        page, limit: pageSize, lean: true, leanWithId: false,
         sort: { createdAt: -1 },
       },
     );
+    return result;
   }
+
 
   async updateSeller(command: UpdateSellerCommand): Promise<Seller | null> {
     const session = await this.sellerModel.db.startSession();
@@ -97,7 +97,7 @@ export class SellerService {
       });
 
       if (!updatedSellerId) throw new NotFoundException('Не удалось обновить данные продавца');
-      return this.getSeller(new GetSellerQuery(updatedSellerId));
+      return this.getSeller(new FindSellerQuery(updatedSellerId));
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
       throw new InternalServerErrorException('Ошибка при обновлении данных продавца: ' + (error as Error).message);
