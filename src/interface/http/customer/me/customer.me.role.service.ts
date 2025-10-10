@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { CustomerModel } from '../../../../modules/customer/schemas/customer.schema';
+import { CustomerModel } from '../../../../modules/customer/infrastructure/schemas/customer.schema';
 import { plainToInstance } from 'class-transformer';
 import {
   CreateAddressDto,
@@ -12,7 +12,7 @@ import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { Types } from 'mongoose';
 import { Address } from 'src/common/schemas/common-schemas';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { LogLevel } from 'src/infra/logs/infrastructure/log.schema';
 
 

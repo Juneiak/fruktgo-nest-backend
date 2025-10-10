@@ -1,40 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
-
-// Тип автора статьи
-export enum ArticleAuthorType {
-  ADMIN = 'Admin',  // Статья от администратора
-}
-
-// Статус статьи
-export enum ArticleStatus {
-  PUBLISHED = 'published', // Опубликована
-  ARCHIVED = 'archived'  // Архивная
-}
-
-// Целевая аудитория статьи
-export enum ArticleTargetAudience {
-  ALL = 'all',         // Для всех пользователей
-  SELLERS = 'sellers', // Только для продавцов
-  EMPLOYEES = 'employees', // Только для сотрудников
-  CUSTOMERS = 'customers'  // Только для клиентов
-}
-
-export enum ArtcilesTag {
-  SEASONAL = 'seasonal',           // Сезонные фрукты и овощи
-  RECIPES = 'recipes',             // Рецепты и кулинария
-  HEALTH = 'health',               // Польза для здоровья
-  TIPS = 'tips',                   // Советы по выбору и хранению
-  DELIVERY = 'delivery',           // О доставке
-  PROMO = 'promo',                 // Акции и специальные предложения
-  NEWS = 'news',                   // Новости маркетплейса
-  SELLER_GUIDE = 'seller_guide',   // Руководство для продавцов
-  CUSTOMER_GUIDE = 'customer_guide', // Руководство для покупателей
-  FRUITS = 'fruits',               // О фруктах
-  VEGETABLES = 'vegetables',       // Об овощах
-  EXOTIC = 'exotic'                // Экзотические продукты
-}
+import { ArticleAuthorType, ArticleStatus, ArticleTargetAudience, ArtcilesTag } from './article.enums';
+import { Image } from 'src/infra/images/infrastructure/image.schema';
 
 @Schema({
   toJSON: { virtuals: true },
@@ -52,11 +20,7 @@ export class Article extends Document {
   @Prop({ required: true, type: String, enum: ArticleAuthorType })
   authorType: ArticleAuthorType;
 
-  @Prop({
-    type: Types.ObjectId,
-    required: false,
-    refPath: 'authorType' // динамическая ссылка на автора
-  })
+  @Prop({ type: Types.ObjectId, refPath: 'authorType' })
   author?: Types.ObjectId;
 
   @Prop({ type: String, required: true })
@@ -65,26 +29,26 @@ export class Article extends Document {
   @Prop({ type: String, required: true })
   content: string;
 
-  @Prop({ type: String, required: false })
+  @Prop({ type: String })
   contentPreview?: string;
 
-  @Prop({ type: [String], enum: ArtcilesTag, default: [] })
+  @Prop({ type: [String], enum: ArtcilesTag, default: () => [] })
   tags: ArtcilesTag[];
 
-  @Prop({ type: String, required: true, enum: ArticleStatus, default: ArticleStatus.PUBLISHED })
+  @Prop({ type: String, enum: ArticleStatus, required: true, default: ArticleStatus.PUBLISHED })
   status: ArticleStatus;
 
-  @Prop({ type: String, required: true, enum: ArticleTargetAudience, default: ArticleTargetAudience.ALL })
+  @Prop({ type: String, enum: ArticleTargetAudience, required: true, default: ArticleTargetAudience.ALL })
   targetAudience: ArticleTargetAudience;
 
-  @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false })
-  articleImage?: Types.ObjectId | null;
+  @Prop({ type: Types.ObjectId, ref: Image.name })
+  articleImage?: Types.ObjectId;
 
   @Prop({ type: Number, default: 0 })
   viewCount: number;
 
-  @Prop({ type: Date, default: null })
-  publishedAt: Date;
+  @Prop({ type: Date })
+  publishedAt?: Date;
 }
 
 export const ArticleSchema = SchemaFactory.createForClass(Article);

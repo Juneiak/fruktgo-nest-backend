@@ -12,23 +12,23 @@ export class Platform extends Document {
   _id: Types.ObjectId;
   id: string;
 
-  @Prop({ type: String, required: false })
-  email: string;
+  @Prop({ type: String, default: null })
+  email: string | null;
 
-  @Prop({ type: String, required: false })
-  phone: string;
+  @Prop({ type: String, default: null })
+  phone: string | null;
 
-  @Prop({ type: Number, required: true, unique: true })
+  @Prop({ type: Number, unique: true, required: true })
   telegramId: number;
 
-  @Prop({ type: String, required: false, default: null })
-  telegramUsername?: string;
+  @Prop({ type: String, default: null })
+  telegramUsername: string | null;
 
-  @Prop({ type: String, required: false, default: null })
-  telegramFirstName?: string;
+  @Prop({ type: String, default: null })
+  telegramFirstName: string | null;
 
-  @Prop({ type: String, required: false, default: null })
-  telegramLastName?: string;
+  @Prop({ type: String, default: null })
+  telegramLastName: string | null;
 }
 
 export const PlatformSchema = SchemaFactory.createForClass(Platform);

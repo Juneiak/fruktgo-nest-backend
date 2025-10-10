@@ -9,7 +9,7 @@ import { ShiftResponseDto } from './seller.shifts.response.dtos';
 import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { ShopModel } from 'src/modules/shop/shop.schema';
 import { AuthenticatedUser } from 'src/common/types';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ShiftsQueryDto } from './seller.shifts.query.dtos';
 import { ShiftService } from 'src/modules/shift/shift.service';

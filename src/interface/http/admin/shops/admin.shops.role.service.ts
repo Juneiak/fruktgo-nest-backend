@@ -7,7 +7,7 @@ import {
 } from './admin.shops.response.dtos';
 import { UpdateShopDto } from './admin.shops.request.dtos';
 import { checkId, transformPaginatedResult } from "src/common/utils";
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 

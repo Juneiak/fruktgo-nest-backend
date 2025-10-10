@@ -3,41 +3,38 @@ import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Seller } from 'src/modules/seller/seller.schema';
+import { ProductCategory, ProductMeasuringScale, ProductStepRate } from './product.enums';
+import { Image } from 'src/infra/images/infrastructure/image.schema';
 
-export enum ProductCategory {
-  FRUITS='fruits',
-  VEGETABLES='vegetables',
-  NUTS='nuts',
-  DRIEDS='drieds',
-  OTHER='other',
-}
+const productStatisticsSchema = {
+  totalLast7daysSales: { type: Number, min: 0, required: true, default: 0 },
+  totalSales: { type: Number, min: 0, required: true, default: 0 },
+  totalLast7daysWriteOff: { type: Number, min: 0, required: true, default: 0 },
+  _id: false
+};
 
-export enum ProductMeasuringScale {
-  KG='kg',
-  PCS='pcs'
-}
+interface ProductStatistics {
+  totalLast7daysSales: number;
+  totalSales: number;
+  totalLast7daysWriteOff: number;
+};
 
-export enum ProductStepRate {
-  STEP_0_1 = '0.1',
-  STEP_0_2 = '0.2',
-  STEP_0_3 = '0.3',
-  STEP_0_5 = '0.5',
-  STEP_1 = '1',
-  STEP_2 = '2',
-  STEP_5 = '5',
-  STEP_10 = '10'
-}
 
-@Schema({ toJSON: { virtuals: true }, toObject: { virtuals: true }, timestamps: true, id: false })
+@Schema({
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  timestamps: true,
+  id: false
+})
 export class Product {
   readonly productId: string;
   _id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false, default: null })
-  cardImage?: Types.ObjectId | null;
+  @Prop({ type: Types.ObjectId, ref: Image.name, default: null })
+  cardImage: Types.ObjectId | null;
 
-  @Prop({ type: String, required: false, default: null })
-  productArticle?: string | null;
+  @Prop({ type: String })
+  productArticle?: string;
 
   @Prop({ type: String, required: true })
   productName: string;
@@ -57,25 +54,18 @@ export class Product {
   @Prop({ type: String, enum: Object.values(ProductStepRate), required: true })
   stepRate: ProductStepRate;
 
-  @Prop({ type: String, required: false, default: null })
-  aboutProduct?: string | null;
+  @Prop({ type: String, default: '' })
+  aboutProduct?: string;
 
-  @Prop({ type: String, required: false, default: null })
-  origin?: string | null;
+  @Prop({ type: productStatisticsSchema, required: true, default: () => ({}) })
+  statistics: ProductStatistics;
 
-  @Prop({ type: Number, min: 0, required: true, default: 0 })
-  totalLast7daysSales: number;
-
-  @Prop({ type: Number, min: 0, required: true, default: 0 })
-  totalSales: number;
-
-  @Prop({ type: Number, min: 0, required: true, default: 0 })
-  totalLast7daysWriteOff: number;
+  @Prop({ type: String})
+  origin?: string;
 
   @Prop({ type: Types.ObjectId, ref: Seller.name, required: true })
   owner: Types.ObjectId;
 
-  // virtuals (TS-объявления)
   readonly shopProducts: any[];
 }
 

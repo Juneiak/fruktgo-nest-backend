@@ -1,27 +1,30 @@
 import { BlockStatus } from '../enums/common.enum';
 import { Types } from 'mongoose';
-
+import { randomUUID } from 'crypto';
 
 // ====================================================
 // BLOCKED
 // ====================================================
 export const BlockedSchema = {
-  status: { type: String, enum: Object.values(BlockStatus), required: true, default: BlockStatus.ACTIVE },
-  reason: { type: String, default: null },          // свободный текст
-  code: { type: String, default: null },          // машинно-читабельный код причины (опц.)
-  by: { type: Types.ObjectId, ref: 'Admin', default: null }, // кто установил (опц.)
-  blockedAt: { type: Date, default: null },
-  blockedUntil: { type: Date, default: null },       // для SUSPENDED
   _id: false,
+  status: { type: String, enum: Object.values(BlockStatus), required: true, default: BlockStatus.ACTIVE },
+  reason: { type: String },
+  code: { type: String },
+  by: { type: Types.ObjectId, ref: 'Admin' },
+  blockedAt: { type: Date },
+  blockedUntil: { type: Date },
 }
 export interface Blocked {
   status: BlockStatus;
-  reason?: string | null;
-  code?: string | null;
-  by?: Types.ObjectId | null;
-  blockedAt?: Date | null;
-  blockedUntil?: Date | null;
-  _id: Types.ObjectId;
+  reason?: string;
+  code?: string;
+  by?: Types.ObjectId;
+  blockedAt?: Date;
+  blockedUntil?: Date;
+}
+
+export const initBlocked: Blocked = {
+  status: BlockStatus.ACTIVE
 }
 
 
@@ -29,23 +32,26 @@ export interface Blocked {
 // ADDRESS
 // ====================================================
 export const AddressSchema = {
-  address: { type: String, required: true },
-  apartment: { type: String, required: true, default: null },
-  entrance: { type: String, required: true, default: null },
-  floor: { type: String, required: true, default: null },
-  intercomCode: { type: String, default: null },
-  latitude: { type: Number, default: null },
-  longitude: { type: Number, default: null },
+  id: { type: String, default: () => randomUUID(), index: true },
+  latitude: { type: Number, required: true },
+  longitude: { type: Number, required: true },
+  city: { type: String, required: true },
+  street: { type: String, required: true },
+  house: { type: String, required: true },
+  apartment: { type: String },
+  floor: { type: String },
+  entrance: { type: String },
+  intercomCode: { type: String },
 };
 export interface Address {
+  id: string;
+  latitude: number;
+  longitude: number;
   city: string;
   street: string;
-  house: string | null;         // Квартира или офис
-  entrance: string | null;          // Подъезд
-  floor: string | null;             // Этаж
-  apartment: string | null;
-  intercomCode: string | null;   
-  latitude?: number | null;
-  longitude?: number | null;
-  _id: Types.ObjectId;
+  house: string;
+  apartment?: string;
+  floor?: string;
+  entrance?: string;
+  intercomCode?: string;
 };

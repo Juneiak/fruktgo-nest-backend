@@ -7,7 +7,7 @@ import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos'
 import { checkEntityStatus, transformPaginatedResult } from 'src/common/utils';
 import {checkId} from 'src/common/utils';
 import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { UploadsService } from 'src/infra/images/images.service';
 import { EntityType, ImageType } from 'src/infra/images/infrastructure/image.schema';
 import {AuthenticatedUser, AuthenticatedEmployee} from 'src/common/types';

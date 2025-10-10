@@ -17,7 +17,7 @@ import { EmployeeModel } from 'src/modules/employee/employee.schema';
 import { checkId, verifyUserStatus } from 'src/common/utils';
 import { NotificationService } from 'src/infra/notification/notification.service';
 import {AuthenticatedEmployee, AuthenticatedUser} from 'src/common/types';
-import { CustomerModel } from 'src/modules/customer/schemas/customer.schema';
+import { CustomerModel } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 
 @Injectable()
 export class ShopOrdersRoleService {

@@ -3,76 +3,18 @@ import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { ProductCategory, ProductMeasuringScale } from 'src/modules/product/product.schema';
-
-export enum OrderStatus {
-  PENDING='pending',
-  PREPARING='preparing',
-  AWAITING_COURIER='awaitingCourier',
-  DELIVERING='delivering',
-  DELIVERED='delivered',
-  CANCELLED='cancelled',
-  DECLINED='declined',
-  FAILED='failed',
-}
-
-export const ORDER_STATUS_DISPLAY_MAP: Record<string, string> = {
-  [OrderStatus.PENDING]: '🕒 Новый',
-  [OrderStatus.PREPARING]: '🍏 Готовится',
-  [OrderStatus.AWAITING_COURIER]: '🚚 Ожидает курьера',
-  [OrderStatus.DELIVERING]: '🚚 Доставляется',
-  [OrderStatus.DELIVERED]: '✅ Доставлен',
-  [OrderStatus.CANCELLED]: '❌ Отменён',
-  [OrderStatus.DECLINED]: '❌ Отклонён',
-  [OrderStatus.FAILED]: '❌ Провалилась',
-};
-
-
-export enum PositiveFeedbackTag {
-  GOOD_QUALITY = 'goodQuality',
-  FRESH_PRODUCTS = 'freshProducts',
-  FAST_DELIVERY = 'fastDelivery',
-  GOOD_COMMUNICATION = 'goodCommunication',
-  GOOD_PRICE = 'goodPrice'
-}
-
-export enum NegativeFeedbackTag {
-  DELAYED_DELIVERY = 'delayedDelivery', 
-  LOW_QUALITY = 'lowQuality',
-  DAMAGED_PACKAGING = 'damagedPackaging',
-  WRONG_ITEMS = 'wrongItems',
-  HIGH_PRICE = 'highPrice'
-}
-
-export enum OrderDeclineReason {
-  OUT_OF_STOCK = 'outOfStock',             // Товар закончился на складе
-  CLOSED_SHOP = 'closedShop',              // Магазин закрыт (внеплановое закрытие)
-  PRICE_CHANGED = 'priceChanged',          // Изменились цены
-  QUALITY_ISSUES = 'qualityIssues',        // Проблемы с качеством товара
-  INSUFFICIENT_QUANTITY = 'insufficientQuantity', // Недостаточное количество товара
-  TECHNICAL_ISSUES = 'technicalIssues',    // Технические проблемы
-  WRONG_PRICE = 'wrongPrice',              // Неверная цена в системе
-  TEMPORARILY_UNAVAILABLE = 'temporarilyUnavailable', // Товар временно недоступен
-  OTHER = 'other'                          // Другая причина (требует комментария)
-}
-
-export enum OrderCancelReason {
-  CHANGED_MIND = 'changedMind',             // Передумал
-  DUPLICATE_ORDER = 'duplicateOrder',       // Дублирующий заказ
-  LONG_DELIVERY_TIME = 'longDeliveryTime',  // Долгое время доставки
-  DELIVERY_ISSUES = 'deliveryIssues',       // Проблемы с доставкой
-  PAYMENT_ISSUES = 'paymentIssues',         // Проблемы с оплатой
-  PRICE_TOO_HIGH = 'priceTooHigh',          // Слишком высокая цена
-  FOUND_BETTER_OFFER = 'foundBetterOffer',  // Нашел лучшее предложение
-  UNAVAILABLE_DELIVERY_TIME = 'unavailableDeliveryTime', // Неподходящее время доставки
-  ORDERED_BY_MISTAKE = 'orderedByMistake',  // Ошибочный заказ
-  SELECTED_WRONG_ITEMS = 'selectedWrongItems', // Выбраны неверные товары
-  OTHER = 'other'                           // Другая причина (требует комментария)
-}
+import { PositiveFeedbackTag, NegativeFeedbackTag } from './order.enums';
+import { Shop } from 'src/modules/shop/shop.schema';
+import { Employee } from 'src/modules/employee/infrastructure/schemas/employee.schema';
+import { Shift } from 'src/modules/shift/infrastructure/schemas/shift.schema';
+import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
+import { Image } from 'src/infra/images/infrastructure/image.schema';
+import { ShopProduct } from '../shop-product/shop-product.schema';
 
 // orderedBy (customer)
 const OrderedBySchema = {
   _id: false,
-  customer: { type: Types.ObjectId, ref: 'Customer', required: true },
+  customer: { type: Types.ObjectId, ref: Customer.name, required: true },
   customerName: { type: String, required: true },
 };
 export interface OrderedBy {
@@ -83,7 +25,7 @@ export interface OrderedBy {
 // orderedFrom (shop)
 const OrderedFromSchema = {
   _id: false,
-  shop: { type: Types.ObjectId, ref: 'Shop', required: true },
+  shop: { type: Types.ObjectId, ref: Shop.name, required: true },
   shopName: { type: String, required: true },
   shopImage: { type: String, required: true },
 };
@@ -96,15 +38,17 @@ export interface OrderedFrom {
 // HandledBy (employee)
 const HandledBySchema = {
   _id: false,
-  employee: { type: Types.ObjectId, ref: 'Employee', required: false, default: null },
-  employeeName: { type: String, required: false, default: null },
-  shift: { type: Types.ObjectId, ref: 'Shift', required: false, default: null },
+  employee: { type: Types.ObjectId, ref: Employee.name, default: null },
+  employeeName: { type: String, default: null },
+  shift: { type: Types.ObjectId, ref: Shift.name, default: null },
 };
 export interface HandledBy {
   employee: Types.ObjectId | null;
   employeeName: string | null;
   shift: Types.ObjectId | null;
 }
+
+
 
 
 // finance
@@ -158,11 +102,11 @@ export interface OrderDelivery {
 
 // order product
 const OrderProductSchema = {
-  shopProduct: { type: Types.ObjectId, ref: 'ShopProduct', required: true },
+  shopProduct: { type: Types.ObjectId, ref: ShopProduct.name, required: true },
   category: { type: String, enum: Object.values(ProductCategory), required: true },
   productName: { type: String, required: true },
   price: { type: Number, required: true, min: 0 },
-  cardImage: { type: Types.ObjectId, ref: 'UploadedFile', required: false },
+  cardImage: { type: Types.ObjectId, ref: Image.name, required: false },
   measuringScale: { type: String, enum: Object.values(ProductMeasuringScale), required: true },
   selectedQuantity: { type: Number, required: true, min: 0 },
   actualQuantity: { type: Number, min: 0, required: false, default: null },

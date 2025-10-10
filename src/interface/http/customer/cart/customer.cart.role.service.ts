@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Cart } from '../../../../modules/customer/schemas/cart.schema';
+import { Cart } from '../../../../modules/customer/infrastructure/schemas/cart.schema';
 import { plainToInstance } from 'class-transformer';
 import {
   CartResponseDto,

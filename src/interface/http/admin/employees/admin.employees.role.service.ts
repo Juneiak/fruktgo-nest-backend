@@ -6,7 +6,7 @@ import {
 } from './admin.employees.response.dtos';
 import { UpdateEmployeeDto } from './admin.employees.request.dtos';
 import { plainToInstance } from 'class-transformer';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";

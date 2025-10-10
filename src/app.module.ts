@@ -32,6 +32,10 @@ import { UploadsModule } from './infra/images/images.module';
 import { HttpApiModule } from './interface/http/http.api.module';
 import { WsModule } from './interface/ws/ws.module';
 
+
+import { APP_FILTER } from '@nestjs/core';
+import { DomainErrorFilter } from 'src/common/errors/domain-error.filter';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), // Загружаем .env
@@ -66,6 +70,9 @@ import { WsModule } from './interface/ws/ws.module';
     WsModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_FILTER, useClass: DomainErrorFilter }
+  ],
 })
 export class AppModule {};

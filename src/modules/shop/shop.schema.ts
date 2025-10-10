@@ -29,6 +29,9 @@ export class Shop {
   createdAt: Date;
   updatedAt: Date;
 
+  @Prop({ type: String, required: true })
+  city: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Seller', required: true })
   owner: Types.ObjectId;
 

@@ -9,7 +9,7 @@ import { Employee } from 'src/modules/employee/employee.schema';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { Shop } from 'src/modules/shop/shop.schema';
 import { Order } from 'src/modules/order/order.schema';
-import { Customer } from 'src/modules/customer/schemas/customer.schema';
+import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 
 @Injectable()
 export class AdminPlatformRoleService {

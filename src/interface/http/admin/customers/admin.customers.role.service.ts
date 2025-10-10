@@ -4,13 +4,13 @@ import { Types } from 'mongoose';
 import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { plainToInstance } from 'class-transformer';
 import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
-import { CustomerModel } from 'src/modules/customer/schemas/customer.schema';
+import { CustomerModel } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 import {
   CustomerFullResponseDto,
   CustomerPreviewResponseDto
 } from './admin.customers.response.dtos';
 import { NotifyCustomerDto, UpdateCustomerDto } from './admin.customers.request.dtos';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
@@ -25,11 +25,6 @@ export class AdminCustomersRoleService {
     private readonly notificationService: NotificationService,
     private logsService: LogsService,
   ) { }
-
-  async sendNotificationToCustomer(authedAdmin: AuthenticatedUser, dto: NotifyCustomerDto): Promise<MessageResponseDto> {
-    // return this.notificationService.notifyCustomer(dto.telegramId, dto.message);
-    return { message: 'Notification sent to customer' };
-  }
 
 
   async getAllCustomers(

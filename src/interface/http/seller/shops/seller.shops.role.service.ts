@@ -18,7 +18,7 @@ import { ShopFullResponseDto, ShopPreviewResponseDto } from './seller.shops.resp
 import { SellerModel } from 'src/modules/seller/seller.schema';
 import { checkEntityStatus } from 'src/common/utils';
 import { checkId } from 'src/common/utils';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";

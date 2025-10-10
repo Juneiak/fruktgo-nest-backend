@@ -12,7 +12,7 @@ import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos'
 import { NotificationService } from 'src/infra/notification/notification.service';
 import { forwardRef, Inject } from '@nestjs/common';
 import { IssueStatusFilter } from 'src/modules/support/issue.schema';
-import { Customer } from 'src/modules/customer/schemas/customer.schema';
+import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { IssueQueryDto } from './admin.support.query';
 

@@ -8,7 +8,7 @@ import { ProductModel } from "src/modules/product/product.schema";
 import { AuthenticatedUser } from 'src/common/types';
 import { PaginatedResponseDto } from "src/interface/http/common/common.response.dtos";
 import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ProductQueryFilterDto } from './admin.products.query.dtos';
 
@@ -20,39 +20,39 @@ export class AdminProductsRoleService {
     private logsService: LogsService,
   ) {}
 
-  async getProducts(
-    authedAdmin: AuthenticatedUser,
-    productQueryFilter: ProductQueryFilterDto,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ProductPreviewResponseDto>> {
-    const { page, pageSize } = paginationQuery;
-    const filter: any = {};
-    if (productQueryFilter.sellerId) {
-      checkId([productQueryFilter.sellerId]);
-      filter.owner = new Types.ObjectId(productQueryFilter.sellerId);
-    }
+  // async getProducts(
+  //   authedAdmin: AuthenticatedUser,
+  //   productQueryFilter: ProductQueryFilterDto,
+  //   paginationQuery: PaginationQueryDto
+  // ): Promise<PaginatedResponseDto<ProductPreviewResponseDto>> {
+  //   const { page, pageSize } = paginationQuery;
+  //   const filter: any = {};
+  //   if (productQueryFilter.sellerId) {
+  //     checkId([productQueryFilter.sellerId]);
+  //     filter.owner = new Types.ObjectId(productQueryFilter.sellerId);
+  //   }
     
-    const products = await this.productModel.paginate(filter, { page, limit: pageSize });
-    return transformPaginatedResult(products, ProductPreviewResponseDto)
-  }
+  //   const products = await this.productModel.paginate(filter, { page, limit: pageSize });
+  //   return transformPaginatedResult(products, ProductPreviewResponseDto)
+  // }
 
 
-  async getProduct(authedAdmin: AuthenticatedUser, productId: string): Promise<ProductFullResponseDto> {
-    checkId([productId]);
-    const foundProduct = await this.productModel.findOne({ _id: new Types.ObjectId(productId)})
-    .populate({
-      path: 'shopProducts',
-      select: 'shopProductId pinnedTo stockQuantity status last7daysSales last7daysWriteOff', 
-      populate: { path: 'pinnedTo', select: 'shopId shopImage shopName' }
-    })
-    .lean({ virtuals: true })
-    .exec();
-    if (!foundProduct) throw new NotFoundException('Продукт не найден');
-    return plainToInstance(ProductFullResponseDto, foundProduct, { excludeExtraneousValues: true });
-  }
+  // async getProduct(authedAdmin: AuthenticatedUser, productId: string): Promise<ProductFullResponseDto> {
+  //   checkId([productId]);
+  //   const foundProduct = await this.productModel.findOne({ _id: new Types.ObjectId(productId)})
+  //   .populate({
+  //     path: 'shopProducts',
+  //     select: 'shopProductId pinnedTo stockQuantity status last7daysSales last7daysWriteOff', 
+  //     populate: { path: 'pinnedTo', select: 'shopId shopImage shopName' }
+  //   })
+  //   .lean({ virtuals: true })
+  //   .exec();
+  //   if (!foundProduct) throw new NotFoundException('Продукт не найден');
+  //   return plainToInstance(ProductFullResponseDto, foundProduct, { excludeExtraneousValues: true });
+  // }
 
-  async getProductLogs(authedAdmin: AuthenticatedUser, productId: string, paginationQuery: PaginationQueryDto): Promise<PaginatedLogDto> {
-    checkId([productId]);
-    return await this.logsService.getAllProductLogs(productId, paginationQuery);
-  }
+  // async getProductLogs(authedAdmin: AuthenticatedUser, productId: string, paginationQuery: PaginationQueryDto): Promise<PaginatedLogDto> {
+  //   checkId([productId]);
+  //   return await this.logsService.getAllProductLogs(productId, paginationQuery);
+  // }
 }

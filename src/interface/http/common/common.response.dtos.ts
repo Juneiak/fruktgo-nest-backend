@@ -1,6 +1,6 @@
 import { Expose, Type } from "class-transformer";
 import { UserType } from "src/common/enums/common.enum";
-import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
+import { LogLevel } from "src/infra/log/log.enums";
 
 
 export class PaginationMetaDto {

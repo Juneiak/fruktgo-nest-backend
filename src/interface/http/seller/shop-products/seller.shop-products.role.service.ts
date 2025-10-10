@@ -13,7 +13,7 @@ import { ShopProductResponseDto } from './seller.shop-products.response.dtos';
 import { ProductModel } from 'src/modules/product/product.schema';
 import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import {checkId} from 'src/common/utils';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";

@@ -15,7 +15,7 @@ import { SellerModel } from 'src/modules/seller/seller.schema';
 import { ShopModel } from 'src/modules/shop/shop.schema';
 import { RequestToEmployeeModel } from 'src/modules/employee/request-to-employee.schema';
 import { EmployeeModel } from 'src/modules/employee/employee.schema';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { AuthenticatedUser } from 'src/common/types';
 import { RequestToEmployeeStatus } from 'src/modules/employee/request-to-employee.schema';
 import { EmployeeStatus } from 'src/modules/employee/employee.schema';

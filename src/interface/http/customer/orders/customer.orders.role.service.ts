@@ -5,7 +5,7 @@ import { plainToInstance } from 'class-transformer';
 import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { ShopProduct } from "src/modules/shop-product/shop-product.schema";
 import { Shop } from "src/modules/shop/shop.schema";
-import { Customer } from "src/modules/customer/schemas/customer.schema";
+import { Customer } from "src/modules/customer/infrastructure/schemas/customer.schema";
 import {
   CreateOrderDto,
   CancelOrderDto,
@@ -22,7 +22,7 @@ import { checkId, verifyUserStatus,  } from "src/common/utils";
 import { Order, OrderProduct } from 'src/modules/order/order.schema';
 import { Product } from "src/modules/product/product.schema";
 import { CustomerCartRoleService } from 'src/interface/http/customer/cart/customer.cart.role.service';
-import { LogsService } from 'src/infra/logs/application/log.service';
+import { LogsService } from 'src/infra/log/application/log.service';
 import { NotificationService } from 'src/infra/notification/notification.service';
 import {OrderStatus} from 'src/modules/order/order.schema'
 import { transformOrderToPreview } from './utils';

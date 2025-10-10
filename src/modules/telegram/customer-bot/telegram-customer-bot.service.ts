@@ -10,7 +10,7 @@ import { CUSTOMER_BOT_LOGIN_TO_SYSTEM_PREFIX } from 'src/common/constants';
 import { CustomerSharedService } from 'src/modules/customer/shared/customer.shared.service';
 import { formatCustomerInfoMessage, formatOrderMessage, formatIssueMessage } from './utils';
 import { setupWebhook } from "../telegram-utils";
-import { Customer } from 'src/modules/customer/schemas/customer.schema';
+import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 import { OrderSharedService } from 'src/modules/order/shared/order.shared.service';
 import { SupportService } from 'src/modules/support/support.service';
 import { IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';

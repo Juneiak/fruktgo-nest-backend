@@ -1,0 +1,1 @@
+// application/seller.queries.ts

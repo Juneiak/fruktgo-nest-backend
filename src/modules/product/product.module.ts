@@ -1,14 +1,21 @@
-import { Module } from "@nestjs/common";
-import { ProductSellerController } from "./roles/seller/product.seller.controller";
-import { ProductSellerService } from "./roles/seller/product.seller.service";
-import { ProductAdminController } from "./roles/admin/product.admin.controller";
-import { ProductAdminService } from "./roles/admin/product.admin.service";
-import { ProductSharedService } from "./shared/product.shared.service";
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ProductSchema, Product } from './product.schema';
+import { ProductService } from './product.service';
+import { ProductFacade } from './product.facade';
+import { PRODUCT_PORT } from './product.port';
+import { SellerModule } from '../seller/seller.module';
 
 @Module({
-  imports: [],
-  controllers: [ProductSellerController, ProductAdminController],
-  providers: [ProductSellerService, ProductAdminService, ProductSharedService],
-  exports: [ProductSharedService],
+  imports: [
+    MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
+    SellerModule,  // Для доступа к SellerPort
+  ],
+  providers: [
+    ProductService,
+    ProductFacade,
+    { provide: PRODUCT_PORT, useExisting: ProductFacade }
+  ],
+  exports: [PRODUCT_PORT],
 })
 export class ProductModule {}

@@ -5,7 +5,7 @@ import { Order } from 'src/modules/order/order.schema';
 import { OrderStatus } from "src/modules/order/order.schema";
 import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import {AuthenticatedUser} from 'src/common/types';
-import { Customer } from 'src/modules/customer/schemas/customer.schema';
+import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 
 @Injectable()
 export class DeliveryOrdersRoleService {

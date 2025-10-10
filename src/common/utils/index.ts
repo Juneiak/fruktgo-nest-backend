@@ -1,11 +1,108 @@
 import { PaginateResult, Types, ClientSession } from 'mongoose';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
-import { VerifiedStatus } from 'src/common/types';
+import { ForbiddenException } from '@nestjs/common';
+import { VerifiedStatus } from 'src/common/enums/common.enum';
 import { BlockStatus } from 'src/common/enums/common.enum';
-import { PaginatedResponseDto } from '../dtos';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
-import { Blocked } from '../schemas/common-schemas';
+import { Blocked } from 'src/common/schemas/common-schemas';
+import { DomainError } from 'src/common/errors/domain-error';
+import { PaginatedResponseDto } from 'src/common/dtos';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
+/**
+ * Опции для функции assignField
+ */
+export interface AssignFieldOptions {
+  /**
+   * Как обрабатывать null значения (default: 'delete')
+   * - 'delete': удаляет поле из документа (устанавливает undefined)
+   * - 'keep': сохраняет null в документе
+   * - 'skip': пропускает (не изменяет поле)
+   */
+  onNull?: 'delete' | 'keep' | 'skip';
+}
+
+/**
+ * Проверяет, может ли поле быть undefined
+ */
+type CanBeUndefined<T, K extends keyof T> = undefined extends T[K] ? true : false;
+
+/**
+ * Проверяет, может ли поле быть null
+ */
+type CanBeNull<T, K extends keyof T> = null extends T[K] ? true : false;
+
+/**
+ * Умная типизация опций в зависимости от типа поля:
+ * - Если поле может быть undefined → все опции доступны
+ * - Если поле может быть null (но не undefined) → только 'keep' | 'skip'
+ * - Если поле обязательное (не null и не undefined) → только 'skip'
+ */
+type SmartAssignFieldOptions<T, K extends keyof T> = 
+  CanBeUndefined<T, K> extends true
+    ? AssignFieldOptions // Поле может быть undefined - все опции доступны
+    : CanBeNull<T, K> extends true
+      ? { onNull?: 'keep' | 'skip' } // Поле может быть null, но не undefined - только keep/skip
+      : { onNull?: 'skip' }; // Обязательное поле - только skip
+
+/**
+ * Присваивает значение полю документа с умной обработкой null/undefined
+ * TypeScript автоматически ограничивает доступные опции в зависимости от типа поля:
+ * 
+ * - Если value === undefined, ничего не делает (всегда пропускает)
+ * - Если value === null, поведение зависит от опции onNull:
+ *   - 'delete' (default): удаляет поле из документа (устанавливает undefined)
+ *   - 'keep': сохраняет null в документе
+ *   - 'skip': пропускает (не изменяет поле)
+ * - Иначе устанавливает значение
+ * 
+ * @param target - Целевой объект
+ * @param field - Поле для изменения
+ * @param value - Новое значение
+ * @param options - Опции присваивания (TypeScript ограничивает доступные опции)
+ * 
+ * @example
+ * // Обязательное поле (required: true) - только skip
+ * assignField(seller, 'companyName', payload.companyName, { onNull: 'skip' }); // ✅ OK
+ * assignField(seller, 'companyName', payload.companyName, { onNull: 'delete' }); // ❌ TS Error
+ * 
+ * // Nullable поле (string | null) - keep или skip
+ * assignField(customer, 'selectedAddressId', payload.id, { onNull: 'keep' }); // ✅ OK
+ * assignField(customer, 'selectedAddressId', payload.id, { onNull: 'delete' }); // ❌ TS Error
+ * 
+ * // Опциональное поле (string?) - все опции
+ * assignField(seller, 'internalNote', payload.note, { onNull: 'delete' }); // ✅ OK
+ * assignField(seller, 'internalNote', payload.note, { onNull: 'keep' }); // ✅ OK
+ * assignField(seller, 'internalNote', payload.note, { onNull: 'skip' }); // ✅ OK
+ */
+export function assignField<T, K extends keyof T>(
+  target: T,
+  field: K,
+  value: T[K] | null | undefined,
+  options?: SmartAssignFieldOptions<T, K>
+): void {
+  // undefined всегда пропускаем
+  if (value === undefined) return;
+  
+  // Обработка null
+  if (value === null) {
+    const onNull = options?.onNull ?? 'delete';
+    
+    switch (onNull) {
+      case 'skip':
+        return; // не изменяем поле
+      case 'keep':
+        (target[field] as any) = null; // сохраняем null
+        break;
+      case 'delete':
+        (target[field] as any) = undefined; // удаляем поле
+        break;
+    }
+    return;
+  }
+  
+  // Обычное значение
+  target[field] = value;
+}
 
 //TODO: довести до ума, пока просто отключу
 export function verifyUserStatus<T extends { blocked?: Blocked; verifiedStatus?: VerifiedStatus }>(
@@ -16,9 +113,10 @@ export function verifyUserStatus<T extends { blocked?: Blocked; verifiedStatus?:
   if (user.verifiedStatus && !allowedStatuses.includes(user.verifiedStatus)) throw new ForbiddenException('Пользователь не верифицирован');
 }
 
-export function checkId(ids: string[]): void {
+export function checkId(ids: readonly (string | null | undefined)[]): void {
   for (const id of ids) {
-    if (!Types.ObjectId.isValid(id)) throw new NotFoundException(`${id} невалидный`)
+    if (!id) continue;
+    if (!Types.ObjectId.isValid(id)) throw new DomainError({ code: 'VALIDATION', message: `${id} невалидный` })
   }
 }
 
@@ -123,3 +221,6 @@ export async function checkEntityStatus(
   const entity = await query.exec();
   return !!entity;
 }
+
+
+export const parcePhoneNumber = (phoneNumber: string) => parsePhoneNumberFromString(phoneNumber, 'RU');

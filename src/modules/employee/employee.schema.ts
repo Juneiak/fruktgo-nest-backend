@@ -1,20 +1,28 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
-import { VerifiedStatus, UserSex } from 'src/common/types';
+import { VerifiedStatus, UserSex } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
-import { Seller } from 'src/modules/seller/seller.schema';
-import { Shop } from 'src/modules/shop/shop/shop.schema';
-import { RequestToEmployee } from './request-to-employee.schema';
-import { Shift } from 'src/modules/shift/shift.schema';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
-import { BlockStatus } from 'src/common/enums/common.enum';
+import { BlockedSchema, Blocked, initBlocked } from 'src/common/schemas/common-schemas';
+import { EmployeeStatus } from './employee.enums';
+import { Shop } from 'src/modules/shop/shop.schema';
+import { Seller } from 'src/modules/seller/seller.schema';
+import { Shift } from 'src/modules/shift/shift.schema';
+import { Image } from 'src/infra/images/image.schema';
 
-export enum EmployeeStatus {
-  WORKING='working',
-  RESTING='resting',
-  NOT_PINNED='notPinned',
-}
+const employeeStatisticsSchema = {
+  _id: false,
+  totalOrders: { type: Number, min: 0, required: true, default: 0 },
+  totalShifts: { type: Number, max: 0, required: true, default: 0 },
+  shiftRating: { type: Number, min: 0, max: 100, required: true, default: 0 },
+};
+
+interface EmployeeStatistics {
+  totalOrders: number;
+  totalShifts: number;
+  shiftRating: number;
+};
+
 
 @Schema({
   toJSON: { virtuals: true },
@@ -28,74 +36,68 @@ export class Employee {
   createdAt: Date;
   updatedAt: Date;
 
-  @Prop({ type: BlockedSchema, required: true, _id: false, default: { status: BlockStatus.ACTIVE }})
+  @Prop({ type: BlockedSchema, required: true, default: initBlocked })
   blocked: Blocked;
 
-  @Prop({ type: String, enum: Object.values(VerifiedStatus), default: VerifiedStatus.IS_CHECKING, required: true })
+  @Prop({ type: String, enum: Object.values(VerifiedStatus), required: true, default: VerifiedStatus.IS_CHECKING })
   verifiedStatus: VerifiedStatus;
 
-  @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false, default: null })
-  employeeAvatar?: Types.ObjectId | null;
+  @Prop({ type: Types.ObjectId, ref: Image.name })
+  employeeAvatar?: Types.ObjectId;
 
   @Prop({ type: String, required: true })
   employeeName: string;
 
-  @Prop({ type: String, required: false, default: null })
-  phone: string | null;
+  @Prop({ type: String, required: true })
+  phoneNumber: string;
   
-  @Prop({ type: Number, required: true, unique: true })
+  @Prop({ type: Number, unique: true, required: true })
   telegramId: number;
 
-  @Prop({ type: String, required: false, default: null })
+  @Prop({ type: String })
   telegramUsername?: string;
 
-  @Prop({ type: String, required: false, default: null })
+  @Prop({ type: String })
   telegramFirstName?: string;
 
-  @Prop({ type: String, required: false, default: null })
+  @Prop({ type: String })
   telegramLastName?: string;
 
   @Prop({ type: String, enum: Object.values(UserSex), default: UserSex.NOT_SPECIFIED })
-  sex?: UserSex
+  sex: UserSex;
 
   @Prop({ type: String, enum: Object.values(EmployeeStatus), default: EmployeeStatus.NOT_PINNED })
   status: EmployeeStatus;
 
-  @Prop({ type: Date, required: false, default: null })
-  birthDate?: Date | null;
+  @Prop({ type: Date })
+  birthDate?: Date;
 
-  @Prop({ type: String, required: false, default: null })
-  position?: string | null;
+  @Prop({ type: String })
+  position?: string;
 
-  @Prop({ type: String, required: false, default: null })
-  salary?: string | null;
+  @Prop({ type: String })
+  salary?: string;
 
-  @Prop({ type: String, required: false, default: null })
-  sellerNote?: string | null;
+  @Prop({ type: String })
+  sellerNote?: string;
 
-  @Prop({ type: String, required: false, default: null })
-  internalNote?: string | null;
+  @Prop({ type: String })
+  internalNote?: string;
 
-  @Prop({ type: Date, required: false, default: null })
-  lastLoginAt?: Date | null;
+  @Prop({ type: Date })
+  lastLoginAt?: Date;
 
-  @Prop({ type: Number, min: 0, required: true, default: 0 })
-  totalOrders: number;
+  @Prop({ type: employeeStatisticsSchema, required: true, default: () => ({}) })
+  statistics: EmployeeStatistics;
 
-  @Prop({ type: Number, min: 0, required: true, default: 0 })
-  totalShifts: number;
+  @Prop({ type: Types.ObjectId, ref: Shop.name, default: null })
+  pinnedTo: Types.ObjectId | null;
 
-  @Prop({ type: Number, min: 0, max: 100, required: true, default: 0 })
-  shiftRating: number;
+  @Prop({ type: Types.ObjectId, ref: Seller.name, default: null })
+  employer: Types.ObjectId | null;
 
-  @Prop({ type: Types.ObjectId, ref: 'Shop', required: false, default: null })
-  pinnedTo?: Types.ObjectId | Shop | null;
-
-  @Prop({ type: Types.ObjectId, ref: 'Seller', required: false, default: null })
-  employer: Types.ObjectId | Seller | null;
-
-  @Prop({ type: Types.ObjectId, ref: 'Shift', required: false, default: null })
-  openedShift?: Types.ObjectId | Shift | null;
+  @Prop({ type: Types.ObjectId, ref: Shift.name, default: null })
+  openedShift: Types.ObjectId | null;
 }
 
 export const EmployeeSchema = SchemaFactory.createForClass(Employee);

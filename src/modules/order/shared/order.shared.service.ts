@@ -4,7 +4,7 @@ import { Order } from '../order.schema';
 import { Types } from 'mongoose';
 import { NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { CustomerModel } from 'src/modules/customer/schemas/customer.schema';
+import { CustomerModel } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 import { transformOrderToPreview } from 'src/interface/http/customer/orders/utils';
 import { InjectModel } from '@nestjs/mongoose';
 
