@@ -58,15 +58,15 @@ export class LogsService {
   ): Promise<void> {
     checkId([logId]);
 
-    const filter: any = {
+    const queryFilter: any = {
       _id: new Types.ObjectId(logId),
     };
     
     const queryOptions: any = {};
     if (options?.session) queryOptions.session = options.session;
     
-    const res = await this.logModel.deleteOne(filter, queryOptions).exec();
-    if (res.deletedCount === 0) throw DomainError.notFound('Log', String(filter._id));
+    const res = await this.logModel.deleteOne(queryFilter, queryOptions).exec();
+    if (res.deletedCount === 0) throw DomainError.notFound('Log', String(logId));
   }
 
 
@@ -79,7 +79,7 @@ export class LogsService {
   ): Promise<void> {
     checkId([command.entityId]);
     
-    const filter: any = {
+    const queryFilter: any = {
       entityType: command.entityType,
       entityId: new Types.ObjectId(command.entityId)
     };
@@ -87,7 +87,7 @@ export class LogsService {
     const queryOptions: any = {};
     if (options?.session) queryOptions.session = options.session;
     
-    await this.logModel.deleteMany(filter, queryOptions).exec();
+    await this.logModel.deleteMany(queryFilter, queryOptions).exec();
   }
 
 
@@ -106,27 +106,27 @@ export class LogsService {
     const { entityType, entityId, forRoles, filters } = query;
     checkId([entityId]);
 
-    const filter: any = {
+    const queryFilter: any = {
       entityType,
       entityId: new Types.ObjectId(entityId)
     };
   
     // Фильтрация по ролям (обязательное поле)
-    if (forRoles?.length) filter.forRoles = { $in: forRoles };
+    if (forRoles?.length) queryFilter.forRoles = { $in: forRoles };
     
     // Опциональные фильтры
     if (filters) {
       if (filters.level) {
-        filter.logLevel = Array.isArray(filters.level) ? { $in: filters.level } : filters.level;
+        queryFilter.logLevel = Array.isArray(filters.level) ? { $in: filters.level } : filters.level;
       }
       if (filters.fromDate || filters.toDate) {
-        filter.createdAt = {
+        queryFilter.createdAt = {
           ...(filters.fromDate ? { $gte: filters.fromDate } : {}),
           ...(filters.toDate ? { $lte: filters.toDate } : {}),
         };
       }
       if (filters.search) {
-        filter.text = { $regex: filters.search, $options: 'i' };
+        queryFilter.text = { $regex: filters.search, $options: 'i' };
       }
     }
 
@@ -137,7 +137,7 @@ export class LogsService {
       sort: options.sort || { createdAt: -1 }
     };
     
-    return this.logModel.paginate(filter, queryOptions);
+    return this.logModel.paginate(queryFilter, queryOptions);
   }
 
 

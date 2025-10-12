@@ -9,11 +9,15 @@ import { CreateProductCommand, UpdateProductCommand, DeleteProductCommand } from
 import { checkId, assignField } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { SELLER_PORT, SellerPort } from '../seller/seller.port';
+import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
+import { UploadImageCommand, UpdateImageCommand } from 'src/infra/images/images.commands';
+import { ImageAccessLevel, ImageEntityType, ImageType, ImageSize } from 'src/infra/images/images.enums';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectModel(Product.name) private readonly productModel: ProductModel,
+    @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
   ) {}
 
 
@@ -21,10 +25,11 @@ export class ProductService {
     query: GetProductsQuery,
     options: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Product>> {
-    checkId([query.sellerId]);
+    const { filters } = query;
 
-    const filter: any = { owner: new Types.ObjectId(query.sellerId) };
-    if (query.filters?.category) filter.category = query.filters.category;
+    const queryFilter: any = {};
+    if (filters?.sellerId) queryFilter.owner = new Types.ObjectId(filters.sellerId);
+    if (filters?.category) queryFilter.category = filters.category;
 
     const queryOptions: any = {
       page: options.pagination?.page || 1,
@@ -34,7 +39,7 @@ export class ProductService {
       sort: options.sort || { createdAt: -1 }
     };
     
-    const result = await this.productModel.paginate(filter, queryOptions);
+    const result = await this.productModel.paginate(queryFilter, queryOptions);
     return result;
   }
   
@@ -61,7 +66,7 @@ export class ProductService {
     checkId([sellerId]);
 
     const productId = new Types.ObjectId();
-    const imageId = new Types.ObjectId();
+    const imageId = payload.cardImage ? new Types.ObjectId() : null;
 
     // Создаем продукт
     const productData: Omit<Product, 'productId' | 'shopProducts'> = {
@@ -84,14 +89,27 @@ export class ProductService {
       }
     };
 
-    const product = 
+    const createProductOptions: any = {};
+    if (options?.session) createProductOptions.session = options.session;
 
-    const queryOptions: any = {};
-    if (options?.session) queryOptions.session = options.session;
-
-    const product = await this.productModel.create([productData], queryOptions).then(docs => docs[0]);
+    const product = await this.productModel.create([productData], createProductOptions).then(docs => docs[0]);
     
-    // TODO: Обработка cardImage через ImageService в Facade
+    // Загружаем изображение если предоставлено
+    if (payload.cardImage && imageId) {
+      const uploadImageCommand = new UploadImageCommand(
+        payload.cardImage,
+        {
+          imageId: imageId.toString(),
+          accessLevel: ImageAccessLevel.PUBLIC,
+          entityType: ImageEntityType.PRODUCT,
+          entityId: productId.toString(),
+          imageType: ImageType.PRODUCT_CARD_IMAGE
+        }
+      );
+      const uploadImageOptions: any = {};
+      if (options?.session) uploadImageOptions.session = options.session;
+      await this.imagesPort.uploadImage(uploadImageCommand, uploadImageOptions);
+    }
     
     return product;
   }
@@ -118,8 +136,49 @@ export class ProductService {
     assignField(product, 'aboutProduct', payload.aboutProduct);
     assignField(product, 'origin', payload.origin);
     assignField(product, 'productArticle', payload.productArticle);
+    
+    // Обработка cardImage
+    if (payload.cardImage === null) {
+      // Удаляем изображение если передан null
+      const oldImageId = product.cardImage;
+      if (oldImageId) {
+        const deleteImageOptions: any = {};
+        if (options.session) deleteImageOptions.session = options.session;
+        await this.imagesPort.deleteImage(oldImageId.toString(), deleteImageOptions);
+      }
+      product.cardImage = null;
 
-    // TODO: Обработка cardImage через ImageService в Facade
+    } else if (payload.cardImage) {
+      // Заменяем изображение если передан новый файл
+      const oldImageId = product.cardImage;
+      const newImageId = new Types.ObjectId();
+      
+      // Загружаем новое изображение
+      const uploadImageCommand = new UploadImageCommand(
+        payload.cardImage,
+        {
+          imageId: newImageId.toString(),
+          accessLevel: ImageAccessLevel.PUBLIC,
+          entityType: ImageEntityType.PRODUCT,
+          entityId: productId,
+          imageType: ImageType.PRODUCT_CARD_IMAGE
+        }
+      );
+      
+      const uploadImageOptions: any = {};
+      if (options.session) uploadImageOptions.session = options.session;
+      await this.imagesPort.uploadImage(uploadImageCommand, uploadImageOptions);
+      
+      // Обновляем ссылку на изображение
+      product.cardImage = newImageId;
+      
+      // Удаляем старое изображение если было
+      if (oldImageId) {
+        const deleteImageOptions: any = {};
+        if (options.session) deleteImageOptions.session = options.session;
+        await this.imagesPort.deleteImage(oldImageId.toString(), deleteImageOptions);
+      }
+    }
 
     const saveOptions: any = {};
     if (options.session) saveOptions.session = options.session;
@@ -135,14 +194,21 @@ export class ProductService {
   ): Promise<Product> {
     checkId([productId]);
 
-    const dbQuery = this.productModel.findOne({ _id: new Types.ObjectId(productId) });
+    const dbQuery = this.productModel.findById(new Types.ObjectId(productId));
     if (options.session) dbQuery.session(options.session);
     
     const product = await dbQuery.exec();
     if (!product) throw new DomainError({ code: 'NOT_FOUND', message: 'Продукт не найден' });
     
     // TODO: Проверка что продукт не используется в магазинах
-    // TODO: Удаление cardImage через ImageService в Facade
+    
+    // Удаляем изображение если есть
+    if (product.cardImage) {
+      const deleteImageOptions: any = {};
+      if (options.session) deleteImageOptions.session = options.session;
+      
+      await this.imagesPort.deleteImage(product.cardImage.toString(), deleteImageOptions);
+    }
     
     const deleteOptions: any = {};
     if (options.session) deleteOptions.session = options.session;
@@ -150,4 +216,5 @@ export class ProductService {
     await product.deleteOne(deleteOptions);
     return product;
   }
+
 }

@@ -2,7 +2,7 @@
 import { Injectable } from "@nestjs/common";
 import { TelegramSellerBotService } from "src/modules/telegram/seller-bot/telegram-seller-bot.service";
 import { TelegramNotificationResponseDto } from "src/common/dtos";
-import { Issue } from "src/modules/support/issue.schema";
+import { Issue } from "src/modules/issue/issue.schema";
 import { Shift } from "src/modules/shift/shift.schema";
 
 export interface INotificationToSellerProvider {

@@ -20,9 +20,9 @@ import { OrderModule } from './modules/order/order.module';
 
 import { AdminAuthModule } from './modules/auth/admin-auth/admin-auth.module';
 import { AdminModule } from './modules/platform/platform.module';
-import { SupportModule } from './modules/support/support.module';
+import { SupportModule } from './modules/issue/support.module';
 
-import { BlogModule } from './modules/blog/blog.module';
+import { BlogModule } from './modules/article/blog.module';
 import { DadataModule } from './interface/http/public/dadata/public.dadata.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { AuthModule } from './infra/auth/auth.module';

@@ -4,11 +4,10 @@ import { VerifiedStatus } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
-import { SellerAccount } from 'src/modules/seller-account/seller-account.schema';
-import { Image } from 'src/infra/images/infrastructure/image.schema';
+import { Image } from 'src/infra/images/image.schema';
 import { initBlocked } from 'src/common/schemas/common-schemas';
 import { Shop } from '../shop/shop.schema';
-  
+import { SellerAccount } from '../finance/seller-account/schemas/seller-account.schema';
 
 const sellerStatisticsSchema = {
   totalSales: { type: Number, min: 0, required: true, default: 0 },
@@ -42,8 +41,8 @@ export class Seller {
   @Prop({ type: String, required: true })
   phone: string;
 
-  @Prop({ type: Types.ObjectId, ref: SellerAccount.name, default: null })
-  account: Types.ObjectId | null;
+  @Prop({ type: Types.ObjectId, ref: SellerAccount.name, required: true })
+  account: Types.ObjectId;
   
   @Prop({ type: Number, unique: true, required: true })
   telegramId: number;
@@ -58,7 +57,7 @@ export class Seller {
   telegramLastName?: string;
 
   @Prop({ type: Types.ObjectId, ref: Image.name })
-  sellerLogo?: Types.ObjectId;
+  sellerLogo?: Types.ObjectId | null;
 
   @Prop({ type: String, required: true })
   companyName: string;
@@ -82,7 +81,7 @@ export class Seller {
   lastLoginAt: Date | null;
 
   @Prop({ type: String })
-  internalNote: string;
+  internalNote?: string;
 
   @Prop({ type: [Types.ObjectId], ref: Shop.name, default: () => [] })
   shops: Types.ObjectId[];

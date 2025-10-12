@@ -1,8 +1,8 @@
-import { ImageSize } from "../images.enums";  
+import { ImageSize } from "./images.enums";  
 
 export class GetImageBufferQuery {
   constructor(
     public readonly imageId: string,
-    public readonly size?: ImageSize    
+    public readonly size?: ImageSize
   ) {}
 } 

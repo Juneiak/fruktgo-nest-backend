@@ -17,43 +17,43 @@ export class PublicShopProductsRoleService {
     @InjectModel('ShopProduct') private shopProductModel: ShopProductModel,
   ) {}
 
-  async getPublicShopProducts(
-    shopProductQuery: ShopProductQueryDto,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
-    const { shopId } = shopProductQuery;
-    if (!shopId) throw new BadRequestException('Магазин не указан');
+  // async getPublicShopProducts(
+  //   shopProductQuery: ShopProductQueryDto,
+  //   paginationQuery: PaginationQueryDto
+  // ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
+  //   const { shopId } = shopProductQuery;
+  //   if (!shopId) throw new BadRequestException('Магазин не указан');
 
-    const okShop = await checkEntityStatus(
-      this.shopModel,
-      { _id: new Types.ObjectId(shopId) }
-    )
-    if (!okShop) throw new NotFoundException('Магазин не найден или недоступен или заблокирован или не верифицирован');
+  //   const okShop = await checkEntityStatus(
+  //     this.shopModel,
+  //     { _id: new Types.ObjectId(shopId) }
+  //   )
+  //   if (!okShop) throw new NotFoundException('Магазин не найден или недоступен или заблокирован или не верифицирован');
 
-    const { page = 1, pageSize = 10 } = paginationQuery;
-    const foundShopProducts = await this.shopProductModel.paginate(
-      { pinnedTo: new Types.ObjectId(shopId) }, 
-      { page, limit: pageSize, lean: true, leanWithId: false}
-    )
-    return transformPaginatedResult(foundShopProducts, ShopProductResponseDto);
-  }
+  //   const { page = 1, pageSize = 10 } = paginationQuery;
+  //   const foundShopProducts = await this.shopProductModel.paginate(
+  //     { pinnedTo: new Types.ObjectId(shopId) }, 
+  //     { page, limit: pageSize, lean: true, leanWithId: false}
+  //   )
+  //   return transformPaginatedResult(foundShopProducts, ShopProductResponseDto);
+  // }
 
   
-  async getPublicShopProduct(shopProductId: string): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
-    const foundShopProduct = await this.shopProductModel.findById(new Types.ObjectId(shopProductId))
-      .populate('product')
-      .populate('images', 'imageId createdAt')
-      .lean({ virtuals: true }).exec();
-    if (!foundShopProduct) throw new NotFoundException('Товар не найден');
+  // async getPublicShopProduct(shopProductId: string): Promise<ShopProductResponseDto> {
+  //   checkId([shopProductId]);
+  //   const foundShopProduct = await this.shopProductModel.findById(new Types.ObjectId(shopProductId))
+  //     .populate('product')
+  //     .populate('images', 'imageId createdAt')
+  //     .lean({ virtuals: true }).exec();
+  //   if (!foundShopProduct) throw new NotFoundException('Товар не найден');
 
-    const okShop = await checkEntityStatus(
-      this.shopModel,
-      { _id: foundShopProduct.pinnedTo }
-    )
-    if (!okShop) throw new NotFoundException('Магазин не найден или недоступен или заблокирован или не верифицирован');
+  //   const okShop = await checkEntityStatus(
+  //     this.shopModel,
+  //     { _id: foundShopProduct.pinnedTo }
+  //   )
+  //   if (!okShop) throw new NotFoundException('Магазин не найден или недоступен или заблокирован или не верифицирован');
 
-    return plainToInstance(ShopProductResponseDto, foundShopProduct, { excludeExtraneousValues: true});
-  }
+  //   return plainToInstance(ShopProductResponseDto, foundShopProduct, { excludeExtraneousValues: true});
+  // }
 
 }

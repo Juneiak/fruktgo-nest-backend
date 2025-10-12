@@ -1,6 +1,22 @@
 import { VerifiedStatus, UserSex} from "src/common/enums/common.enum"
 import { BlockPayload } from "src/common/types/comands"
 
+export type CreateCustomerPayload = {
+  telegramId: number;
+  customerName: string;
+  telegramUsername?: string;
+  telegramFirstName?: string;
+  telegramLastName?: string;
+  phone?: string;
+  email?: string;
+}
+
+export class CreateCustomerCommand {
+  constructor(
+    public readonly payload: CreateCustomerPayload
+  ) {}
+}
+
 export type UpdateCustomerPayload = {
   verifiedStatus?: VerifiedStatus,
   bonusPoints?: number,

@@ -3,17 +3,38 @@ import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { Order } from 'src/modules/order/order.schema';
 import { Shift } from 'src/modules/shift/shift.schema';
 import { BlockedSchema, Blocked, AddressSchema, Address } from 'src/common/schemas/common-schemas';
-import { BlockStatus } from 'src/common/enums/common.enum';
-import { DEFAULT_MIN_WEIGHT_PERCENTAGE, DEFAULT_ACCEPTANCE_LIMIT, DEFAULT_ASSEMBLY_LIMIT } from 'src/common/constants';
+import {
+  DEFAULT_MIN_WEIGHT_DIFFERENCE_PERCENTAGE,
+  DEFAULT_ACCEPTANCE_LIMIT,
+  DEFAULT_ASSEMBLY_LIMIT
+} from 'src/common/constants';
+import { ShopStatus } from './shop.enums';
+import { Order } from 'src/modules/order/order.schema';
+import { ShopAccount } from 'src/modules/finance/shop-account/schemas/shop-account.schema';
+import { Image } from 'src/infra/images/image.schema';
+import { Seller } from 'src/modules/seller/seller.schema';
+import { initBlocked } from 'src/common/schemas/common-schemas';
 
-export enum ShopStatus {
-  OPENED='opened',
-  CLOSED='closed',
-  PAUSED='paused',
-}
+
+const shopStatisticsSchema = {
+  avgRating: { type: Number, min: 0, max: 5, default: 0, required: true },
+  totalSales: { type: Number, min: 0, default: 0, required: true },
+  ratingsCount: { type: Number, min: 0, default: 0, required: true },
+  ordersCount: { type: Number, min: 0, default: 0, required: true },
+  productsCount: { type: Number, min: 0, default: 0, required: true },
+  employeesCount: { type: Number, min: 0, default: 0, required: true },
+};
+
+interface ShopStatistics {
+  avgRating: number;
+  totalSales: number;
+  ratingsCount: number;
+  ordersCount: number;
+  productsCount: number;
+  employeesCount: number;
+};
 
 
 @Schema({
@@ -23,7 +44,6 @@ export enum ShopStatus {
   id: false,
 })
 export class Shop {
-
   _id: Types.ObjectId;
   readonly shopId: string;
   createdAt: Date;
@@ -32,10 +52,13 @@ export class Shop {
   @Prop({ type: String, required: true })
   city: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Seller', required: true })
+  @Prop({ type: Types.ObjectId, ref: ShopAccount.name, required: true })
+  account: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: Seller.name, required: true })
   owner: Types.ObjectId;
 
-  @Prop({ type: BlockedSchema, required: true, default: { status: BlockStatus.ACTIVE }})
+  @Prop({ type: BlockedSchema, required: true, default: () => initBlocked })
   blocked: Blocked;
 
   @Prop({ type: String, enum: Object.values(VerifiedStatus), default: VerifiedStatus.IS_CHECKING, required: true })
@@ -44,68 +67,50 @@ export class Shop {
   @Prop({ type: String, required: true })
   shopName: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'UploadedFile', required: false, default: null })
+  @Prop({ type: Types.ObjectId, ref: Image.name, required: false, default: null })
   shopImage?: Types.ObjectId | null;
 
-  @Prop({ type: String, required: false, default: null })
-  aboutShop?: string | null;
+  @Prop({ type: String})
+  aboutShop?: string;
 
-  @Prop({ type: AddressSchema, required: false, default: null })
+  @Prop({ type: AddressSchema })
   address?: Address | null;
 
   @Prop({ type: String, enum: Object.values(ShopStatus), default: ShopStatus.CLOSED, required: true })
   status: ShopStatus;
 
-  @Prop({ type: String, required: false, default: null })
-  openAt?: string | null;
+  @Prop({ type: String })
+  openAt?: string;
 
-  @Prop({ type: String, required: false, default: null })
-  closeAt?: string | null;
+  @Prop({ type: String })
+  closeAt?: string;
 
-  @Prop({ type: Number, min: 0, max: 5, default: 0, required: true })
-  avgRating: number;
-
-  @Prop({ type: Number, min: 0, default: 0, required: true })
-  totalSales: number;
-
-  @Prop({ type: Number, min: 0, default: 0, required: true })
-  ratingsCount: number;
+  @Prop({ type: shopStatisticsSchema, required: true, default: () => ({}) })
+  statistics: ShopStatistics;
 
   @Prop({ type: Number, min: 1, default: 1, required: true })
   minOrderSum: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'Shift', required: false, default: null })
-  currentShift: Types.ObjectId | Shift | null;
+  @Prop({ type: Types.ObjectId, ref: Shift.name, required: false, default: null })
+  currentShift: Types.ObjectId | null;
 
-  @Prop({ type: Number, min: 0, default: 0, required: true })
-  shopOrdersCount: number;
+  @Prop({ type: String})
+  sellerNote?: string;
 
-  @Prop({ type: Number, min: 0, default: 0, required: true })
-  shopProductsCount: number;
+  @Prop({ type: String})
+  internalNote?: string;
 
-  @Prop({ type: Number, min: 0, default: 0, required: true })
-  pinnedEmployeesCount: number;
-
-  @Prop({ type: String, required: false, default: null })
-  sellerNote?: string | null;
-
-  @Prop({ type: String, required: false, default: null })
-  internalNote?: string | null;
-
-  @Prop({ type: [Types.ObjectId], ref: 'Order', required: false, default: [] })
+  @Prop({ type: [Types.ObjectId], ref: Order.name, default: () => [] })
   activeOrders: Types.ObjectId[];
-
-  @Prop({ type: Types.ObjectId, ref: 'ShopAccount', required: false, default: null })
-  shopAccount: Types.ObjectId | null;
 
   @Prop({ type: Number, min: 1, default: DEFAULT_ACCEPTANCE_LIMIT, required: true })
   acceptanceTimeLimit: number;    
 
-  @Prop({ type: Number, min: 0, default: DEFAULT_ASSEMBLY_LIMIT, required: true })
+  @Prop({ type: Number, min: 1, default: DEFAULT_ASSEMBLY_LIMIT, required: true })
   assemblyTimeLimit: number;
 
-  @Prop({ type: Number, min: 0, default: DEFAULT_MIN_WEIGHT_PERCENTAGE, required: true })
-  minWeightPercentage: number;
+  @Prop({ type: Number, min: 1, default: DEFAULT_MIN_WEIGHT_DIFFERENCE_PERCENTAGE, required: true })
+  minWeightDifferencePercentage: number;
 }
 
 export const ShopSchema = SchemaFactory.createForClass(Shop);

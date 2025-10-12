@@ -4,7 +4,7 @@ import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { ProductCategory, ProductMeasuringScale, ProductStepRate } from './product.enums';
-import { Image } from 'src/infra/images/infrastructure/image.schema';
+import { Image } from 'src/infra/images/image.schema';
 
 const productStatisticsSchema = {
   totalLast7daysSales: { type: Number, min: 0, required: true, default: 0 },
@@ -30,8 +30,8 @@ export class Product {
   readonly productId: string;
   _id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: Image.name, default: null })
-  cardImage: Types.ObjectId | null;
+  @Prop({ type: Types.ObjectId, ref: Image.name })
+  cardImage?: Types.ObjectId | null;
 
   @Prop({ type: String })
   productArticle?: string;

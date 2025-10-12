@@ -2,38 +2,8 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, PaginateModel, Types, Schema as MongooseSchema } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { UserType } from 'src/common/enums/common.enum';
-
-// =============================
-// Enums
-// =============================
-export enum ShiftStatus {
-  OPEN      = 'open',
-  PAUSED    = 'paused',
-  CLOSING   = 'closing',
-  CLOSED    = 'closed',
-  ABANDONED = 'abandoned',
-}
-
-export enum ShiftEventType {
-  OPEN          = 'open',
-  PAUSE         = 'pause',
-  RESUME        = 'resume',
-  START_CLOSING = 'start_closing',
-  CLOSE         = 'close',
-  FORCE_CLOSE   = 'force_close',
-  ABANDON       = 'abandon',
-}
-
-export enum ActorType {
-  EMPLOYEE = 'Employee',
-  SELLER = 'Seller',
-  ADMIN = 'Admin',
-}
-
-// =============================
-// Subdocs
-// =============================
+import { ActorType, ShiftEventType, ShiftStatus } from './shift.enums';
+import { Shop } from '../shop/shop.schema';
 
 // Актор (кто совершил действие)
 const ActorSchema = {
@@ -125,7 +95,7 @@ export class Shift {
   createdAt: Date;
   updatedAt: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'Shop', required: true })
+  @Prop({ type: Types.ObjectId, ref: Shop.name, required: true })
   shop: Types.ObjectId;
 
   @Prop({ type: String, enum: Object.values(ShiftStatus), required: true, default: ShiftStatus.OPEN })

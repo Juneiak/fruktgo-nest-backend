@@ -1,15 +1,21 @@
 import { Module } from '@nestjs/common';
-import { AdminController } from '../../interface/http/admin/platform/admin.platform.controller';
-import { AdminService } from '../../interface/http/admin/platform/admin.platform.role.service';
-import { AdminSharedService } from './shared/admin.shared.service';
-import { AdminSupportModule } from 'src/interface/http/admin/support/admin.support.api.module';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ProductSchema, Product } from './product.schema';
+import { PlatformService } from './platform.service';
+import { PlatformFacade } from './platform.facade';
+import { PLATFORM_PORT } from './platform.port';
+import { SellerModule } from '../seller/seller.module';
 
 @Module({
   imports: [
-    AdminSupportModule,
+    MongooseModule.forFeature([{ name: Platform.name, schema: PlatformSchema }]),
+    SellerModule,  // Для доступа к SellerPort
   ],
-  controllers: [AdminController],
-  providers: [AdminService, AdminSharedService],
-  exports: [AdminSharedService],
+  providers: [
+    ProductService,
+    ProductFacade,
+    { provide: PRODUCT_PORT, useExisting: ProductFacade }
+  ],
+  exports: [PRODUCT_PORT],
 })
 export class PlatformModule {}

@@ -34,181 +34,181 @@ export class SellerShopsRoleService {
   ) { }
 
 
-  async getShops(
-    authedSeller: AuthenticatedUser
-  ): Promise<ShopPreviewResponseDto[]> {
-    const foundShops = await this.shopModel.find({ owner: new Types.ObjectId(authedSeller.id) }).lean({ virtuals: true }).exec();
-    if (!foundShops) throw new NotFoundException('Продавец не найден');
+  // async getShops(
+  //   authedSeller: AuthenticatedUser
+  // ): Promise<ShopPreviewResponseDto[]> {
+  //   const foundShops = await this.shopModel.find({ owner: new Types.ObjectId(authedSeller.id) }).lean({ virtuals: true }).exec();
+  //   if (!foundShops) throw new NotFoundException('Продавец не найден');
 
-    return plainToInstance(ShopPreviewResponseDto, foundShops, { excludeExtraneousValues: true });
-  }
-
-
-  async getFullShop(authedSeller: AuthenticatedUser, shopId: string): Promise<ShopFullResponseDto> {
-    checkId([shopId]);
-    const foundShop = await this.shopModel.findOne({ _id: new Types.ObjectId(shopId), owner: new Types.ObjectId(authedSeller.id) }).populate('currentShift').lean({ virtuals: true }).exec();
-    if (!foundShop) throw new NotFoundException('Магазин не найден');
-
-    return plainToInstance(ShopFullResponseDto, foundShop, { excludeExtraneousValues: true });
-  }
+  //   return plainToInstance(ShopPreviewResponseDto, foundShops, { excludeExtraneousValues: true });
+  // }
 
 
-  async createShop(
-    authedSeller: AuthenticatedUser,
-    dto: CreateShopDto,
-    shopImage?: Express.Multer.File
-  ): Promise<ShopPreviewResponseDto> {
-    const session = await this.shopModel.db.startSession();
+  // async getFullShop(authedSeller: AuthenticatedUser, shopId: string): Promise<ShopFullResponseDto> {
+  //   checkId([shopId]);
+  //   const foundShop = await this.shopModel.findOne({ _id: new Types.ObjectId(shopId), owner: new Types.ObjectId(authedSeller.id) }).populate('currentShift').lean({ virtuals: true }).exec();
+  //   if (!foundShop) throw new NotFoundException('Магазин не найден');
 
-    try {
-      session.startTransaction();
-      const okSeller = await checkEntityStatus(
-        this.sellerModel,
-        { _id: new Types.ObjectId(authedSeller.id) },
-        { session }
-      );
-      if (!okSeller) throw new NotFoundException('Продавец не найден или заблокирован или не верифицирован');
-
-      const shop = await this.shopModel.create({
-        owner: new Types.ObjectId(authedSeller.id),
-        shopName:dto.shopName,
-        aboutShop:dto.aboutShop,
-        openAt:dto.openAt,
-        closeAt:dto.closeAt,
-        minOrderSum:dto.minOrderSum,
-        address: {
-          city: dto.city || null,
-          street: dto.street || null,
-          house: dto.house || null,
-          latitude: dto.latitude || null,
-          longitude: dto.longitude || null
-        }
-      }, { session }).then(docs => docs[0]);
-      if (!shop) throw new NotFoundException('Не удалось создать магазин');
-
-      if (shopImage) {
-        const createdImage = await this.uploadsService.uploadImage({
-          file: shopImage,
-          accessLevel: 'public',
-          entityType: EntityType.shop,
-          entityId: shop._id.toString(),
-          imageType: ImageType.shopImage,
-          session
-        });
-        await this.shopModel.findByIdAndUpdate(shop._id, { shopImage: createdImage._id }, { session, new: true }).exec();
-      }
-      await session.commitTransaction();
-
-      await this.logsService.addShopLog(
-        shop._id.toString(),
-        `Продавец ${authedSeller.id} создал магазин ${shop._id.toString()}`,
-        { session, logLevel: LogLevel.LOW, forRoles: [UserType.SELLER] }
-      );
-
-      await this.logsService.addSellerLog(
-        authedSeller.id,
-        `Создан новый магазин "${shop.shopName}" (ID: ${shop._id.toString()})`,
-        { session, logLevel: LogLevel.LOW, forRoles: [UserType.SELLER] }
-      );
-
-      return this.getFullShop(authedSeller, shop._id.toString());
-
-    } catch (error) {
-      await session.abortTransaction();
-      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
-      console.error('Ошибка при создании магазина:', error);
-      throw new InternalServerErrorException('Не удалось создать магазин');
-    } finally {
-      session.endSession();
-    }
-  }
+  //   return plainToInstance(ShopFullResponseDto, foundShop, { excludeExtraneousValues: true });
+  // }
 
 
-  async updateShop(
-    authedSeller: AuthenticatedUser,
-    shopId: string,
-    dto: UpdateShopDto,
-    shopImage?: Express.Multer.File
-  ): Promise<ShopFullResponseDto> {
-    const session = await this.shopModel.db.startSession();
+  // async createShop(
+  //   authedSeller: AuthenticatedUser,
+  //   dto: CreateShopDto,
+  //   shopImage?: Express.Multer.File
+  // ): Promise<ShopPreviewResponseDto> {
+  //   const session = await this.shopModel.db.startSession();
 
-    try {
-      const updatedShopId = await session.withTransaction(async () => {
-        // 1. Проверяем и находим продавца
-        const okSeller = await checkEntityStatus(
-          this.sellerModel,
-          { _id: new Types.ObjectId(authedSeller.id) },
-          { session }
-        );
-        if (!okSeller) throw new NotFoundException('Продавец не найден или заблокирован или не верифицирован');
+  //   try {
+  //     session.startTransaction();
+  //     const okSeller = await checkEntityStatus(
+  //       this.sellerModel,
+  //       { _id: new Types.ObjectId(authedSeller.id) },
+  //       { session }
+  //     );
+  //     if (!okSeller) throw new NotFoundException('Продавец не найден или заблокирован или не верифицирован');
 
-        // 2. Проверяем ID и находим текущий магазин
-        checkId([shopId]);
-        const shop = await this.shopModel.findOne({
-          _id: new Types.ObjectId(shopId),
-          owner: new Types.ObjectId(authedSeller.id)
-        }).session(session).exec();
-        if (!shop) throw new NotFoundException('Магазин не найден');
+  //     const shop = await this.shopModel.create({
+  //       owner: new Types.ObjectId(authedSeller.id),
+  //       shopName:dto.shopName,
+  //       aboutShop:dto.aboutShop,
+  //       openAt:dto.openAt,
+  //       closeAt:dto.closeAt,
+  //       minOrderSum:dto.minOrderSum,
+  //       address: {
+  //         city: dto.city || null,
+  //         street: dto.street || null,
+  //         house: dto.house || null,
+  //         latitude: dto.latitude || null,
+  //         longitude: dto.longitude || null
+  //       }
+  //     }, { session }).then(docs => docs[0]);
+  //     if (!shop) throw new NotFoundException('Не удалось создать магазин');
 
-        // 3. Собираем изменения для лога
-        const oldData = shop.toObject();
-        const changes: string[] = [];
-        if (dto.aboutShop !== undefined && dto.aboutShop !== shop.aboutShop) {
-          shop.aboutShop = dto.aboutShop;
-          changes.push(`Описание: "${oldData.aboutShop}" → "${dto.aboutShop}"`);
-        }
-        if (dto.openAt !== undefined && dto.openAt !== shop.openAt) {
-          shop.openAt = dto.openAt;
-          changes.push(`Время открытия: "${oldData.openAt}" → "${dto.openAt}"`);
-        }
-        if (dto.closeAt !== undefined && dto.closeAt !== shop.closeAt) {
-          shop.closeAt = dto.closeAt;
-          changes.push(`Время закрытия: "${oldData.closeAt}" → "${dto.closeAt}"`);
-        }
-        if (dto.minOrderSum !== undefined && dto.minOrderSum !== shop.minOrderSum) {
-          shop.minOrderSum = dto.minOrderSum;
-          changes.push(`Мин. сумма заказа: ${oldData.minOrderSum} → ${dto.minOrderSum}`);
-        }
+  //     if (shopImage) {
+  //       const createdImage = await this.uploadsService.uploadImage({
+  //         file: shopImage,
+  //         accessLevel: 'public',
+  //         entityType: EntityType.shop,
+  //         entityId: shop._id.toString(),
+  //         imageType: ImageType.shopImage,
+  //         session
+  //       });
+  //       await this.shopModel.findByIdAndUpdate(shop._id, { shopImage: createdImage._id }, { session, new: true }).exec();
+  //     }
+  //     await session.commitTransaction();
 
-        // 4. Обработка изображения
-        if (shopImage) {
-          const createdImage = await this.uploadsService.uploadImage({
-            file: shopImage,
-            accessLevel: 'public',
-            entityType: EntityType.shop,
-            entityId: shop._id.toString(),
-            imageType: ImageType.shopImage,
-            session
-          });
+  //     await this.logsService.addShopLog(
+  //       shop._id.toString(),
+  //       `Продавец ${authedSeller.id} создал магазин ${shop._id.toString()}`,
+  //       { session, logLevel: LogLevel.LOW, forRoles: [UserType.SELLER] }
+  //     );
 
-          shop.shopImage = createdImage._id;
-          changes.push('Изображение: обновлено');
-        }
+  //     await this.logsService.addSellerLog(
+  //       authedSeller.id,
+  //       `Создан новый магазин "${shop.shopName}" (ID: ${shop._id.toString()})`,
+  //       { session, logLevel: LogLevel.LOW, forRoles: [UserType.SELLER] }
+  //     );
 
-        // 6. Применяем изменения
-        if (changes.length > 0 && shop.isModified()) {
-          await shop.save({ session });
-          if (oldData.shopImage && shopImage) await this.uploadsService.deleteFile(oldData.shopImage.toString(), session);
+  //     return this.getFullShop(authedSeller, shop._id.toString());
 
-          await this.logsService.addShopLog(
-            shop._id.toString(),
-            `Продавец обновил магазин "${shop.shopName}": ${changes.join(', ')}`,
-            { forRoles: [UserType.SELLER], session }
-          );
-        }
+  //   } catch (error) {
+  //     await session.abortTransaction();
+  //     if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
+  //     console.error('Ошибка при создании магазина:', error);
+  //     throw new InternalServerErrorException('Не удалось создать магазин');
+  //   } finally {
+  //     session.endSession();
+  //   }
+  // }
 
-        return shop._id.toString();
-      });
 
-      if (!updatedShopId) throw new NotFoundException('Не удалось обновить магазин');
-      return this.getFullShop(authedSeller, updatedShopId);
+  // async updateShop(
+  //   authedSeller: AuthenticatedUser,
+  //   shopId: string,
+  //   dto: UpdateShopDto,
+  //   shopImage?: Express.Multer.File
+  // ): Promise<ShopFullResponseDto> {
+  //   const session = await this.shopModel.db.startSession();
 
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) throw error;
-      console.error('Ошибка при обновлении магазина:', error);
-      throw new InternalServerErrorException('Не удалось обновить магазин');
-    } finally {
-      session.endSession();
-    }
-  }
+  //   try {
+  //     const updatedShopId = await session.withTransaction(async () => {
+  //       // 1. Проверяем и находим продавца
+  //       const okSeller = await checkEntityStatus(
+  //         this.sellerModel,
+  //         { _id: new Types.ObjectId(authedSeller.id) },
+  //         { session }
+  //       );
+  //       if (!okSeller) throw new NotFoundException('Продавец не найден или заблокирован или не верифицирован');
+
+  //       // 2. Проверяем ID и находим текущий магазин
+  //       checkId([shopId]);
+  //       const shop = await this.shopModel.findOne({
+  //         _id: new Types.ObjectId(shopId),
+  //         owner: new Types.ObjectId(authedSeller.id)
+  //       }).session(session).exec();
+  //       if (!shop) throw new NotFoundException('Магазин не найден');
+
+  //       // 3. Собираем изменения для лога
+  //       const oldData = shop.toObject();
+  //       const changes: string[] = [];
+  //       if (dto.aboutShop !== undefined && dto.aboutShop !== shop.aboutShop) {
+  //         shop.aboutShop = dto.aboutShop;
+  //         changes.push(`Описание: "${oldData.aboutShop}" → "${dto.aboutShop}"`);
+  //       }
+  //       if (dto.openAt !== undefined && dto.openAt !== shop.openAt) {
+  //         shop.openAt = dto.openAt;
+  //         changes.push(`Время открытия: "${oldData.openAt}" → "${dto.openAt}"`);
+  //       }
+  //       if (dto.closeAt !== undefined && dto.closeAt !== shop.closeAt) {
+  //         shop.closeAt = dto.closeAt;
+  //         changes.push(`Время закрытия: "${oldData.closeAt}" → "${dto.closeAt}"`);
+  //       }
+  //       if (dto.minOrderSum !== undefined && dto.minOrderSum !== shop.minOrderSum) {
+  //         shop.minOrderSum = dto.minOrderSum;
+  //         changes.push(`Мин. сумма заказа: ${oldData.minOrderSum} → ${dto.minOrderSum}`);
+  //       }
+
+  //       // 4. Обработка изображения
+  //       if (shopImage) {
+  //         const createdImage = await this.uploadsService.uploadImage({
+  //           file: shopImage,
+  //           accessLevel: 'public',
+  //           entityType: EntityType.shop,
+  //           entityId: shop._id.toString(),
+  //           imageType: ImageType.shopImage,
+  //           session
+  //         });
+
+  //         shop.shopImage = createdImage._id;
+  //         changes.push('Изображение: обновлено');
+  //       }
+
+  //       // 6. Применяем изменения
+  //       if (changes.length > 0 && shop.isModified()) {
+  //         await shop.save({ session });
+  //         if (oldData.shopImage && shopImage) await this.uploadsService.deleteFile(oldData.shopImage.toString(), session);
+
+  //         await this.logsService.addShopLog(
+  //           shop._id.toString(),
+  //           `Продавец обновил магазин "${shop.shopName}": ${changes.join(', ')}`,
+  //           { forRoles: [UserType.SELLER], session }
+  //         );
+  //       }
+
+  //       return shop._id.toString();
+  //     });
+
+  //     if (!updatedShopId) throw new NotFoundException('Не удалось обновить магазин');
+  //     return this.getFullShop(authedSeller, updatedShopId);
+
+  //   } catch (error) {
+  //     if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof ForbiddenException) throw error;
+  //     console.error('Ошибка при обновлении магазина:', error);
+  //     throw new InternalServerErrorException('Не удалось обновить магазин');
+  //   } finally {
+  //     session.endSession();
+  //   }
+  // }
 }

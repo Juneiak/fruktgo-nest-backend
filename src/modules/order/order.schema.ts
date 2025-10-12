@@ -2,14 +2,23 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { ProductCategory, ProductMeasuringScale } from 'src/modules/product/product.schema';
 import { PositiveFeedbackTag, NegativeFeedbackTag } from './order.enums';
 import { Shop } from 'src/modules/shop/shop.schema';
-import { Employee } from 'src/modules/employee/infrastructure/schemas/employee.schema';
-import { Shift } from 'src/modules/shift/infrastructure/schemas/shift.schema';
-import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
-import { Image } from 'src/infra/images/infrastructure/image.schema';
+import { Image } from 'src/infra/images/image.schema';
 import { ShopProduct } from '../shop-product/shop-product.schema';
+import { Customer } from 'src/modules/customer/customer.schema';
+import { Employee } from 'src/modules/employee/employee.schema';
+import { Shift } from 'src/modules/shift/shift.schema';
+import {
+  OrderStatus,
+  OrderCancelReason,
+  OrderDeclineReason
+} from './order.enums';
+import {
+  ProductCategory,
+  ProductMeasuringScale,
+} from 'src/modules/product/product.enums';
+
 
 // orderedBy (customer)
 const OrderedBySchema = {
@@ -146,7 +155,7 @@ export class Order {
   @Prop({ type: String, enum: Object.values(OrderStatus), required: true, default: OrderStatus.PENDING })
   orderStatus: OrderStatus;
 
-  @Prop({ type: Types.ObjectId, ref: 'Shift', required: true })
+  @Prop({ type: Types.ObjectId, ref: Shift.name, required: true })
   shift: Types.ObjectId;
 
   @Prop({ type: Date, required: true })

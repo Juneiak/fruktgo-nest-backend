@@ -13,7 +13,7 @@ import { setupWebhook } from "../telegram-utils";
 import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 import { OrderSharedService } from 'src/modules/order/shared/order.shared.service';
 import { SupportService } from 'src/modules/support/support.service';
-import { IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';
+import { IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/issue/issue.schema';
 import * as moment from 'moment';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
 import { Order } from 'src/modules/order/order.schema';

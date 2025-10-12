@@ -8,10 +8,10 @@ import { TelegramAdminNotificationProvider } from './providers/telegram-admin-no
 import { Order } from 'src/modules/order/order.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Issue } from 'src/modules/support/issue.schema';
+import { Issue } from 'src/modules/issue/issue.schema';
 import { Shift } from 'src/modules/shift/shift.schema';
 import { Employee } from 'src/modules/employee/employee.schema';
-import { IssueUserType } from 'src/modules/support/issue.schema';
+import { IssueUserType } from 'src/modules/issue/issue.schema';
 import { Types } from 'mongoose';
 import { RequestToEmployee } from 'src/modules/employee/request-to-employee.schema';
 import { EmployeeLoginCode } from 'src/modules/auth/employee-auth/employee-login-code.schema';

@@ -23,65 +23,65 @@ export class SellerShiftsRoleService {
     private readonly logsService: LogsService,
   ) {}
 
-  async getShiftsOfShop(
-    authedSeller: AuthenticatedUser, 
-    shiftsQueryDto: ShiftsQueryDto, 
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
-    checkId([shiftsQueryDto.shopId]);
-    const shopObjectId = new Types.ObjectId(shiftsQueryDto.shopId);
-    const isShopExists = await this.shopModel.exists({_id: shopObjectId, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
-    const filter = ShiftFilterBuilder.from(shiftsQueryDto);
+  // async getShiftsOfShop(
+  //   authedSeller: AuthenticatedUser, 
+  //   shiftsQueryDto: ShiftsQueryDto, 
+  //   paginationQuery: PaginationQueryDto
+  // ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
+  //   checkId([shiftsQueryDto.shopId]);
+  //   const shopObjectId = new Types.ObjectId(shiftsQueryDto.shopId);
+  //   const isShopExists = await this.shopModel.exists({_id: shopObjectId, owner: new Types.ObjectId(authedSeller.id)}).exec();
+  //   if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+  //   const filter = ShiftFilterBuilder.from(shiftsQueryDto);
 
-    const result = await this.shiftService.getShifts(filter, paginationQuery);  
-    return transformPaginatedResult(result, ShiftResponseDto);
-  }
+  //   const result = await this.shiftService.getShifts(filter, paginationQuery);  
+  //   return transformPaginatedResult(result, ShiftResponseDto);
+  // }
 
-  async getCurrentShiftOfShop(
-    authedSeller: AuthenticatedUser,
-    shiftsQueryDto: ShiftsQueryDto
-  ): Promise<ShiftResponseDto> {
-    checkId([shiftsQueryDto.shopId]);
+  // async getCurrentShiftOfShop(
+  //   authedSeller: AuthenticatedUser,
+  //   shiftsQueryDto: ShiftsQueryDto
+  // ): Promise<ShiftResponseDto> {
+  //   checkId([shiftsQueryDto.shopId]);
 
-    const isShopExists = await this.shopModel.exists({ _id:  new Types.ObjectId(shiftsQueryDto.shopId), owner: new Types.ObjectId(authedSeller.id) }).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+  //   const isShopExists = await this.shopModel.exists({ _id:  new Types.ObjectId(shiftsQueryDto.shopId), owner: new Types.ObjectId(authedSeller.id) }).exec();
+  //   if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
     
-    const shift = await this.shiftService.getShift(shiftsQueryDto.shopId);
-    if (!shift) throw new NotFoundException('Смена не найден');
+  //   const shift = await this.shiftService.getShift(shiftsQueryDto.shopId);
+  //   if (!shift) throw new NotFoundException('Смена не найден');
 
-    return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
-  }
+  //   return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+  // }
   
 
-  async getShift(
-    authedSeller: AuthenticatedUser,
-    shiftId: string
-  ): Promise<ShiftResponseDto> {
-    checkId([shiftId]);
-    const shift = await this.shiftService.getShift(shiftId);
-    if (!shift) throw new NotFoundException('Смена не найден');
+  // async getShift(
+  //   authedSeller: AuthenticatedUser,
+  //   shiftId: string
+  // ): Promise<ShiftResponseDto> {
+  //   checkId([shiftId]);
+  //   const shift = await this.shiftService.getShift(shiftId);
+  //   if (!shift) throw new NotFoundException('Смена не найден');
 
-    const isShopExists = await this.shopModel.exists({_id: shift.shop, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+  //   const isShopExists = await this.shopModel.exists({_id: shift.shop, owner: new Types.ObjectId(authedSeller.id)}).exec();
+  //   if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
 
-    return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
-  }
+  //   return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+  // }
 
 
-  async getShiftLogs(
-    authedSeller: AuthenticatedUser,
-    shiftId: string,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
-    checkId([shiftId]);
-    const shift = await this.shiftService.getShift(shiftId);
-    if (!shift) throw new NotFoundException('Смена не найден');
+  // async getShiftLogs(
+  //   authedSeller: AuthenticatedUser,
+  //   shiftId: string,
+  //   paginationQuery: PaginationQueryDto
+  // ): Promise<PaginatedLogDto> {
+  //   checkId([shiftId]);
+  //   const shift = await this.shiftService.getShift(shiftId);
+  //   if (!shift) throw new NotFoundException('Смена не найден');
 
-    const isShopExists = await this.shopModel.exists({_id: shift.shop, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+  //   const isShopExists = await this.shopModel.exists({_id: shift.shop, owner: new Types.ObjectId(authedSeller.id)}).exec();
+  //   if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
 
-    return this.logsService.getAllShiftLogs(shiftId, paginationQuery);
-  }
+  //   return this.logsService.getAllShiftLogs(shiftId, paginationQuery);
+  // }
     
 };

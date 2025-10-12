@@ -1,7 +1,7 @@
 // src/modules/notification/providers/telegram-customer-notification.provider.ts
 import { Injectable } from "@nestjs/common";
 import { TelegramNotificationResponseDto } from "src/common/dtos";
-import { Issue } from "src/modules/support/issue.schema";
+import { Issue } from "src/modules/issue/issue.schema";
 import { Order } from "src/modules/order/order.schema";
 import { TelegramCustomerBotService } from "src/modules/telegram/customer-bot/telegram-customer-bot.service";
 

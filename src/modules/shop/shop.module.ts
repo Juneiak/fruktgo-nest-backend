@@ -1,34 +1,20 @@
-import { Module, forwardRef} from '@nestjs/common';
-
-import { NotificationModule } from 'src/infra/notification/notification.module';
-import { UploadsModule } from 'src/infra/images/images.module';
-import { ShopSellerController } from './roles/seller/shop.seller.controller';
-import { ShopAdminController } from './roles/admin/shop.admin.controller';
-import { ShopPublicController } from './roles/public/shop.public.controller';
-import { ShopSellerService } from './roles/seller/shop.seller.service';
-import { ShopAdminService } from './roles/admin/shop.admin.service';
-import { ShopPublicService } from './roles/public/shop.public.service';
-import { ShopSharedService } from './shared/shop.shared.service'
-
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ShopService } from './shop.service';
+import { ShopSchema } from './shop.schema';
+import { Shop } from './shop.schema';
+import { ShopFacade } from './shop.facade';
+import { SHOP_PORT } from './shop.port';
 
 @Module({
   imports: [
-    forwardRef(() => NotificationModule),
-    forwardRef(() => UploadsModule)
-  ],
-  controllers: [
-    ShopSellerController,
-    ShopAdminController,
-    ShopPublicController,
+    MongooseModule.forFeature([{ name: Shop.name, schema: ShopSchema }]),
   ],
   providers: [
-    ShopSellerService,
-    ShopAdminService,
-    ShopPublicService,
-    ShopSharedService,
+    ShopService,
+    ShopFacade,
+    { provide: SHOP_PORT, useExisting: ShopFacade }
   ],
-  exports: [
-    ShopSharedService
-  ],
+  exports: [SHOP_PORT],
 })
 export class ShopModule {}

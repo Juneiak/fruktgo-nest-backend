@@ -1,8 +1,8 @@
 import { CustomerPreviewResponseDto } from "src/modules/customer/shared/customer.shared.response.dtos";
-import { IssueStatusText } from "src/modules/support/issue.schema";
+import { IssueStatusText } from "src/modules/issue/issue.schema";
 import * as moment from 'moment';
 import { Order } from 'src/modules/order/order.schema';
-import {Issue} from 'src/modules/support/issue.schema';
+import {Issue} from 'src/modules/issue/issue.schema';
 import {OrderStatus} from 'src/modules/order/order.schema';
 import { ORDER_STATUS_DISPLAY_MAP } from 'src/modules/order/order.schema';
 

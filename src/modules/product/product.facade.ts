@@ -16,17 +16,14 @@ export class ProductFacade implements ProductPort {
   // COMMANDS
   // ====================================================
   async createProduct(command: CreateProductCommand, options: CommonCommandOptions): Promise<Product> {
-    // TODO: Обработка cardImage через ImageService
     return this.productService.createProduct(command, options);
   }
 
   async updateProduct(command: UpdateProductCommand, options: CommonCommandOptions): Promise<Product> {
-    // TODO: Обработка cardImage через ImageService
     return this.productService.updateProduct(command, options);
   }
 
   async deleteProduct(productId: string, options: CommonCommandOptions): Promise<Product> {
-    // TODO: Удаление cardImage через ImageService
     return this.productService.deleteProduct(productId, options);
   }
 

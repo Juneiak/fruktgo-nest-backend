@@ -12,7 +12,7 @@ import { Seller } from 'src/modules/seller/seller.schema';
 import { setupWebhook } from "../telegram-utils";
 import { ShiftSharedService } from 'src/modules/shift/shared/shift.shared.service';
 import { SupportService } from 'src/modules/support/support.service';
-import {IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/support/issue.schema';
+import {IssueUserType, IssueStatusText, IssueStatus, Issue} from 'src/modules/issue/issue.schema';
 import * as moment from 'moment';
 import { TelegramNotificationResponseDto } from 'src/common/dtos';
 import { Shift } from 'src/modules/shift/shift.schema';

@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { ActorType } from "./shift.schema";
+import { ActorType } from "./shift.enums";
 
 export interface ShiftFilter {
   shop?: Types.ObjectId;

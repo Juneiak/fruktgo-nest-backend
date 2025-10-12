@@ -1,5 +1,5 @@
 // Константа минимального процента от заказанного количества для весовых продуктов
-export const DEFAULT_MIN_WEIGHT_PERCENTAGE = 0.9; // 90% от заказанного количества
+export const DEFAULT_MIN_WEIGHT_DIFFERENCE_PERCENTAGE = 0.9; // 90% от заказанного количества
 export const DEFAULT_SYSTEM_TAX = 0.1; // 10% комиссия
 
 export const DEFAULT_ACCEPTANCE_LIMIT = 180;

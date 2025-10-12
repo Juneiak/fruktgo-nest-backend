@@ -4,6 +4,7 @@ import { CommonListQueryOptions } from 'src/common/types/queries';
 import { Customer } from './customer.schema';
 import { PaginateResult } from 'mongoose';
 import {
+  CreateCustomerCommand,
   UpdateCustomerCommand,
   BlockCustomerCommand,
   AddAddressCommand,
@@ -16,6 +17,7 @@ export interface CustomerPort {
   // ====================================================
   // COMMANDS
   // ==================================================== 
+  createCustomer(command: CreateCustomerCommand, options: CommonCommandOptions): Promise<Customer>;
   updateCustomer(command: UpdateCustomerCommand, options: CommonCommandOptions): Promise<void>;
   blockCustomer(command: BlockCustomerCommand, options: CommonCommandOptions): Promise<void>;
   addAddress(command: AddAddressCommand, options: CommonCommandOptions): Promise<void>;

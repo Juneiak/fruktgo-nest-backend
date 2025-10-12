@@ -1,15 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
-import { Shop } from 'src/modules/shop/shop/shop.schema';
+import { Shop } from 'src/modules/shop/shop.schema';
 import { Product } from 'src/modules/product/product.schema';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
+import { ShopProductStatus } from './shop-product.enums';
+import { Image } from 'src/infra/images/image.schema';
 
-export enum ShopProductStatus {
-  ACTIVE='active',
-  PAUSED='paused',
-  OUT_OF_STOCK='outOfStock',
-}
 
 @Schema({
   toJSON: { virtuals: true },
@@ -20,15 +17,14 @@ export enum ShopProductStatus {
 export class ShopProduct {
 
   _id: Types.ObjectId;
-  // virtuals (TS-объявления)
   readonly shopProductId?: string;
   createdAt: Date;
   updatedAt: Date;
 
-  @Prop({ type: Types.ObjectId, ref: 'Shop', required: true })
-  pinnedTo: Types.ObjectId | Shop;
+  @Prop({ type: Types.ObjectId, ref: Shop.name, required: true })
+  pinnedTo: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
+  @Prop({ type: Types.ObjectId, ref: Product.name, required: true })
   product: Types.ObjectId | Product;
 
   @Prop({ type: Number, min: 0, required: true, default: 0 })
@@ -43,7 +39,7 @@ export class ShopProduct {
   @Prop({ type: Number, min: 0, required: true, default: 0 })
   last7daysWriteOff: number;
   
-  @Prop({ type: [Types.ObjectId], ref: 'UploadedFile', default: [] })
+  @Prop({ type: [Types.ObjectId], ref: Image.name, default: [] })
   images: Types.ObjectId[];
 }
 

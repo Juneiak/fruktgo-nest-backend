@@ -1,4 +1,4 @@
-import { Issue, IssueStatusText } from "src/modules/support/issue.schema";
+import { Issue, IssueStatusText } from "src/modules/issue/issue.schema";
 import * as moment from 'moment';
 import { Shift } from "src/modules/shift/shift.schema";
 

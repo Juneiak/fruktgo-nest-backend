@@ -26,21 +26,22 @@ export class JobApplicationService {
     query: GetJobApplicationsQuery,
     options: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<JobApplication>> {
-    checkId([query.sellerId, query.employeeId]);
+    const { filters } = query;
+    checkId([filters?.sellerId, filters?.employeeId]);
 
-    const filter: any = {};
-    if (query.sellerId) filter.sellerId = new Types.ObjectId(query.sellerId);
-    if (query.employeeId) filter.employeeId = new Types.ObjectId(query.employeeId);
+    const queryFilter: any = {};
+    if (filters?.sellerId) queryFilter.sellerId = new Types.ObjectId(filters.sellerId);
+    if (filters?.employeeId) queryFilter.employeeId = new Types.ObjectId(filters.employeeId);
     
-    if (query.filters?.requestStatus) {
-      filter.jobApplicationStatus = Array.isArray(query.filters.requestStatus)
-        ? { $in: query.filters.requestStatus }
-        : query.filters.requestStatus;
+    if (filters?.jobApplicationStatus) {
+      queryFilter.jobApplicationStatus = Array.isArray(filters.jobApplicationStatus)
+        ? { $in: filters.jobApplicationStatus }
+        : filters.jobApplicationStatus;
     }
-    if (query.filters?.fromDate || query.filters?.toDate) {
-      filter.createdAt = {
-        ...(query.filters.fromDate ? { $gte: query.filters.fromDate } : {}),
-        ...(query.filters.toDate ? { $lte: query.filters.toDate } : {}),
+    if (filters?.fromDate || filters?.toDate) {
+      queryFilter.createdAt = {
+        ...(filters.fromDate ? { $gte: filters.fromDate } : {}),
+        ...(filters.toDate ? { $lte: filters.toDate } : {}),
       };
     }
 
@@ -52,7 +53,7 @@ export class JobApplicationService {
       sort: options.sort || { createdAt: -1 }
     };
     
-    const result = await this.jobApplicationModel.paginate(filter, queryOptions);
+    const result = await this.jobApplicationModel.paginate(queryFilter, queryOptions);
     return result;
   }
 
@@ -61,25 +62,27 @@ export class JobApplicationService {
     query: GetJobApplicationsQuery,
     options: CommonQueryOptions
   ): Promise<JobApplication[]> {
-    checkId([query.sellerId, query.employeeId]);
-
-    const filter: any = {};
-    if (query.sellerId) filter.sellerId = new Types.ObjectId(query.sellerId);
-    if (query.employeeId) filter.employeeId = new Types.ObjectId(query.employeeId);
     
-    if (query.filters?.requestStatus) {
-      filter.jobApplicationStatus = Array.isArray(query.filters.requestStatus)
-        ? { $in: query.filters.requestStatus }
-        : query.filters.requestStatus;
+    const { filters } = query;
+    checkId([filters?.sellerId, filters?.employeeId]);
+
+    const queryFilter: any = {};
+    if (filters?.sellerId) queryFilter.sellerId = new Types.ObjectId(filters.sellerId);
+    if (filters?.employeeId) queryFilter.employeeId = new Types.ObjectId(filters.employeeId);
+    
+    if (filters?.jobApplicationStatus) {
+      queryFilter.jobApplicationStatus = Array.isArray(filters.jobApplicationStatus)
+        ? { $in: filters.jobApplicationStatus }
+        : filters.jobApplicationStatus;
     }
-    if (query.filters?.fromDate || query.filters?.toDate) {
-      filter.createdAt = {
-        ...(query.filters.fromDate ? { $gte: query.filters.fromDate } : {}),
-        ...(query.filters.toDate ? { $lte: query.filters.toDate } : {}),
+    if (filters?.fromDate || filters?.toDate) {
+      queryFilter.createdAt = {
+        ...(filters.fromDate ? { $gte: filters.fromDate } : {}),
+        ...(filters.toDate ? { $lte: filters.toDate } : {}),
       };
     }
 
-    const dbQuery = this.jobApplicationModel.find(filter).sort({ createdAt: -1 });
+    const dbQuery = this.jobApplicationModel.find(queryFilter).sort({ createdAt: -1 });
     if (options.session) dbQuery.session(options.session);
     
     const jobApplications = await dbQuery.lean({ virtuals: true }).exec();

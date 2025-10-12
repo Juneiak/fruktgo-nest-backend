@@ -4,6 +4,7 @@ import { Types } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { CommonCommandOptions } from 'src/common/types/comands';
 import {
+  CreateCustomerCommand,
   BlockCustomerCommand,
   UpdateCustomerCommand,
   AddAddressCommand,
@@ -24,9 +25,43 @@ export class CustomerService {
   ) { }
 
 
+  async createCustomer(
+    command: CreateCustomerCommand,
+    options: CommonCommandOptions
+  ): Promise<Customer> {
+    const { payload } = command;
+
+    // Проверяем уникальность telegramId
+    const existing = await this.customerModel.findOne({ telegramId: payload.telegramId }).exec();
+    if (existing) {
+      throw new DomainError({ code: 'CONFLICT', message: 'Клиент с таким Telegram ID уже существует' });
+    }
+
+    // Создаем только обязательные поля, остальные заполнятся через defaults в схеме
+    const customerData = {
+      _id: new Types.ObjectId(),
+      telegramId: payload.telegramId,
+      customerName: payload.customerName,
+      telegramUsername: payload.telegramUsername,
+      telegramFirstName: payload.telegramFirstName,
+      telegramLastName: payload.telegramLastName,
+      phone: payload.phone,
+      email: payload.email,
+    };
+
+    const createOptions: any = {};
+    if (options?.session) createOptions.session = options.session;
+
+    const customer = await this.customerModel.create([customerData], createOptions).then(docs => docs[0]);
+    
+    return customer;
+  }
+
+
   async getCustomers(
     options: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Customer>> {
+    
     const queryOptions: any = {
       page: options.pagination?.page || 1,
       limit: options.pagination?.pageSize || 10,
@@ -200,5 +235,4 @@ export class CustomerService {
     
     await customer.save(saveOptions);
   }
-
 }

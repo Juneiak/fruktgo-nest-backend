@@ -1,24 +1,28 @@
-import { ImageAccessLevel, ImageEntityType, ImageType } from "./images.enums";
+import { ImageAccessLevel, ImageEntityType, ImageSize, ImageType } from "./images.enums";
+
+export type UploadImagePayload = {
+  imageId?: string;
+  accessLevel: ImageAccessLevel;
+  entityType?: ImageEntityType | null;
+  entityId?: string | null;
+  imageType?: ImageType | null;
+  allowedUsers?: { userId: string; role: string }[];
+  sizes?: ImageSize[];
+}
 
 export class UploadImageCommand {
   constructor(
-    public readonly imageFile: Express.Multer.File, 
-    public readonly accessLevel: ImageAccessLevel, 
-    public readonly entityType?: ImageEntityType | null, 
-    public readonly entityId?: string | null, 
-    public readonly imageType?: ImageType | null, 
-    public readonly allowedUsers?: { userId: string, role: string }[],
-    public readonly sizes?: []
+    public readonly imageFile: Express.Multer.File,
+    public readonly payload: UploadImagePayload,
   ) {}
 }
 
-
 export type UpdateImagePayload = {
-  accessLevel?: ImageAccessLevel,
-  entityType?: ImageEntityType | null,
-  entityId?: string | null,
-  imageType?: ImageType | null,
-  allowedUsers?: { userId: string, role: string }[]
+  accessLevel?: ImageAccessLevel;
+  entityType?: ImageEntityType | null;
+  entityId?: string | null;
+  imageType?: ImageType | null;
+  allowedUsers?: { userId: string; role: string }[];
 }
 
 export class UpdateImageCommand {

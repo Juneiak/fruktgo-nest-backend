@@ -8,6 +8,7 @@ import { PaginateResult, Types } from 'mongoose';
 import { EmployeeModel, Employee } from './employee.schema';
 import { BlockEmployeeCommand, UpdateEmployeeCommand } from './employee.commands';
 import { DomainError } from 'src/common/errors/domain-error';
+import { parcePhoneNumber } from 'src/common/utils';
 
 @Injectable()
 export class EmployeeService {
@@ -22,9 +23,9 @@ export class EmployeeService {
   ): Promise<PaginateResult<Employee>> {
     checkId([query.sellerId, query.shopId]);
 
-    const filter: any = {};
-    if (query.shopId) filter.pinnedTo = new Types.ObjectId(query.shopId);
-    if (query.sellerId) filter.employer = new Types.ObjectId(query.sellerId);
+    const queryFilter: any = {};
+    if (query.shopId) queryFilter.pinnedTo = new Types.ObjectId(query.shopId);
+    if (query.sellerId) queryFilter.employer = new Types.ObjectId(query.sellerId);
 
     const queryOptions: any = {
       page: options.pagination?.page || 1,
@@ -33,7 +34,7 @@ export class EmployeeService {
       sort: options.sort || { createdAt: -1 }
     };
     
-    const result = await this.employeeModel.paginate(filter, queryOptions);
+    const result = await this.employeeModel.paginate(queryFilter, queryOptions);
     return result;
   }
 
@@ -44,12 +45,16 @@ export class EmployeeService {
   ): Promise<Employee | null> {
     checkId([query.employeeId]);
 
-    const filter: any = {};
-    if (query.employeeId) filter.phoneNumber = query.phoneNumber;
-    else if (query.phoneNumber) filter.phoneNumber = query.phoneNumber;
+    const queryFilter: any = {};
+    if (query.employeeId) queryFilter._id = new Types.ObjectId(query.employeeId);
+    else if (query.phoneNumber) {
+      const phone = parcePhoneNumber(query.phoneNumber);
+      if (!phone) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
+      queryFilter.phoneNumber = phone.number;
+    }
     else throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
 
-    const dbQuery = this.employeeModel.findOne(filter)
+    const dbQuery = this.employeeModel.findOne(queryFilter)
     if (option.session) dbQuery.session(option.session);
     const employee = await dbQuery.lean({ virtuals: true }).exec();
 
@@ -64,7 +69,7 @@ export class EmployeeService {
     const { employeeId, payload } = command;
     checkId([employeeId ]);
      
-    const dbQuery = this.employeeModel.findById(employeeId);
+    const dbQuery = this.employeeModel.findById(new Types.ObjectId(employeeId));
     if (options.session) dbQuery.session(options.session);
     
     const employee = await dbQuery.exec();
@@ -92,7 +97,7 @@ export class EmployeeService {
      const { employeeId, payload } = command;
      checkId([employeeId]);
      
-     const dbQuery = this.employeeModel.findOne({ _id: new Types.ObjectId(employeeId) });
+     const dbQuery = this.employeeModel.findById(new Types.ObjectId(employeeId));
      if (options.session) dbQuery.session(options.session);
 
      const employee = await dbQuery.exec();

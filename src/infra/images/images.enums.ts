@@ -23,9 +23,8 @@ export enum ImageAccessLevel {
 }
 
 export enum ImageSize {
-  XS = 'xs',
-  SM = 'sm',
-  MD = 'md',
-  LG = 'lg',
-  XL = 'xl',
+  ORIGINAL = 'original',  // Оригинальный размер без обработки
+  SM = 'sm',              // Смартфоны (~30% от оригинала)
+  MD = 'md',              // Планшеты (~60% от оригинала)
+  LG = 'lg',              // Десктоп (~85% от оригинала)
 }

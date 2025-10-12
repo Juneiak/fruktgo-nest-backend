@@ -13,11 +13,11 @@ export class ShopMeRoleService {
   ) {}
   
 
-  async getShopPreviewInfo(authedShop: AuthenticatedUser): Promise<ShopPreviewResponseDto> {
-    const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).populate(['currentShift', 'pinnedEmployees']).exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
+  // async getShopPreviewInfo(authedShop: AuthenticatedUser): Promise<ShopPreviewResponseDto> {
+  //   const shop = await this.shopModel.findById(new Types.ObjectId(authedShop.id)).populate(['currentShift', 'pinnedEmployees']).exec();
+  //   if (!shop) throw new NotFoundException('Магазин не найден');
   
-    return plainToInstance(ShopPreviewResponseDto, shop, { excludeExtraneousValues: true });
-  }
+  //   return plainToInstance(ShopPreviewResponseDto, shop, { excludeExtraneousValues: true });
+  // }
     
 }

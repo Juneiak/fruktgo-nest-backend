@@ -1,34 +1,21 @@
-import { Module, forwardRef} from '@nestjs/common';
-
-import { NotificationModule } from 'src/infra/notification/notification.module';
-import { ShiftSellerController } from '../../interface/http/seller/shifts/seller.shifts.controller';
-import { ShiftSellerService } from '../../interface/http/seller/shifts/seller.shifts.role.service';
-import { ShiftAdminService } from './roles/admin/shift.admin.service';
-import { ShiftShopService } from '../../interface/http/shop/shifts/shop.shifts.role.service';
-import { ShiftAdminController } from './roles/admin/shift.admin.controller';
-import { ShiftShopController } from '../../interface/http/shop/shifts/shop.shifts.controller';
-import { ShiftSharedService } from './shared/shift.shared.service';
-import { ShiftService } from './shift.service';
+import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ProductSchema, Product } from './product.schema';
+import { ProductService } from './product.service';
+import { ProductFacade } from './product.facade';
+import { PRODUCT_PORT } from './product.port';
+import { SellerModule } from '../seller/seller.module';
 
 @Module({
   imports: [
-    forwardRef(() => NotificationModule),
-  ],
-  controllers: [
-    ShiftSellerController,
-    ShiftAdminController,
-    ShiftShopController,
+    MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
+    SellerModule,  // Для доступа к SellerPort
   ],
   providers: [
-    ShiftSellerService,
-    ShiftAdminService,
-    ShiftShopService,
-    ShiftSharedService,
-    ShiftService,
+    ProductService,
+    ProductFacade,
+    { provide: PRODUCT_PORT, useExisting: ProductFacade }
   ],
-  exports: [
-    ShiftSharedService,
-    ShiftService,
-  ],
+  exports: [PRODUCT_PORT],
 })
-export class ShiftModule {}
+export class ProductModule {}

@@ -4,9 +4,10 @@ import { CustomerPort } from './customer.port';
 import { CustomerService } from './customer.service';
 import { CommonCommandOptions } from 'src/common/types/comands';
 import { CommonListQueryOptions } from 'src/common/types/queries';
-import { Customer } from '../infrastructure/schemas/customer.schema';
+import { Customer } from './customer.schema';
 import { PaginateResult } from 'mongoose';
 import {
+  CreateCustomerCommand,
   UpdateCustomerCommand,
   BlockCustomerCommand,
   AddAddressCommand,
@@ -21,6 +22,10 @@ export class CustomerFacade implements CustomerPort {
   // ====================================================
   // COMMANDS
   // ====================================================
+  async createCustomer(command: CreateCustomerCommand, options: CommonCommandOptions): Promise<Customer> {
+    return this.customerService.createCustomer(command, options);
+  }
+
   async updateCustomer(command: UpdateCustomerCommand, options: CommonCommandOptions): Promise<void> {
     return this.customerService.updateCustomer(command, options);
   }

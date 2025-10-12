@@ -21,67 +21,67 @@ export class AdminPlatformRoleService {
     @InjectModel('Order') private orderModel: Model<Order>,
   ) {}
 
-  async getStats(authedAdmin: AuthenticatedUser): Promise<SystemStatsResponseDto> {
-    // Делаем параллельные запросы с использованием более быстрого метода estimatedDocumentCount
-    const [customersCount, employeesCount, sellersCount, shopsCount, ordersCount] = await Promise.all([
-      this.customerModel.estimatedDocumentCount(),
-      this.employeeModel.estimatedDocumentCount(),
-      this.sellerModel.estimatedDocumentCount(),
-      this.shopModel.estimatedDocumentCount(),
-      this.orderModel.estimatedDocumentCount()
-    ]);
+  // async getStats(authedAdmin: AuthenticatedUser): Promise<SystemStatsResponseDto> {
+  //   // Делаем параллельные запросы с использованием более быстрого метода estimatedDocumentCount
+  //   const [customersCount, employeesCount, sellersCount, shopsCount, ordersCount] = await Promise.all([
+  //     this.customerModel.estimatedDocumentCount(),
+  //     this.employeeModel.estimatedDocumentCount(),
+  //     this.sellerModel.estimatedDocumentCount(),
+  //     this.shopModel.estimatedDocumentCount(),
+  //     this.orderModel.estimatedDocumentCount()
+  //   ]);
 
-    // Создаем результирующий объект
-    const result = plainToInstance(SystemStatsResponseDto, {
-      customersCount,
-      employeesCount,
-      sellersCount,
-      shopsCount,
-      ordersCount,
-    }, { excludeExtraneousValues: true });
+  //   // Создаем результирующий объект
+  //   const result = plainToInstance(SystemStatsResponseDto, {
+  //     customersCount,
+  //     employeesCount,
+  //     sellersCount,
+  //     shopsCount,
+  //     ordersCount,
+  //   }, { excludeExtraneousValues: true });
     
-    return result;
-  }
+  //   return result;
+  // }
 
-  async getUsersToVerify(authedAdmin: AuthenticatedUser): Promise<UserToVerifyResponseDto[]> {
-    // Параллельно получаем пользователей для проверки из разных коллекций
-    // Используем lean() для оптимизации и выбираем _id вместо виртуального id
-    const [customersToVerify, employeesToVerify, sellersToVerify, shopsToVerify] = await Promise.all([
-      // Клиенты, ожидающие проверки
-      this.customerModel.find({
-        verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
-      }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
+  // async getUsersToVerify(authedAdmin: AuthenticatedUser): Promise<UserToVerifyResponseDto[]> {
+  //   // Параллельно получаем пользователей для проверки из разных коллекций
+  //   // Используем lean() для оптимизации и выбираем _id вместо виртуального id
+  //   const [customersToVerify, employeesToVerify, sellersToVerify, shopsToVerify] = await Promise.all([
+  //     // Клиенты, ожидающие проверки
+  //     this.customerModel.find({
+  //       verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
+  //     }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
       
-      // Сотрудники, ожидающие проверки
-      this.employeeModel.find({
-        verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
-      }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
+  //     // Сотрудники, ожидающие проверки
+  //     this.employeeModel.find({
+  //       verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
+  //     }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
       
-      // Продавцы, ожидающие проверки
-      this.sellerModel.find({
-        verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
-      }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
+  //     // Продавцы, ожидающие проверки
+  //     this.sellerModel.find({
+  //       verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
+  //     }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
       
-      // Магазины, ожидающие проверки
-      this.shopModel.find({
-        verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
-      }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
-    ]);
+  //     // Магазины, ожидающие проверки
+  //     this.shopModel.find({
+  //       verifiedStatus: { $in: [VerifiedStatus.NOT_VERIFIED, VerifiedStatus.IS_CHECKING] },
+  //     }).select('_id telegramId telegramUsername verifiedStatus isBlocked createdAt').lean({isVirtuals: true}).exec(),
+  //   ]);
     
-    // Объединяем результаты с преобразованием _id в id для DTO
-    const allUsersToVerify = [
-      ...customersToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.CUSTOMER })),
-      ...employeesToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.EMPLOYEE })),
-      ...sellersToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.SELLER })),
-      ...shopsToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.SHOP })),
-    ];
+  //   // Объединяем результаты с преобразованием _id в id для DTO
+  //   const allUsersToVerify = [
+  //     ...customersToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.CUSTOMER })),
+  //     ...employeesToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.EMPLOYEE })),
+  //     ...sellersToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.SELLER })),
+  //     ...shopsToVerify.map(user => ({ ...user, id: String(user._id), type: UserType.SHOP })),
+  //   ];
     
-    // Преобразуем в DTO
-    const result = plainToInstance(UserToVerifyResponseDto, allUsersToVerify, { 
-      excludeExtraneousValues: true 
-    }) as UserToVerifyResponseDto[];
+  //   // Преобразуем в DTO
+  //   const result = plainToInstance(UserToVerifyResponseDto, allUsersToVerify, { 
+  //     excludeExtraneousValues: true 
+  //   }) as UserToVerifyResponseDto[];
     
-    return result;
-  }
+  //   return result;
+  // }
 
 }
