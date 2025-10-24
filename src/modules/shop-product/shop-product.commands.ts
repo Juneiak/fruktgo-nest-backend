@@ -1,45 +1,47 @@
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { BlockPayload } from 'src/common/types/comands';
+import { ShopProductStatus } from './shop-product.enums';
 
-export type CreateSellerPayload = {
-  sellerAccountId: string;
-  telegramId: number;
-  phone: string;
-  companyName: string;
-  inn: string;
-  email: string;
-  telegramUsername?: string;
-  telegramFirstName?: string;
-  telegramLastName?: string;
+export type CreateShopProductPayload = {
+  productId: string;
+  shopId: string;
+  stockQuantity?: number;
+  status?: ShopProductStatus;
 }
 
-export class CreateSellerCommand {
+export class CreateShopProductCommand {
   constructor(
-    public readonly sellerId: string,
-    public readonly payload: CreateSellerPayload
+    public readonly shopProductId: string,
+    public readonly payload: CreateShopProductPayload
   ) {}
 }
 
-export type UpdateSellerPayload = {
-  phone?: string,
-  verifiedStatus?: VerifiedStatus,
-  internalNote?: string | null,
-  companyName?: string,
-  inn?: string,
-  email?: string,
-  sellerLogo?: Express.Multer.File | null,
+export type UpdateShopProductPayload = {
+  stockQuantity?: number;
+  status?: ShopProductStatus;
 }
 
-export class UpdateSellerCommand {
+export class UpdateShopProductCommand {
   constructor(
-    public readonly sellerId: string,
-    public readonly payload: UpdateSellerPayload,
+    public readonly shopProductId: string,
+    public readonly payload: UpdateShopProductPayload,
   ) {}
 }
 
-export class BlockSellerCommand {
+export class ArchiveShopProductCommand {
   constructor(
-    public readonly sellerId: string,
-    public readonly payload: BlockPayload
+    public readonly shopProductId: string,
+  ) {}
+}
+
+export class AddShopProductImageCommand {
+  constructor(
+    public readonly shopProductId: string,
+    public readonly shopProductImageFile: Express.Multer.File,
+  ) {}
+}
+
+export class RemoveShopProductImageCommand {
+  constructor(
+    public readonly shopProductId: string,
+    public readonly imageId: string,
   ) {}
 }

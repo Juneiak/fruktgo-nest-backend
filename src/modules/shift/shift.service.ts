@@ -1,277 +1,437 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { Types, PaginateResult } from 'mongoose';
 import { ShiftModel, Shift } from './shift.schema';
-import { checkId } from 'src/common/utils';
+import { checkId, assignField } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
+import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
+import { CommonCommandOptions } from 'src/common/types/comands';
+import { GetShiftsQuery } from './shift.queries';
+import {
+  OpenShiftCommand,
+  CloseShiftCommand,
+  StartClosingShiftCommand,
+  PauseShiftCommand,
+  ResumeShiftCommand,
+  ForceCloseShiftCommand,
+  AbandonShiftCommand,
+  UpdateStatisticsCommand
+} from './shift.commands';
+import { ShiftStatus, ShiftEventType } from './shift.enums';
+import { ShiftEvent } from './shift.schema';
+
+// Матрица переходов между статусами смен
+const SHIFT_STATUS_TRANSITIONS: Record<ShiftStatus, ShiftStatus[]> = {
+  [ShiftStatus.OPEN]: [ShiftStatus.PAUSED, ShiftStatus.CLOSING, ShiftStatus.CLOSED, ShiftStatus.ABANDONED],
+  [ShiftStatus.PAUSED]: [ShiftStatus.OPEN, ShiftStatus.CLOSING, ShiftStatus.CLOSED, ShiftStatus.ABANDONED],
+  [ShiftStatus.CLOSING]: [ShiftStatus.CLOSED, ShiftStatus.ABANDONED],
+  [ShiftStatus.CLOSED]: [], // Финальное состояние
+  [ShiftStatus.ABANDONED]: [], // Финальное состояние
+};
+
+// Проверка возможности перехода
+function canTransition(from: ShiftStatus, to: ShiftStatus): boolean {
+  return SHIFT_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
+}
+
+// Валидация перехода
+function validateTransition(currentStatus: ShiftStatus, newStatus: ShiftStatus, action: string): void {
+  if (!canTransition(currentStatus, newStatus)) {
+    throw new DomainError({
+      code: 'INVARIANT',
+      message: `Невозможно выполнить "${action}": переход из статуса "${currentStatus}" в "${newStatus}" недопустим`
+    });
+  }
+}
 
 @Injectable()
 export class ShiftService {
   constructor(
     @InjectModel(Shift.name) private readonly shiftModel: ShiftModel,
-    @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
-  ) {}
+  ) { }
 
   async getShifts(
-    authedAdmin: AuthenticatedUser,
-    shiftsQueryDto: ShiftsQueryDto,
-    paginationQuery: PaginationQueryDto,
-  ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
-    const filter = ShiftFilterBuilder.from(shiftsQueryDto);
-    const result = await this.shiftService.getShifts(filter, paginationQuery);
-    return transformPaginatedResult(result, ShiftResponseDto);
+    query: GetShiftsQuery,
+    options: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Shift>> {
+    const { filters } = query;
+
+    const queryFilter: any = {};
+    if (filters?.shopId) queryFilter.shop = new Types.ObjectId(filters.shopId);
+    if (filters?.actorType && filters?.actorId) {
+      queryFilter.openedBy = {
+        actorType: filters.actorType,
+        actorId: new Types.ObjectId(filters.actorId)
+      };
+    }
+    if (filters?.startDate) queryFilter.openedAt = { $gte: filters.startDate };
+    if (filters?.endDate) queryFilter.openedAt = { $lte: filters.endDate };
+
+
+    const queryOptions: any = {
+      page: options.pagination?.page || 1,
+      limit: options.pagination?.pageSize || 10,
+      lean: true,
+      leanWithId: true,
+      sort: options.sort || { createdAt: -1 }
+    };
+    
+    const result = await this.shiftModel.paginate(queryFilter, queryOptions);
+    return result;
   }
 
-  async getShift(authedAdmin: AuthenticatedUser, shiftId: string): Promise<ShiftResponseDto> {
-    const shift = await this.shiftService.getShift(shiftId);
-    return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
-  }
 
-  
-  async forceCloseShift(authedAdmin: AuthenticatedUser, shiftId: string): Promise<ShiftResponseDto> {
-    await this.shiftService.forceClose(shiftId, { actorType: ActorType.ADMIN, actorId: new Types.ObjectId(authedAdmin.id), actorName: authedAdmin.id }, 'force close');
-    return this.getShift(authedAdmin, shiftId);
-  }
-
-
-  async getShiftLogs(
-    authedAdmin: AuthenticatedUser,
+  async getShift(
     shiftId: string,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+    options: CommonQueryOptions
+  ): Promise<Shift | null> {
     checkId([shiftId]);
-    return this.logsService.getAllShiftLogs(shiftId, paginationQuery);
+
+    const dbQuery = this.shiftModel.findById(shiftId);
+    if (options.session) dbQuery.session(options.session);
+
+    const shift = await dbQuery.lean({ virtuals: true }).exec();
+    return shift;
   }
 
-
-
-
-
-
-
-  async getShiftsOfShop(
-    authedSeller: AuthenticatedUser, 
-    shiftsQueryDto: ShiftsQueryDto, 
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
-    checkId([shiftsQueryDto.shopId]);
-    const shopObjectId = new Types.ObjectId(shiftsQueryDto.shopId);
-    const isShopExists = await this.shopModel.exists({_id: shopObjectId, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
-    const filter = ShiftFilterBuilder.from(shiftsQueryDto);
-
-    const result = await this.shiftService.getShifts(filter, paginationQuery);  
-    return transformPaginatedResult(result, ShiftResponseDto);
-  }
 
   async getCurrentShiftOfShop(
-    authedSeller: AuthenticatedUser,
-    shiftsQueryDto: ShiftsQueryDto
-  ): Promise<ShiftResponseDto> {
-    checkId([shiftsQueryDto.shopId]);
+    shopId: string,
+    options: CommonQueryOptions
+  ): Promise<Shift | null> {
+    checkId([shopId]);
 
-    const isShopExists = await this.shopModel.exists({ _id:  new Types.ObjectId(shiftsQueryDto.shopId), owner: new Types.ObjectId(authedSeller.id) }).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+    const dbQuery = this.shiftModel
+      .findOne({ shop: new Types.ObjectId(shopId) })
+      .sort({ createdAt: -1 });
     
-    const shift = await this.shiftService.getShift(shiftsQueryDto.shopId);
-    if (!shift) throw new NotFoundException('Смена не найден');
+    if (options.session) dbQuery.session(options.session);
 
-    return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+    const shift = await dbQuery.lean({ virtuals: true }).exec();
+    return shift;
   }
-  
 
-  async getShift(
-    authedSeller: AuthenticatedUser,
-    shiftId: string
-  ): Promise<ShiftResponseDto> {
+
+
+
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+
+  async openShift(
+    command: OpenShiftCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shopId, payload } = command;
+    checkId([shopId]);
+
+    const shiftId = new Types.ObjectId();
+    const openedAt = new Date();
+
+    // Создаем событие открытия
+    const openEvent: ShiftEvent = {
+      type: ShiftEventType.OPEN,
+      at: openedAt,
+      by: payload.actor,
+      comment: payload.comment || null,
+      payload: {}
+    };
+
+    // Создаем смену
+    const shiftData: Omit<Shift, 'shiftId'> = {
+      _id: shiftId,
+      shop: new Types.ObjectId(shopId),
+      status: ShiftStatus.OPEN,
+      sla: payload.sla,
+      statistics: {
+        ordersCount: 0,
+        deliveredOrdersCount: 0,
+        canceledOrdersCount: 0,
+        declinedOrdersCount: 0,
+        totalIncome: 0,
+        declinedIncome: 0,
+        avgOrderPrice: 0,
+        avgOrderAcceptanceDuration: 0,
+        avgOrderAssemblyDuration: 0
+      },
+      openedBy: payload.actor,
+      openedAt: openedAt,
+      closedBy: null,
+      closedAt: null,
+      events: [openEvent],
+      createdAt: openedAt,
+      updatedAt: openedAt
+    };
+
+    const createOptions: any = {};
+    if (options?.session) createOptions.session = options.session;
+
+    const shift = await this.shiftModel.create([shiftData], createOptions).then(docs => docs[0]);
+    return shift;
+  }
+
+
+  async closeShift(
+    command: CloseShiftCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shiftId, payload } = command;
     checkId([shiftId]);
-    const shift = await this.shiftService.getShift(shiftId);
-    if (!shift) throw new NotFoundException('Смена не найден');
 
-    const isShopExists = await this.shopModel.exists({_id: shift.shop, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+    const dbQuery = this.shiftModel.findById(new Types.ObjectId(shiftId));
+    if (options.session) dbQuery.session(options.session);
 
-    return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+    const shift = await dbQuery.exec();
+    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+
+    // Валидация перехода через матрицу
+    validateTransition(shift.status, ShiftStatus.CLOSED, 'закрытие смены');
+
+    const closedAt = new Date();
+
+    // Добавляем событие закрытия
+    const closeEvent: ShiftEvent = {
+      type: ShiftEventType.CLOSE,
+      at: closedAt,
+      by: payload.actor,
+      comment: payload.comment || null,
+      payload: {}
+    };
+
+    shift.status = ShiftStatus.CLOSED;
+    shift.closedBy = payload.actor;
+    shift.closedAt = closedAt;
+    shift.events.push(closeEvent);
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+
+    await shift.save(saveOptions);
+    return shift;
   }
 
 
-  async getShiftLogs(
-    authedSeller: AuthenticatedUser,
-    shiftId: string,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+  async startClosing(
+    command: StartClosingShiftCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shiftId, payload } = command;
     checkId([shiftId]);
-    const shift = await this.shiftService.getShift(shiftId);
-    if (!shift) throw new NotFoundException('Смена не найден');
 
-    const isShopExists = await this.shopModel.exists({_id: shift.shop, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!isShopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+    const dbQuery = this.shiftModel.findById(new Types.ObjectId(shiftId));
+    if (options.session) dbQuery.session(options.session);
 
-    return this.logsService.getAllShiftLogs(shiftId, paginationQuery);
+    const shift = await dbQuery.exec();
+    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+
+    // Валидация перехода через матрицу
+    validateTransition(shift.status, ShiftStatus.CLOSING, 'начало закрытия');
+
+    const now = new Date();
+
+    // Добавляем событие начала закрытия
+    const startClosingEvent: ShiftEvent = {
+      type: ShiftEventType.START_CLOSING,
+      at: now,
+      by: payload.actor,
+      comment: payload.comment || null,
+      payload: {}
+    };
+
+    shift.status = ShiftStatus.CLOSING;
+    shift.events.push(startClosingEvent);
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+
+    await shift.save(saveOptions);
+    return shift;
   }
 
 
+  async pauseShift(
+    command: PauseShiftCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shiftId, payload } = command;
+    checkId([shiftId]);
 
+    const dbQuery = this.shiftModel.findById(new Types.ObjectId(shiftId));
+    if (options.session) dbQuery.session(options.session);
 
+    const shift = await dbQuery.exec();
+    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
 
+    // Валидация перехода через матрицу
+    validateTransition(shift.status, ShiftStatus.PAUSED, 'постановка на паузу');
 
+    const now = new Date();
 
-  async getShifts(
-    authedShop: AuthenticatedUser,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ShiftPreviewResponseDto>> {
-    const { page = 1, pageSize = 10 } = paginationQuery;
-    const result = await this.shiftService.getShifts(
-      { shop: new Types.ObjectId(authedShop.id) } as any,
-      { page, pageSize, sortByDate: 'desc' }
-    );
-    return transformPaginatedResult(result as any, ShiftPreviewResponseDto);
-  } 
+    // Добавляем событие паузы
+    const pauseEvent: ShiftEvent = {
+      type: ShiftEventType.PAUSE,
+      at: now,
+      by: payload.actor,
+      comment: payload.comment || null,
+      payload: {}
+    };
 
-  async getShift(
-    authedShop: AuthenticatedUser,
-    shiftId: string
-  ): Promise<ShiftPreviewResponseDto> {
+    shift.status = ShiftStatus.PAUSED;
+    shift.events.push(pauseEvent);
 
-    const shift = await this.shiftService.getShift(shiftId);  
-    if (!shift) throw new NotFoundException('Смена не найдена');
-    if (shift.shop.toString() !== authedShop.id) throw new NotFoundException('Смена не принадлежит этому магазину');
-    
-    return plainToInstance(ShiftPreviewResponseDto, shift, { excludeExtraneousValues: true });
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+
+    await shift.save(saveOptions);
+    return shift;
   }
 
 
-  async openShiftByEmployee(
-    authedShop: AuthenticatedUser,
-    authedEmployee: AuthenticatedEmployee,
-    dto: OpenShiftByEmployeeDto
-  ): Promise<ShiftPreviewResponseDto> {
-    // Валидации
-    const shop = await this.shopModel.findById(authedShop.id).lean().exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
-    verifyUserStatus(shop);
+  async resumeShift(
+    command: ResumeShiftCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shiftId, payload } = command;
+    checkId([shiftId]);
 
-    const employee = await this.employeeModel.findOne({ _id: new Types.ObjectId(authedEmployee.id), pinnedTo: shop._id }).lean().exec();
-    if (!employee) throw new NotFoundException('Сотрудник не найден или не привязан к магазину');
-    verifyUserStatus(employee);
+    const dbQuery = this.shiftModel.findById(new Types.ObjectId(shiftId));
+    if (options.session) dbQuery.session(options.session);
 
-    // Открываем смену через ядро
-    await this.shiftService.openShift(
-      authedShop.id,
-      { actorType: ActorType.EMPLOYEE, actorId: new Types.ObjectId(authedEmployee.id), actorName: employee.employeeName },
-      dto.comment || null,
-    );
+    const shift = await dbQuery.exec();
+    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
 
-    const shopAfter = await this.shopModel.findById(authedShop.id).select('currentShift shopName').lean().exec();
-    const shift = await this.shiftService.getShift(shopAfter!.currentShift!.toString());
+    // Валидация перехода через матрицу
+    validateTransition(shift.status, ShiftStatus.OPEN, 'возобновление смены');
 
-    // Логи
-    await this.logsService.addShiftLog(
-      shift._id.toString(),
-      `Смена открыта сотрудником ${employee.employeeName} (${employee._id.toString()}) ${dto.comment ? `с комментарием: ${dto.comment}` : ''}`,
-      { forRoles: [UserType.EMPLOYEE, UserType.SELLER], logLevel: LogLevel.MEDIUM }
-    );
-    await this.logsService.addShopLog(
-      shop._id.toString(),
-      `Открыта смена (${shift._id.toString()}) сотрудником ${employee.employeeName} (${employee._id.toString()}) ${dto.comment ? `с комментарием: ${dto.comment}` : ''}`,
-      { forRoles: [UserType.SELLER], logLevel: LogLevel.HIGH }
-    );
-    await this.logsService.addEmployeeLog(
-      employee._id.toString(),
-      `Открыта смена (${shift._id.toString()}) в магазине ${shopAfter!.shopName} (${shop._id.toString()}) ${dto.comment ? `с комментарием: ${dto.comment}` : ''}`,
-      { forRoles: [UserType.EMPLOYEE], logLevel: LogLevel.MEDIUM }
-    );
+    const now = new Date();
 
-    return plainToInstance(ShiftPreviewResponseDto, shift, { excludeExtraneousValues: true });
-  }
-  
+    // Добавляем событие возобновления
+    const resumeEvent: ShiftEvent = {
+      type: ShiftEventType.RESUME,
+      at: now,
+      by: payload.actor,
+      comment: payload.comment || null,
+      payload: {}
+    };
 
-  async closeShiftByEmployee(
-    authedShop: AuthenticatedUser, 
-    authedEmployee: AuthenticatedEmployee,
-    shiftId: string,
-    dto: CloseShiftByEmployeeDto
-  ): Promise<ShiftPreviewResponseDto> {
-    const shop = await this.shopModel.findOne({ _id: new Types.ObjectId(authedShop.id), currentShift: new Types.ObjectId(shiftId) }).lean().exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
-    verifyUserStatus(shop);
+    shift.status = ShiftStatus.OPEN;
+    shift.events.push(resumeEvent);
 
-    const employee = await this.employeeModel.findOne({ _id: new Types.ObjectId(authedEmployee.id), pinnedTo: shop._id }).lean().exec();
-    if (!employee) throw new NotFoundException('Сотрудник не найден или не привязан к магазину');
-    verifyUserStatus(employee);
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
 
-    const shift = await this.shiftService.getShift(shiftId);
-    if (!shift || shift.shop.toString() !== shop._id.toString()) throw new NotFoundException('Смена не найдена или не принадлежит этому магазину');
-
-    await this.shiftService.startClosing(shiftId, { actorType: ActorType.EMPLOYEE, actorId: new Types.ObjectId(authedEmployee.id), actorName: employee.employeeName }, dto.comment || undefined);
-    await this.shiftService.closeShift(shiftId, { actorType: ActorType.EMPLOYEE, actorId: new Types.ObjectId(authedEmployee.id), actorName: employee.employeeName }, dto.comment || undefined);
-
-    await this.logsService.addShiftLog(
-      shiftId,
-      `Смена (${shiftId}) закрыта сотрудником ${employee.employeeName}(${employee._id.toString()}).` + (dto.comment ? ` Комментарий: ${dto.comment}` : ''),
-      { forRoles: [UserType.EMPLOYEE, UserType.SELLER], logLevel: LogLevel.MEDIUM }
-    );
-    await this.logsService.addShopLog(
-      shop._id.toString(),
-      `Смена (${shiftId}) закрыта сотрудником ${employee.employeeName}(${employee._id.toString()}).`,
-      { forRoles: [UserType.SELLER], logLevel: LogLevel.LOW }
-    );
-
-    this.notificationService.notifySellerAboutShiftUpdate(shiftId, false);
-    return plainToInstance(ShiftPreviewResponseDto, await this.shiftService.getShift(shiftId), { excludeExtraneousValues: true });
+    await shift.save(saveOptions);
+    return shift;
   }
 
-  // --- Пауза/возобновление смены сотрудником ---
-  async pauseShiftByEmployee(
-    authedShop: AuthenticatedUser,
-    authedEmployee: AuthenticatedEmployee,
-    shiftId: string,
-    comment?: string
-  ): Promise<ShiftPreviewResponseDto> {
-    const shop = await this.shopModel.findOne({ _id: new Types.ObjectId(authedShop.id), currentShift: new Types.ObjectId(shiftId) }).lean().exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
 
-    const employee = await this.employeeModel.findOne({ _id: new Types.ObjectId(authedEmployee.id), pinnedTo: shop._id }).lean().exec();
-    if (!employee) throw new NotFoundException('Сотрудник не найден или не привязан к магазину');
+  async forceCloseShift(
+    command: ForceCloseShiftCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shiftId, payload } = command;
+    checkId([shiftId]);
 
-    const shift = await this.shiftService.getShift(shiftId);
-    if (!shift || shift.shop.toString() !== shop._id.toString()) throw new NotFoundException('Смена не найдена или не принадлежит этому магазину');
+    const dbQuery = this.shiftModel.findById(new Types.ObjectId(shiftId));
+    if (options.session) dbQuery.session(options.session);
 
-    await this.shiftService.pauseShift(shiftId, { actorType: ActorType.EMPLOYEE, actorId: new Types.ObjectId(authedEmployee.id), actorName: employee.employeeName }, comment);
+    const shift = await dbQuery.exec();
+    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
 
-    await this.logsService.addShiftLog(
-      shiftId,
-      `Смена (${shiftId}) поставлена на паузу сотрудником ${employee.employeeName}(${employee._id.toString()}).` + (comment ? ` Комментарий: ${comment}` : ''),
-      { forRoles: [UserType.EMPLOYEE, UserType.SELLER], logLevel: LogLevel.LOW }
-    );
+    // Валидация перехода через матрицу
+    validateTransition(shift.status, ShiftStatus.CLOSED, 'принудительное закрытие');
 
-    return plainToInstance(ShiftPreviewResponseDto, await this.shiftService.getShift(shiftId), { excludeExtraneousValues: true });
+    const closedAt = new Date();
+
+    // Добавляем событие принудительного закрытия
+    const forceCloseEvent: ShiftEvent = {
+      type: ShiftEventType.FORCE_CLOSE,
+      at: closedAt,
+      by: payload.actor,
+      comment: payload.comment || null,
+      payload: {}
+    };
+
+    shift.status = ShiftStatus.CLOSED;
+    shift.closedBy = payload.actor;
+    shift.closedAt = closedAt;
+    shift.events.push(forceCloseEvent);
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+
+    await shift.save(saveOptions);
+    return shift;
   }
 
-  async resumeShiftByEmployee(
-    authedShop: AuthenticatedUser,
-    authedEmployee: AuthenticatedEmployee,
-    shiftId: string,
-    comment?: string
-  ): Promise<ShiftPreviewResponseDto> {
-    const shop = await this.shopModel.findOne({ _id: new Types.ObjectId(authedShop.id), currentShift: new Types.ObjectId(shiftId) }).lean().exec();
-    if (!shop) throw new NotFoundException('Магазин не найден');
 
-    const employee = await this.employeeModel.findOne({ _id: new Types.ObjectId(authedEmployee.id), pinnedTo: shop._id }).lean().exec();
-    if (!employee) throw new NotFoundException('Сотрудник не найден или не привязан к магазину');
+  async abandonShift(
+    command: AbandonShiftCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shiftId, payload } = command;
+    checkId([shiftId]);
 
-    const shift = await this.shiftService.getShift(shiftId);
-    if (!shift || shift.shop.toString() !== shop._id.toString()) throw new NotFoundException('Смена не найдена или не принадлежит этому магазину');
+    const dbQuery = this.shiftModel.findById(new Types.ObjectId(shiftId));
+    if (options.session) dbQuery.session(options.session);
 
-    await this.shiftService.resumeShift(shiftId, { actorType: ActorType.EMPLOYEE, actorId: new Types.ObjectId(authedEmployee.id), actorName: employee.employeeName }, comment);
+    const shift = await dbQuery.exec();
+    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
 
-    await this.logsService.addShiftLog(
-      shiftId,
-      `Смена (${shiftId}) возобновлена сотрудником ${employee.employeeName}(${employee._id.toString()}).` + (comment ? ` Комментарий: ${comment}` : ''),
-      { forRoles: [UserType.EMPLOYEE, UserType.SELLER], logLevel: LogLevel.LOW }
-    );
+    // Валидация перехода через матрицу
+    validateTransition(shift.status, ShiftStatus.ABANDONED, 'оставление смены');
 
-    return plainToInstance(ShiftPreviewResponseDto, await this.shiftService.getShift(shiftId), { excludeExtraneousValues: true });
+    const now = new Date();
+
+    // Добавляем событие оставления
+    const abandonEvent: ShiftEvent = {
+      type: ShiftEventType.ABANDON,
+      at: now,
+      by: payload.actor,
+      comment: payload.reason || null,
+      payload: {}
+    };
+
+    shift.status = ShiftStatus.ABANDONED;
+    shift.events.push(abandonEvent);
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+
+    await shift.save(saveOptions);
+    return shift;
+  }
+
+
+  async updateStatistics(
+    command: UpdateStatisticsCommand,
+    options: CommonCommandOptions
+  ): Promise<Shift> {
+    const { shiftId, payload } = command;
+    checkId([shiftId]);
+
+    const dbQuery = this.shiftModel.findById(new Types.ObjectId(shiftId));
+    if (options.session) dbQuery.session(options.session);
+
+    const shift = await dbQuery.exec();
+    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+
+    // Обновляем статистику через assignField
+    assignField(shift.statistics, 'ordersCount', payload.ordersCount);
+    assignField(shift.statistics, 'deliveredOrdersCount', payload.deliveredOrdersCount);
+    assignField(shift.statistics, 'canceledOrdersCount', payload.canceledOrdersCount);
+    assignField(shift.statistics, 'declinedOrdersCount', payload.declinedOrdersCount);
+    assignField(shift.statistics, 'totalIncome', payload.totalIncome);
+    assignField(shift.statistics, 'declinedIncome', payload.declinedIncome);
+    assignField(shift.statistics, 'avgOrderPrice', payload.avgOrderPrice);
+    assignField(shift.statistics, 'avgOrderAcceptanceDuration', payload.avgOrderAcceptanceDuration);
+    assignField(shift.statistics, 'avgOrderAssemblyDuration', payload.avgOrderAssemblyDuration);
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+
+    await shift.save(saveOptions);
+    return shift;
   }
 
 }

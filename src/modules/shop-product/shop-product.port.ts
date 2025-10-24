@@ -1,23 +1,31 @@
-import { Seller } from './seller.schema';
+import { ShopProduct } from './shop-product.schema';
 import { PaginateResult } from 'mongoose';
-import { CreateSellerCommand, UpdateSellerCommand, BlockSellerCommand } from './seller.commands';
+import { 
+  CreateShopProductCommand,
+  UpdateShopProductCommand, 
+  ArchiveShopProductCommand,
+  AddShopProductImageCommand,
+  RemoveShopProductImageCommand 
+} from './shop-product.commands';
+import { GetShopProductQuery, GetShopProductsQuery } from './shop-product.queries';
 import { CommonCommandOptions } from 'src/common/types/comands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
-export interface SellerPort {
+export interface ShopProductPort {
   // ====================================================
   // QUERIES
   // ==================================================== 
-  getSeller(sellerId: string, options: CommonQueryOptions): Promise<Seller | null>;
-  getSellers(options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Seller>>;
-
+  getShopProduct(query: GetShopProductQuery, options?: CommonQueryOptions): Promise<ShopProduct | null>;
+  getShopProducts(query: GetShopProductsQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<ShopProduct>>;
 
   // ====================================================
   // COMMANDS
   // ==================================================== 
-  createSeller(command: CreateSellerCommand, options: CommonCommandOptions): Promise<Seller>;
-  updateSeller(command: UpdateSellerCommand, options: CommonCommandOptions): Promise<void>;
-  blockSeller(command: BlockSellerCommand, options: CommonCommandOptions): Promise<void>;
+  createShopProduct(command: CreateShopProductCommand, options: CommonCommandOptions): Promise<ShopProduct>;
+  updateShopProduct(command: UpdateShopProductCommand, options: CommonCommandOptions): Promise<void>;
+  archiveShopProduct(command: ArchiveShopProductCommand, options: CommonCommandOptions): Promise<void>;
+  addShopProductImage(command: AddShopProductImageCommand, options: CommonCommandOptions): Promise<string>;
+  removeShopProductImage(command: RemoveShopProductImageCommand, options: CommonCommandOptions): Promise<void>;
 }
 
-export const SELLER_PORT = Symbol('SELLER_PORT');
+export const SHOP_PRODUCT_PORT = Symbol('SHOP_PRODUCT_PORT');

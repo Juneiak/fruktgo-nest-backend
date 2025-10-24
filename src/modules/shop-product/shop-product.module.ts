@@ -1,20 +1,21 @@
 import { Module } from '@nestjs/common';
-import { SellerService } from './seller.service';
-import { SellerSchema } from './seller.schema';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Seller } from './seller.schema';
-import { SellerFacade } from './seller.facade';
-import { SELLER_PORT } from './seller.port';
+import { ShopProductService } from './shop-product.service';
+import { ShopProduct, ShopProductSchema } from './shop-product.schema';
+import { ShopProductFacade } from './shop-product.facade';
+import { SHOP_PRODUCT_PORT } from './shop-product.port';
+import { ImagesModule } from 'src/infra/images/images.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Seller.name, schema: SellerSchema }]),
+    MongooseModule.forFeature([{ name: ShopProduct.name, schema: ShopProductSchema }]),
+    ImagesModule,
   ],
   providers: [
-    SellerService,
-    SellerFacade,
-    { provide: SELLER_PORT, useExisting: SellerFacade }
+    ShopProductService,
+    ShopProductFacade,
+    { provide: SHOP_PRODUCT_PORT, useExisting: ShopProductFacade }
   ],
-  exports: [SELLER_PORT],
+  exports: [SHOP_PRODUCT_PORT],
 })
-export class SellerModule {}
+export class ShopProductModule {}

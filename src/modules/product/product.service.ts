@@ -66,7 +66,7 @@ export class ProductService {
     checkId([sellerId]);
 
     const productId = new Types.ObjectId();
-    const imageId = payload.cardImage ? new Types.ObjectId() : null;
+    const imageId = payload.cardImageFile ? new Types.ObjectId() : null;
 
     // Создаем продукт
     const productData: Omit<Product, 'productId' | 'shopProducts'> = {
@@ -95,9 +95,9 @@ export class ProductService {
     const product = await this.productModel.create([productData], createProductOptions).then(docs => docs[0]);
     
     // Загружаем изображение если предоставлено
-    if (payload.cardImage && imageId) {
+    if (payload.cardImageFile && imageId) {
       const uploadImageCommand = new UploadImageCommand(
-        payload.cardImage,
+        payload.cardImageFile,
         {
           imageId: imageId.toString(),
           accessLevel: ImageAccessLevel.PUBLIC,
@@ -138,7 +138,7 @@ export class ProductService {
     assignField(product, 'productArticle', payload.productArticle);
     
     // Обработка cardImage
-    if (payload.cardImage === null) {
+    if (payload.cardImageFile === null) {
       // Удаляем изображение если передан null
       const oldImageId = product.cardImage;
       if (oldImageId) {
@@ -148,14 +148,14 @@ export class ProductService {
       }
       product.cardImage = null;
 
-    } else if (payload.cardImage) {
+    } else if (payload.cardImageFile) {
       // Заменяем изображение если передан новый файл
       const oldImageId = product.cardImage;
       const newImageId = new Types.ObjectId();
       
       // Загружаем новое изображение
       const uploadImageCommand = new UploadImageCommand(
-        payload.cardImage,
+        payload.cardImageFile,
         {
           imageId: newImageId.toString(),
           accessLevel: ImageAccessLevel.PUBLIC,

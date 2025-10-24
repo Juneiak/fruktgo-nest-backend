@@ -37,17 +37,15 @@ export interface SlaSnapshot {
 
 // Агрегаты по смене
 const StatisticsSchema = {
-  ordersCount:                { type: Number, min: 0, default: 0 },
-  deliveredOrdersCount:       { type: Number, min: 0, default: 0 },
-  canceledOrdersCount:        { type: Number, min: 0, default: 0 },
-  declinedOrdersCount:        { type: Number, min: 0, default: 0 },
-
-  totalIncome:                { type: Number, min: 0, default: 0 },
-  declinedIncome:             { type: Number, min: 0, default: 0 },
-
-  avgOrderPrice:              { type: Number, min: 0, default: 0 },
+  ordersCount: { type: Number, min: 0, default: 0 },
+  deliveredOrdersCount: { type: Number, min: 0, default: 0 },
+  canceledOrdersCount: { type: Number, min: 0, default: 0 },
+  declinedOrdersCount: { type: Number, min: 0, default: 0 },
+  totalIncome: { type: Number, min: 0, default: 0 },
+  declinedIncome: { type: Number, min: 0, default: 0 },
+  avgOrderPrice: { type: Number, min: 0, default: 0 },
   avgOrderAcceptanceDuration: { type: Number, min: 0, default: 0 }, // сек
-  avgOrderAssemblyDuration:   { type: Number, min: 0, default: 0 }, // сек
+  avgOrderAssemblyDuration: { type: Number, min: 0, default: 0 }, // сек
   _id: false,
 };
 export interface Statistics {
@@ -64,9 +62,9 @@ export interface Statistics {
 
 // Журнал событий смены
 const EventSchema = {
-  type:    { type: String, enum: Object.values(ShiftEventType), required: true },
-  at:      { type: Date, default: () => new Date(), required: true },
-  by:      { type: ActorSchema, required: true },
+  type: { type: String, enum: Object.values(ShiftEventType), required: true },
+  at: { type: Date, default: () => new Date(), required: true },
+  by: { type: ActorSchema, required: true },
   comment: { type: String, default: null },
   payload: { type: MongooseSchema.Types.Mixed, default: {} },
   _id: false,

@@ -1,7 +1,27 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
+import { Types, PaginateResult } from 'mongoose';
 import { ShopProductModel, ShopProduct } from './shop-product.schema';
+import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
+import { checkId, assignField } from 'src/common/utils';
+import { DomainError } from 'src/common/errors/domain-error';
+import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
+import { UploadImageCommand } from 'src/infra/images/images.commands';
+import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
+import {
+  GetShopProductQuery,
+  GetShopProductsQuery,
+  ShopProductsStockQuery
+} from './shop-product.queries';
+import { 
+  CreateShopProductCommand,
+  UpdateShopProductCommand, 
+  AddShopProductImageCommand,
+  RemoveShopProductImageCommand 
+} from './shop-product.commands';
+import { ShopProductStatus } from './shop-product.enums';
+
 
 @Injectable()
 export class ShopProductService {
@@ -12,657 +32,284 @@ export class ShopProductService {
 
 
   async getShopProduct(
-    authedAdmin: AuthenticatedUser,
-    shopId: string,
-    shopProductId: string
-  ): Promise<ShopProductFullResponseDto> {
-    checkId([shopProductId, shopId]);
-    const foundShopProduct = await this.shopProductModel.findOne({ pinnedTo: new Types.ObjectId(shopId), _id: new Types.ObjectId(shopProductId) })
-      .select('shopProductId pinnedTo product stockQuantity status images')
-      .populate({
+    query: GetShopProductQuery,
+    options?: CommonQueryOptions,
+  ): Promise<ShopProduct | null> {
+    const { shopProductId, options: queryOptions } = query;
+    checkId([shopProductId]);
+
+    const dbQuery = this.shopProductModel.findById(new Types.ObjectId(shopProductId));
+    if (options?.session) dbQuery.session(options.session);
+
+    // Обработка популяции из query.options
+    if (queryOptions?.populateImages) {
+      dbQuery.populate({
         path: 'images',
-        select: '_id imageId createdAt',
-        options: { sort: { createdAt: -1 } },
-      })
-      .populate({
-        path: 'product',
-        select: 'productId cardImage productArticle productName category price measuringScale stepRate aboutProduct origin',
-      })
-      .lean({ virtuals: true }).exec();
-    if (!foundShopProduct) throw new NotFoundException('Товар не найден');
+        options: { sort: { createdAt: -1 } }
+      });
+    }
 
-    return plainToInstance(ShopProductFullResponseDto, foundShopProduct, { excludeExtraneousValues: true });
+    if (queryOptions?.populateProduct) {
+      dbQuery.populate('product');
+    }
+
+    const shopProduct = await dbQuery.lean({ virtuals: true }).exec();
+    return shopProduct;
   }
 
 
   async getShopProducts(
-    authedAdmin: AuthenticatedUser,
-    shopProductQuery: ShopProductQueryDto,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ShopProductPreviewResponseDto>> {
-    const { page = 1, pageSize = 10 } = paginationQuery;
+    query: GetShopProductsQuery,
+    options: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<ShopProduct>> {
+    const { filters, options: queryOptions } = query;
 
-    const filter: any = {};
-    if (shopProductQuery.shopId) {
-      checkId([shopProductQuery.shopId]);
-      filter.pinnedTo = new Types.ObjectId(shopProductQuery.shopId);
+    const queryFilter: any = {};
+    if (filters?.shopId) queryFilter.pinnedTo = new Types.ObjectId(filters.shopId);
+
+    const paginateOptions: any = {
+      page: options.pagination?.page || 1,
+      limit: options.pagination?.pageSize || 10,
+      lean: true,
+      leanWithId: true,
+      sort: options.sort || { createdAt: -1 }
+    };
+
+    // Обработка популяции из query.options
+    const populateArray: any[] = [];
+    
+    if (queryOptions?.populateImages) {
+      populateArray.push({
+        path: 'images',
+        options: { sort: { createdAt: -1 } }
+      });
     }
 
-    const result = await this.shopProductModel.paginate(
-      filter, 
-      { page, limit: pageSize, lean: true, leanWithId: false,
-      sort: { createdAt: -1 },
-      populate: {
+    if (queryOptions?.populateProduct) {
+      populateArray.push({
         path: 'product'
-      },
-    });
-    return transformPaginatedResult(result, ShopProductPreviewResponseDto);
-  }
-
-
-
-
-
-
-
-  async getPublicShopProducts(
-    shopProductQuery: ShopProductQueryDto,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
-    const { shopId } = shopProductQuery;
-    if (!shopId) throw new BadRequestException('Магазин не указан');
-
-    const okShop = await checkEntityStatus(
-      this.shopModel,
-      { _id: new Types.ObjectId(shopId) }
-    )
-    if (!okShop) throw new NotFoundException('Магазин не найден или недоступен или заблокирован или не верифицирован');
-
-    const { page = 1, pageSize = 10 } = paginationQuery;
-    const foundShopProducts = await this.shopProductModel.paginate(
-      { pinnedTo: new Types.ObjectId(shopId) }, 
-      { page, limit: pageSize, lean: true, leanWithId: false}
-    )
-    return transformPaginatedResult(foundShopProducts, ShopProductResponseDto);
-  }
-
-  
-  async getPublicShopProduct(shopProductId: string): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
-    const foundShopProduct = await this.shopProductModel.findById(new Types.ObjectId(shopProductId))
-      .populate('product')
-      .populate('images', 'imageId createdAt')
-      .lean({ virtuals: true }).exec();
-    if (!foundShopProduct) throw new NotFoundException('Товар не найден');
-
-    const okShop = await checkEntityStatus(
-      this.shopModel,
-      { _id: foundShopProduct.pinnedTo }
-    )
-    if (!okShop) throw new NotFoundException('Магазин не найден или недоступен или заблокирован или не верифицирован');
-
-    return plainToInstance(ShopProductResponseDto, foundShopProduct, { excludeExtraneousValues: true});
-  }
-
-
-
-
-
-
-
-
-
-
-  async getShopProducts(
-    authedSeller: AuthenticatedUser, 
-    shopProductsQuery: ShopProductsQueryDto,
-    paginationQuery: PaginationQueryDto 
-  ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
-    if (!shopProductsQuery.shopId) throw new BadRequestException('Магазин не указан');
-    checkId([shopProductsQuery.shopId]);
-
-    const shopExists = await this.shopModel.exists({
-      _id: new Types.ObjectId(shopProductsQuery.shopId),
-      owner: new Types.ObjectId(authedSeller.id),
-    }).exec();
-    if (!shopExists) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
-    
-    const { page = 1, pageSize = 10 } = paginationQuery;
-    const result = await this.shopProductModel.paginate(
-      { pinnedTo: new Types.ObjectId(shopProductsQuery.shopId) },
-      { page, limit: pageSize, lean: true, leanWithId: false,
-        sort: { createdAt: -1 },
-        populate: {
-          path: 'product'
-        },
-      }
-    );
-    
-    return transformPaginatedResult(result, ShopProductResponseDto);
-  }
-
-
-  async getShopProduct(
-    authedSeller: AuthenticatedUser,
-    shopProductId: string
-  ): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
-
-    const foundShopProduct = await this.shopProductModel.findById(new Types.ObjectId(shopProductId))
-    .populate([
-        { path: 'product' },
-        { path: 'images', select: 'imageId createdAt' },
-      ])
-    .lean({ virtuals: true }).exec();
-    if (!foundShopProduct) throw new NotFoundException('Товар не найден');
-    
-    const foundShop = await this.shopModel.exists({_id: foundShopProduct.pinnedTo, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!foundShop) throw new NotFoundException('Товар не принадлежит данному продавцу');
-
-    return plainToInstance(ShopProductResponseDto, foundShopProduct, { excludeExtraneousValues: true });
-  }
-
-
-  async getShopProductLogs(
-    authedSeller: AuthenticatedUser,
-    shopProductId: string,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
-    checkId([shopProductId]);
-
-    const foundShopProduct = await this.shopProductModel.findById(new Types.ObjectId(shopProductId)).exec();
-    if (!foundShopProduct) throw new NotFoundException('Товар не найден');
-
-    const foundShop = await this.shopModel.exists({_id: foundShopProduct.pinnedTo, owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!foundShop) throw new NotFoundException('Товар не принадлежит данному продавцу');
-
-    return this.logsService.getAllShopProductLogs(foundShopProduct._id.toString(), paginationQuery, [UserType.SELLER]);
-  }
-
-
-
-  async updateShopProduct(
-    authedSeller: AuthenticatedUser, 
-    dto: UpdateShopProductDto
-  ): Promise<ShopProductResponseDto> {
-    const isSellerValid = await checkEntityStatus(
-      this.sellerModel,
-      { _id: new Types.ObjectId(authedSeller.id) },
-    );
-    if (!isSellerValid) throw new NotFoundException('Продавец не найден или заблокирован или не верифицирован');
-
-    const foundProduct = await this.productModel.findOne({_id: new Types.ObjectId(dto.productId), owner: new Types.ObjectId(authedSeller.id)}).exec();
-    if (!foundProduct) throw new NotFoundException('Товар не найден');
-
-    const isShopValid = await checkEntityStatus(
-      this.shopModel,
-      { _id: new Types.ObjectId(dto.shopId), owner: new Types.ObjectId(authedSeller.id) },
-    );
-    if (!isShopValid) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу или заблокирован или не верифицирован');
-
-    const foundShopProduct = await this.shopProductModel.findOne({product: new Types.ObjectId(dto.productId), pinnedTo: new Types.ObjectId(dto.shopId)}).exec();
-
-        let shopProductIdToReturn: string;
-
-        if (!foundShopProduct) {
-          const newShopProductQuantity = dto.stockQuantity ?? 0;
-          let newShopProductStatus: ShopProductStatus;
-          if (newShopProductQuantity === 0) newShopProductStatus = ShopProductStatus.OUT_OF_STOCK;
-          else if (dto.status && [ShopProductStatus.ACTIVE, ShopProductStatus.PAUSED].includes(dto.status)) newShopProductStatus = dto.status;
-          else if (newShopProductQuantity > 0) newShopProductStatus = ShopProductStatus.ACTIVE;
-          else newShopProductStatus = ShopProductStatus.PAUSED;
-
-      const newShopProduct = await this.shopProductModel.create({
-        product: new Types.ObjectId(dto.productId), 
-        pinnedTo: new Types.ObjectId(dto.shopId),
-        stockQuantity: newShopProductQuantity,
-        status: newShopProductStatus,
       });
-
-          shopProductIdToReturn = newShopProduct._id.toString();
-
-      await this.logsService.addShopProductLog(
-        newShopProduct._id.toString(), 
-        `Продавец ${authedSeller.id} добавил товар в магазин`,
-        { forRoles: [UserType.SELLER], logLevel: LogLevel.MEDIUM },
-      );
-
-    } 
-    else {
-      shopProductIdToReturn = foundShopProduct._id.toString();
-        
-      const oldData = foundShopProduct.toObject();
-      const changes: string[] = [];
-
-      const isStockQuantityChanged = dto.stockQuantity !== undefined && dto.stockQuantity !== foundShopProduct.stockQuantity;
-      const isStatusChanged = dto.status !== undefined && dto.status !== foundShopProduct.status;
-
-      if (isStockQuantityChanged) {
-        foundShopProduct.stockQuantity = dto.stockQuantity!;
-        changes.push(`Количество на складе: ${oldData.stockQuantity} → ${foundShopProduct.stockQuantity}`);
-      }
-      if (isStockQuantityChanged && dto.stockQuantity === 0) {
-        foundShopProduct.status = ShopProductStatus.OUT_OF_STOCK;
-        changes.push(`Статус: ${oldData.status} → ${ShopProductStatus.OUT_OF_STOCK}`);
-      } 
-      else if (isStatusChanged && [ShopProductStatus.ACTIVE, ShopProductStatus.PAUSED].includes(dto.status!)) {
-        foundShopProduct.status = dto.status!;
-        changes.push(`Статус: ${oldData.status} → ${dto.status!}`);
-      }
-      
-      if (changes.length > 0 && foundShopProduct.isModified()) {
-        await foundShopProduct.save();
-        await this.logsService.addShopProductLog(
-          foundShopProduct._id.toString(), 
-          `Продавец ${authedSeller.id} обновил товар:` + changes.join('. '),
-          { forRoles: [UserType.SELLER], logLevel: LogLevel.LOW },
-        );
-      }
     }
 
-    return this.getShopProduct(authedSeller, shopProductIdToReturn);
-  }
-
-
-  async removeShopProduct(
-    authedSeller: AuthenticatedUser,
-    shopProductId: string 
-  ): Promise<MessageResponseDto> {
-    const session = await this.shopProductModel.db.startSession();
-    try {
-      await session.withTransaction(async () => {
-        const isSellerValid = await checkEntityStatus(
-          this.sellerModel,
-          { _id: new Types.ObjectId(authedSeller.id) },
-          { session }
-        );
-        if (!isSellerValid) throw new NotFoundException('Продавец не найден или заблокирован или не верифицирован');
-
-        const foundShopProduct = await this.shopProductModel.findById(new Types.ObjectId(shopProductId)).session(session).exec();
-        if (!foundShopProduct) throw new NotFoundException('Товар не найден');
-
-        const isShopValid = await checkEntityStatus(
-          this.shopModel,
-          { _id: foundShopProduct.pinnedTo, owner: new Types.ObjectId(authedSeller.id) },
-          { session }
-        );
-        if (!isShopValid) throw new NotFoundException('Товар не принадлежит данному продавцу или заблокирован или не верифицирован');
-
-        if (foundShopProduct.images.length > 0) {
-          for (const image of foundShopProduct.images) {
-            await this.uploadsService.deleteFile(image.toString(), session);
-          }
-        }
-
-        await this.shopProductModel.findByIdAndDelete(foundShopProduct._id).session(session).exec();
-
-        await this.logsService.addShopLog(
-          foundShopProduct.pinnedTo.toString(),
-          `Продавец ${authedSeller.id} удалил товар ${foundShopProduct.product.toString()} из магазина`,
-          { forRoles: [UserType.SELLER], logLevel: LogLevel.MEDIUM, session }
-        );
-      });
-      return plainToInstance(MessageResponseDto, { message: 'Товар успешно удален из магазина' });
-
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
-      console.error('Ошибка при удалении товара из магазина:', error);
-      throw new InternalServerErrorException('Ошибка при удалении товара из магазина');
-    } finally {
-      session.endSession();
+    if (populateArray.length > 0) {
+      paginateOptions.populate = populateArray;
     }
-  }
-
-
-  async removeShopProductImage(
-    authedSeller: AuthenticatedUser,
-    shopProductId: string,
-    imageId: string
-  ): Promise<ShopProductResponseDto> {
-    checkId([shopProductId, imageId]);
-    const session = await this.shopModel.db.startSession();
-
-    try {
-      const updatedShopProductId = await session.withTransaction(async () => {
-        const isSellerValid = await checkEntityStatus(
-          this.sellerModel,
-          { _id: new Types.ObjectId(authedSeller.id) },
-          { session }
-        );
-        if (!isSellerValid) throw new NotFoundException('Продавец не найден или заблокирован или не верифицирован');
-
-        const foundShopProduct = await this.shopProductModel.findOne({ _id: new Types.ObjectId(shopProductId), owner: new Types.ObjectId(authedSeller.id) }).session(session).exec();
-        if (!foundShopProduct) throw new NotFoundException('Товар не найден или не принадлежит данному продавцу');
-
-        // Проверяем наличие магазина и права на него
-        const foundShop = await checkEntityStatus(
-          this.shopModel,
-          { _id: foundShopProduct.pinnedTo, owner: new Types.ObjectId(authedSeller.id) },
-          { session }
-        )
-        if (!foundShop) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
-
-        const imageIdToDelete = foundShopProduct.images.find(img => img.toString() === imageId);
-        if (!imageIdToDelete) throw new NotFoundException('Изображение не найдено в данном продукте');
-        
-        foundShopProduct.images = foundShopProduct.images.filter(img => img.toString() !== imageIdToDelete.toString());
-        if (foundShopProduct.isModified()) {
-          await foundShopProduct.save({ session });
-          await this.uploadsService.deleteFile(imageIdToDelete.toString(), session);
-
-          await this.logsService.addShopProductLog(
-            foundShopProduct._id.toString(),
-            `Продавец удалил изображение ${imageIdToDelete.toString()}`,
-            { forRoles: [UserType.SELLER], logLevel: LogLevel.MEDIUM, session }
-          );
-        }
-        return foundShopProduct._id.toString();
-      });
-
-      // Возвращаем товар
-      if (!updatedShopProductId) throw new NotFoundException('Не удалось удалить изображение продукта');
-      return this.getShopProduct(authedSeller, updatedShopProductId);
-      
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
-      console.error('Ошибка при удалении изображения продукта:', error);
-      throw new InternalServerErrorException('Ошибка при удалении изображения продукта');
-    } finally {
-      session.endSession();
-    }
-  }
-
-
-
-
-
-
-
-
-
-
-
-
-  async getShopProduct(authedShop: AuthenticatedUser, shopProductId: string): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
-    const foundShopProduct = await this.shopProductModel.findOne({pinnedTo: new Types.ObjectId(authedShop.id), _id: new Types.ObjectId(shopProductId)})
-    .populate({
-      path: 'images',
-      select: '_id imageId createdAt',
-      options: { sort: { createdAt: -1 } },
-    })
-    .populate({
-      path: 'product',
-      select: 'productId cardImage productArticle productName category price measuringScale stepRate aboutProduct origin',
-    })
-    .lean({ virtuals: true }).exec();
-    if (!foundShopProduct) throw new NotFoundException('Товар не найден или не принадлежит вашему магазину');
     
-    return plainToInstance(ShopProductResponseDto, foundShopProduct, { excludeExtraneousValues: true });
+    const result = await this.shopProductModel.paginate(queryFilter, paginateOptions);
+    return result;
   }
 
 
-  async getShopProducts(
-    authedShop: AuthenticatedUser,
-    paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
-    const { page = 1, pageSize = 10 } = paginationQuery;
 
-    const foundShopProducts = await this.shopProductModel.paginate(
-      { pinnedTo: new Types.ObjectId(authedShop.id) },
-      { 
-        page, limit: pageSize, lean: true, leanWithId: false,
-        populate: { path: 'product' } 
-      });
-    if (!foundShopProducts) throw new NotFoundException('Товары не найдены или не принадлежат вашему магазину');
+  //TODO: он нужен вообще?
+  async getShopProductStock(
+    shopProductsStockQuery: ShopProductsStockQuery,
+    options: CommonQueryOptions,
+  ): Promise<ShopProduct[]> {
+    checkId([shopProductsStockQuery.shopId]);
     
-    return transformPaginatedResult(foundShopProducts, ShopProductResponseDto);
-  }
-
-
-  async removeShopProductImage(
-    authedShop: AuthenticatedUser,
-    authedEmployee: AuthenticatedEmployee,
-    shopProductId: string,
-    imageId: string,
-    dto: RemoveShopProductImageDto
-  ): Promise<ShopProductResponseDto> {
-    checkId([shopProductId, imageId]);
-    const session = await this.shopModel.db.startSession();
-    try {
-      const updatedShopProductId = await session.withTransaction(async () => {
-        const isEmployeeValid = await checkEntityStatus(
-          this.employeeModel,
-          { _id: new Types.ObjectId(authedEmployee.id), pinnedTo: new Types.ObjectId(authedShop.id) },
-          { session }
-        );
-        if (!isEmployeeValid) throw new NotFoundException('Сотрудник не найден или не привязан к вашему магазину или заблокирован или не верифицирован');
-
-        const isShopValid = await checkEntityStatus(
-          this.shopModel,
-          { _id: new Types.ObjectId(authedShop.id) },
-          { session }
-        );
-        if (!isShopValid) throw new NotFoundException('Магазин не найден или не принадлежит данному сотруднику');
-
-        const foundShopProduct = await this.shopProductModel.findOne({_id: new Types.ObjectId(shopProductId), pinnedTo: new Types.ObjectId(authedShop.id)}).session(session).exec();
-        if (!foundShopProduct) throw new NotFoundException('Товар не найден или не принадлежит вашему магазину');
-
-
-        const imageIdToDelete = foundShopProduct.images.find(img => img.toString() === imageId);
-        if (!imageIdToDelete) throw new NotFoundException('Изображение не найдено в данном продукте');
-
-        foundShopProduct.images = foundShopProduct.images.filter(img => img.toString() !== imageIdToDelete.toString());
-        await foundShopProduct.save({ session });
-
-        await this.logsService.addShopProductLog(
-          foundShopProduct._id.toString(), 
-          `Сотрудник ${authedEmployee.employeeName} удалил изображение продукта ${dto.comment ? `(${dto.comment})` : ''}`,
-          { logLevel: LogLevel.MEDIUM, forRoles: [UserType.EMPLOYEE, UserType.SHOP, UserType.SELLER], session }
-        );
-        return foundShopProduct._id.toString();
-      });
-
-      if (!updatedShopProductId) throw new NotFoundException('Не удалось удалить изображение продукта');
-      return this.getShopProduct(authedShop, updatedShopProductId);
-
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
-      console.error('Ошибка при удалении изображения продукта:', error);
-      throw new InternalServerErrorException('Ошибка при удалении изображения продукта');
-    } finally {
-      session.endSession();
-    }
-  }
-
-
-  async addNewShopProductImage(
-    authedShop: AuthenticatedUser,
-    authedEmployee: AuthenticatedEmployee,
-    shopProductId: string,
-    newImage: Express.Multer.File
-  ): Promise<ShopProductResponseDto> {
-    const session = await this.shopModel.db.startSession();
-    try {
-      const updatedShopProductId = await session.withTransaction(async () => {
-        // 1) проверки
-        const okEmployee = await checkEntityStatus(
-          this.employeeModel,
-          { _id: new Types.ObjectId(authedEmployee.id), pinnedTo: new Types.ObjectId(authedShop.id) },
-          { session }
-        );
-        if (!okEmployee) throw new NotFoundException('Сотрудник не найден/не привязан/заблокирован/не верифицирован');
-  
-        const okShop = await checkEntityStatus(
-          this.shopModel,
-          { _id: new Types.ObjectId(authedShop.id) },
-          { session }
-        );
-        if (!okShop) throw new NotFoundException('Магазин не найден или недоступен');
-  
-        // 2) получаем текущие ids (без populate)
-        const doc = await this.shopProductModel
-          .findOne({ _id: new Types.ObjectId(shopProductId), pinnedTo: new Types.ObjectId(authedShop.id) })
-          .select('images')
-          .session(session);
-        if (!doc) throw new NotFoundException('Товар не найден в этом магазине');
-  
-        const prevIds = (doc.images ?? []) as Types.ObjectId[];
-  
-        // 3) грузим новое изображение
-        const createdImage = await this.uploadsService.uploadImage({
-          file: newImage,
-          accessLevel: 'public',
-          entityType: EntityType.shopProduct,
-          entityId: doc._id.toString(),
-          imageType: ImageType.shopProductImage,
-          session,
-        });
-  
-        // 4) атомарно добавляем id и обрезаем до 3 штук
-        //    Сохраняем порядок: новые в конец. $slice:-3 оставит последние 3
-        const after = await this.shopProductModel.findOneAndUpdate(
-          { _id: doc._id },
-          { $push: { images: { $each: [createdImage._id], $slice: -3 } } },
-          { session, new: true, select: 'images' }
-        );
-        if (!after) throw new NotFoundException('Не удалось обновить изображения товара');
-  
-        // 5) вычисляем, кто «выпал» при обрезке
-        const nextIds = (after.images ?? []) as Types.ObjectId[];
-        const prevPlusNew = [...prevIds.map(String), createdImage._id.toString()];
-        const kept = new Set(nextIds.map(String));
-        const removedIds = prevPlusNew.filter(id => !kept.has(id));
-  
-        // 6) удаляем лишние файлы (если появились)
-        if (removedIds.length > 0) {
-          await Promise.all(
-            removedIds.map(id => this.uploadsService.deleteFile(id, session).catch(() => {}))
-          );
-        }
-  
-        // 7) лог
-        await this.logsService.addShopProductLog(
-          doc._id.toString(),
-          `
-            Сотрудник ${authedEmployee.employeeName} добавил изображение ${createdImage.filename}
-            ${removedIds.length > 0 ? `и автоматически удалился старейшее изображение ${removedIds.join(', ')}` : ''}
-          `,
-          { logLevel: LogLevel.MEDIUM, forRoles: [UserType.EMPLOYEE, UserType.SHOP, UserType.SELLER], session }
-        );
-  
-        // ответ
-        return doc._id.toString();
-      });
-
-      if (!updatedShopProductId) throw new NotFoundException('Не удалось добавить изображение продукта');
-      return this.getShopProduct(authedShop, updatedShopProductId);
-
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
-      console.error('Ошибка при добавлении изображения продукта:', error);
-      throw new InternalServerErrorException('Ошибка при добавлении изображения продукта');
-    } finally {
-      session.endSession();
-    }
-  }
-
-
-  async updateShopProduct(
-    authedShop: AuthenticatedUser, 
-    authedEmployee: AuthenticatedEmployee,
-    shopProductId: string,
-    dto: UpdateShopProductByEmployeeDto
-  ): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
-
-    const session = await this.shopModel.db.startSession();
-    try {
-      const updatedShopProductId = await session.withTransaction(async () => {
-
-        const okEmployee = await checkEntityStatus(
-          this.employeeModel,
-          { _id: new Types.ObjectId(authedEmployee.id), pinnedTo: new Types.ObjectId(authedShop.id) },
-          { session }
-        );
-        if (!okEmployee) throw new NotFoundException('Сотрудник не найден/не привязан/заблокирован/не верифицирован');
-
-        const okShop = await checkEntityStatus(
-          this.shopModel,
-          { _id: new Types.ObjectId(authedShop.id) },
-          { session }
-        );
-        if (!okShop) throw new NotFoundException('Магазин не найден или недоступен');
-        
-        const foundShopProduct = await this.shopProductModel.findOne({_id: new Types.ObjectId(shopProductId), pinnedTo: new Types.ObjectId(authedShop.id)}).session(session).exec();
-        if (!foundShopProduct) throw new NotFoundException('Товар не найден в этом магазине или недоступен');
-
-        
-        const oldData = foundShopProduct.toObject();
-        const changes: string[] = [];
-        
-        const isStockQuantityChanged = dto.stockQuantity !== undefined && dto.stockQuantity !== foundShopProduct.stockQuantity;
-        const isStatusChanged = dto.status !== undefined && dto.status !== foundShopProduct.status;
-
-        if (isStockQuantityChanged) {
-          foundShopProduct.stockQuantity = dto.stockQuantity!;
-          changes.push(`Количество на складе: ${oldData.stockQuantity} → ${foundShopProduct.stockQuantity}`);
-        }
-        if (isStockQuantityChanged && dto.stockQuantity === 0) {
-          foundShopProduct.status = ShopProductStatus.OUT_OF_STOCK;
-          changes.push(`Статус: ${oldData.status} → ${ShopProductStatus.OUT_OF_STOCK}`);
-        } 
-        else if (isStatusChanged && [ShopProductStatus.ACTIVE, ShopProductStatus.PAUSED].includes(dto.status!)) {
-          foundShopProduct.status = dto.status!;
-          changes.push(`Статус: ${oldData.status} → ${dto.status!}`);
-        }
-        
-        if (changes.length > 0 && foundShopProduct.isModified()) {
-          await foundShopProduct.save();
-          await this.logsService.addShopProductLog(
-            foundShopProduct._id.toString(), 
-            `Сотрудник ${authedEmployee.employeeName} обновил товар:` + changes.join('. '),
-            { forRoles: [UserType.EMPLOYEE, UserType.SHOP, UserType.SELLER], logLevel: LogLevel.MEDIUM },
-          );
-        }
-        return foundShopProduct._id.toString();
-      });
-
-      if (!updatedShopProductId) throw new NotFoundException('Не удалось обновить товар');
-      return this.getShopProduct(authedShop, updatedShopProductId);
-
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) throw error;
-      console.error('Ошибка при обновлении товара:', error);
-      throw new InternalServerErrorException('Ошибка при обновлении товара');
-    } finally {
-      session.endSession();
-    }
-  }
-
-
-  async getShopProductStock(authedShop: AuthenticatedUser, shopProductsStockQuery: ShopProductsStockQueryDto): Promise<CurrentShopProductStockResponseDto[]> {
-    // Проверяем магазин
-    const okShop = await checkEntityStatus(
-      this.shopModel,
-      { _id: new Types.ObjectId(authedShop.id) },
-    );
-    if (!okShop) throw new NotFoundException('Магазин не найден');
-    
-    // Преобразуем строковые ID в ObjectId для поиска
     const shopProductObjectIds = shopProductsStockQuery.shopProductIds.map(id => new Types.ObjectId(id));
-    
-    // Ищем только продукты из списка и выбираем только нужные поля
     const foundShopProducts = await this.shopProductModel
       .find({
-        pinnedTo: new Types.ObjectId(authedShop.id),
+        pinnedTo: new Types.ObjectId(shopProductsStockQuery.shopId),
         _id: { $in: shopProductObjectIds }
       })
       .select('_id shopProductId stockQuantity')
       .lean({ virtuals: true })
       .exec();
     
-    // Преобразуем в DTO и возвращаем
-    return plainToInstance(CurrentShopProductStockResponseDto, foundShopProducts, { excludeExtraneousValues: true });
+    return foundShopProducts;
   }
+
+
+
+  // ====================================================
+  // COMMANDS (Domain Methods)
+  // ====================================================
+
+  async createShopProduct(
+    command: CreateShopProductCommand,
+    options: CommonCommandOptions
+  ): Promise<ShopProduct> {
+    const { shopProductId, payload } = command;
+    checkId([shopProductId, payload.productId, payload.shopId]);
+
+    // Определяем количество и статус
+    const stockQuantity = payload.stockQuantity ?? 0;
+    let status: ShopProductStatus;
+
+    // Логика определения статуса
+    if (stockQuantity === 0) status = ShopProductStatus.OUT_OF_STOCK;
+    else if (payload.status && [ShopProductStatus.ACTIVE, ShopProductStatus.PAUSED].includes(payload.status)) status = payload.status;
+    else if (stockQuantity > 0) status = ShopProductStatus.ACTIVE;
+    else status = ShopProductStatus.PAUSED;
+
+    const shopProductData = {
+      _id: new Types.ObjectId(shopProductId),
+      product: new Types.ObjectId(payload.productId),
+      pinnedTo: new Types.ObjectId(payload.shopId),
+      stockQuantity,
+      status,
+    };
+
+    const createOptions: any = {};
+    if (options.session) createOptions.session = options.session;
+
+    const shopProduct = await this.shopProductModel.create([shopProductData], createOptions).then(docs => docs[0]);
+    return shopProduct;
+  }
+
+
+  async updateShopProduct(
+    command: UpdateShopProductCommand,
+    options: CommonCommandOptions
+  ): Promise<void> {
+    const { shopProductId, payload } = command;
+    checkId([shopProductId]);
+
+    const dbQuery = this.shopProductModel.findById(new Types.ObjectId(shopProductId));
+    if (options.session) dbQuery.session(options.session);
+
+    const shopProduct = await dbQuery.exec();
+    if (!shopProduct) {
+      throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    }
+
+    // Обновляем stockQuantity
+    if (payload.stockQuantity !== undefined) {
+      shopProduct.stockQuantity = payload.stockQuantity;
+      
+      // Автоматически меняем статус если количество = 0
+      if (payload.stockQuantity === 0) {
+        shopProduct.status = ShopProductStatus.OUT_OF_STOCK;
+      }
+    }
+
+    // Обновляем status (если не было автоматически установлено из-за stockQuantity = 0)
+    if (payload.status !== undefined && shopProduct.stockQuantity !== 0) {
+      assignField(shopProduct, 'status', payload.status);
+    }
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+
+    await shopProduct.save(saveOptions);
+  }
+
+
+  async archiveShopProduct(
+    shopProductId: string,
+    options: CommonCommandOptions
+  ): Promise<void> {
+    checkId([shopProductId]);
+
+    const dbQuery = this.shopProductModel.findById(new Types.ObjectId(shopProductId));
+    if (options.session) dbQuery.session(options.session);
+
+    const shopProduct = await dbQuery.exec();
+    if (!shopProduct) {
+      throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    }
+
+    // Удаляем все изображения товара
+    if (shopProduct.images && shopProduct.images.length > 0) {
+      for (const imageId of shopProduct.images) {
+        const deleteImageOptions: any = {};
+        if (options.session) deleteImageOptions.session = options.session;
+        await this.imagesPort.deleteImage(imageId.toString(), deleteImageOptions);
+      }
+      
+      // Очищаем массив изображений
+      shopProduct.images = [];
+    }
+
+    // Устанавливаем статус ARCHIVED
+    shopProduct.status = ShopProductStatus.ARCHIVED;
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+    
+    await shopProduct.save(saveOptions);
+  }
+
+
+  async addShopProductImage(
+    command: AddShopProductImageCommand,
+    options: CommonCommandOptions
+  ): Promise<string> {
+    const { shopProductId, shopProductImageFile } = command;
+    checkId([shopProductId]);
+
+    const dbQuery = this.shopProductModel.findById(new Types.ObjectId(shopProductId));
+    if (options.session) dbQuery.session(options.session);
+
+    const shopProduct = await dbQuery.exec();
+    if (!shopProduct) {
+      throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    }
+
+    // Загружаем изображение
+    const newImageId = new Types.ObjectId();
+    const uploadImageOptions: any = {};
+    if (options.session) uploadImageOptions.session = options.session;
+
+    const uploadCommand = new UploadImageCommand(
+      shopProductImageFile,
+      {
+        imageId: newImageId.toString(),
+        entityId: shopProductId,
+        entityType: ImageEntityType.SHOP_PRODUCT,
+        imageType: ImageType.SHOP_PRODUCT_IMAGE,
+        accessLevel: ImageAccessLevel.PUBLIC,
+      }
+    );
+
+    await this.imagesPort.uploadImage(uploadCommand, uploadImageOptions);
+
+    // Добавляем изображение в массив
+    shopProduct.images.push(newImageId);
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+    await shopProduct.save(saveOptions);
+
+    return newImageId.toString();
+  }
+
+
+  async removeShopProductImage(
+    command: RemoveShopProductImageCommand,
+    options: CommonCommandOptions
+  ): Promise<void> {
+    const { shopProductId, imageId } = command;
+    checkId([shopProductId, imageId]);
+
+    const dbQuery = this.shopProductModel.findById(new Types.ObjectId(shopProductId));
+    if (options.session) dbQuery.session(options.session);
+
+    const shopProduct = await dbQuery.exec();
+    if (!shopProduct) {
+      throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    }
+
+    const imageObjectId = new Types.ObjectId(imageId);
+    const imageIndex = shopProduct.images.findIndex(img => img.equals(imageObjectId));
+    
+    if (imageIndex === -1) {
+      throw new DomainError({ code: 'NOT_FOUND', message: 'Изображение не найдено у данного товара' });
+    }
+
+    // Удаляем изображение из хранилища
+    const deleteImageOptions: any = {};
+    if (options.session) deleteImageOptions.session = options.session;
+    await this.imagesPort.deleteImage(imageId, deleteImageOptions);
+
+    // Удаляем из массива
+    shopProduct.images.splice(imageIndex, 1);
+
+    const saveOptions: any = {};
+    if (options.session) saveOptions.session = options.session;
+    await shopProduct.save(saveOptions);
+  }
+
 }

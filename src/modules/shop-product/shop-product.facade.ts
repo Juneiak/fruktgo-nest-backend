@@ -1,34 +1,54 @@
-// application/seller.facade.ts
 import { Injectable } from '@nestjs/common';
-import { SellerService } from './seller.service';
-import { SellerPort } from './seller.port';
-import { CreateSellerCommand, UpdateSellerCommand, BlockSellerCommand } from './seller.commands';
-import { Seller } from './seller.schema';
+import { ShopProductService } from './shop-product.service';
+import { ShopProductPort } from './shop-product.port';
+import { 
+  CreateShopProductCommand,
+  UpdateShopProductCommand, 
+  ArchiveShopProductCommand,
+  AddShopProductImageCommand,
+  RemoveShopProductImageCommand 
+} from './shop-product.commands';
+import { GetShopProductQuery, GetShopProductsQuery } from './shop-product.queries';
+import { ShopProduct } from './shop-product.schema';
 import { PaginateResult } from 'mongoose';
 import { CommonCommandOptions } from 'src/common/types/comands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
 @Injectable()
-export class SellerFacade implements SellerPort {
-  constructor(private readonly sellerService: SellerService) {}
+export class ShopProductFacade implements ShopProductPort {
+  constructor(private readonly shopProductService: ShopProductService) {}
 
-  async getSeller(sellerId: string, options: CommonQueryOptions): Promise<Seller | null> {
-    return this.sellerService.getSeller(sellerId, options);
+  // ====================================================
+  // QUERIES
+  // ====================================================
+  async getShopProduct(query: GetShopProductQuery, options?: CommonQueryOptions): Promise<ShopProduct | null> {
+    return this.shopProductService.getShopProduct(query, options);
   }
 
-  async getSellers(options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Seller>> {
-    return this.sellerService.getSellers(options);
+  async getShopProducts(query: GetShopProductsQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<ShopProduct>> {
+    return this.shopProductService.getShopProducts(query, options);
   }
 
-  async createSeller(command: CreateSellerCommand, options: CommonCommandOptions): Promise<Seller> {
-    return this.sellerService.createSeller(command, options);
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+  async createShopProduct(command: CreateShopProductCommand, options: CommonCommandOptions): Promise<ShopProduct> {
+    return this.shopProductService.createShopProduct(command, options);
   }
 
-  async updateSeller(command: UpdateSellerCommand, options: CommonCommandOptions): Promise<void> {
-    return this.sellerService.updateSeller(command, options);
+  async updateShopProduct(command: UpdateShopProductCommand, options: CommonCommandOptions): Promise<void> {
+    return this.shopProductService.updateShopProduct(command, options);
   }
 
-  async blockSeller(command: BlockSellerCommand, options: CommonCommandOptions): Promise<void> {
-    return this.sellerService.blockSeller(command, options);
+  async archiveShopProduct(command: ArchiveShopProductCommand, options: CommonCommandOptions): Promise<void> {
+    return this.shopProductService.archiveShopProduct(command, options);
+  }
+
+  async addShopProductImage(command: AddShopProductImageCommand, options: CommonCommandOptions): Promise<string> {
+    return this.shopProductService.addShopProductImage(command, options);
+  }
+
+  async removeShopProductImage(command: RemoveShopProductImageCommand, options: CommonCommandOptions): Promise<void> {
+    return this.shopProductService.removeShopProductImage(command, options);
   }
 }

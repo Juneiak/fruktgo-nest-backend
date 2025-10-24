@@ -1,21 +1,19 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ProductSchema, Product } from './product.schema';
-import { ProductService } from './product.service';
-import { ProductFacade } from './product.facade';
-import { PRODUCT_PORT } from './product.port';
-import { SellerModule } from '../seller/seller.module';
+import { ShiftSchema, Shift } from './shift.schema';
+import { ShiftService } from './shift.service';
+import { ShiftFacade } from './shift.facade';
+import { SHIFT_PORT } from './shift.port';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
-    SellerModule,  // Для доступа к SellerPort
+    MongooseModule.forFeature([{ name: Shift.name, schema: ShiftSchema }]),
   ],
   providers: [
-    ProductService,
-    ProductFacade,
-    { provide: PRODUCT_PORT, useExisting: ProductFacade }
+    ShiftService,
+    ShiftFacade,
+    { provide: SHIFT_PORT, useExisting: ShiftFacade }
   ],
-  exports: [PRODUCT_PORT],
+  exports: [SHIFT_PORT],
 })
-export class ProductModule {}
+export class ShiftModule {}

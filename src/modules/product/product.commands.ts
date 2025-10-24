@@ -9,7 +9,7 @@ export type CreateProductPayload = {
   aboutProduct?: string;
   origin?: string;
   productArticle?: string;
-  cardImage?: Express.Multer.File;
+  cardImageFile?: Express.Multer.File;
 }
 
 export class CreateProductCommand {
@@ -28,7 +28,7 @@ export type UpdateProductPayload = {
   aboutProduct?: string | null;
   origin?: string | null;
   productArticle?: string | null;
-  cardImage?: Express.Multer.File;
+  cardImageFile?: Express.Multer.File;
 }
 
 export class UpdateProductCommand {

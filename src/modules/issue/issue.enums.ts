@@ -23,3 +23,14 @@ export enum IssueStatusFilter {
   ALL = 'all',
   ACTIVE = 'active'
 }
+
+export enum IssueCategory {
+  TECHNICAL = 'technical',       // Технические проблемы
+  PAYMENT = 'payment',           // Проблемы с оплатой
+  DELIVERY = 'delivery',         // Проблемы с доставкой
+  PRODUCT = 'product',           // Проблемы с товаром
+  ACCOUNT = 'account',           // Проблемы с аккаунтом
+  REFUND = 'refund',            // Возврат средств
+  FEATURE_REQUEST = 'feature',   // Запрос функционала
+  OTHER = 'other'                // Прочее
+}
