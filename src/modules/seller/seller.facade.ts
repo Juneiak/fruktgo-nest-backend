@@ -5,7 +5,7 @@ import { SellerPort } from './seller.port';
 import { CreateSellerCommand, UpdateSellerCommand, BlockSellerCommand } from './seller.commands';
 import { Seller } from './seller.schema';
 import { PaginateResult } from 'mongoose';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
 @Injectable()

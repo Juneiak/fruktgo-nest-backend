@@ -2,7 +2,7 @@ import { Issue } from './issue.schema';
 import { PaginateResult } from 'mongoose';
 import { CreateIssueCommand, UpdateIssueCommand } from './issue.commands';
 import { GetIssuesQuery } from './issue.queries';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
 export interface IssuePort {

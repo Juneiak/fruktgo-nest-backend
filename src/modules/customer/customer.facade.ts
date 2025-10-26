@@ -2,7 +2,7 @@
 import { Injectable } from '@nestjs/common';
 import { CustomerPort } from './customer.port';
 import { CustomerService } from './customer.service';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { Customer } from './customer.schema';
 import { PaginateResult } from 'mongoose';

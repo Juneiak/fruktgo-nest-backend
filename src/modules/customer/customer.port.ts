@@ -1,5 +1,5 @@
 // application/customer.port.ts
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { Customer } from './customer.schema';
 import { PaginateResult } from 'mongoose';

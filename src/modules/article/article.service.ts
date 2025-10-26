@@ -1,16 +1,22 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ShopModel, Shop } from './shop.schema';
-import { Types, PaginateResult } from 'mongoose';
-import { CreateShopCommand, UpdateShopCommand, BlockShopCommand } from './shop.commands';
-import { CommonCommandOptions } from 'src/common/types/comands';
-import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { assignField, checkId } from 'src/common/utils';
+import { Article, ArticleModel } from './article.schema';
+import { Types } from 'mongoose';
+import {
+  CreateArticleCommand,
+  UpdateArticleCommand,
+  ChangeArticleStatusCommand,
+} from './article.commands';
+import { GetArticlesQuery } from './article.queries';
+import { CommonQueryOptions } from 'src/common/types/queries';
+import { CommonCommandOptions } from 'src/common/types/commands';
+import { checkId, assignField } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
+import { ArticleStatus, ArticleAuthorType } from './article.enums';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
-import { GetShopsQuery } from './shop.queries';
+
 
 @Injectable()
 export class ArticleService {
@@ -19,183 +25,232 @@ export class ArticleService {
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
   ) {}
 
-  // Создание статьи (только для админов)
+  // ====================================================
+  // QUERIES
+  // ====================================================
+
+  /**
+   * Получить одну статью по ID
+   */
+  async getArticle(
+    articleId: string,
+    options?: CommonQueryOptions
+  ): Promise<Article | null> {
+    checkId([articleId]);
+
+    const dbQuery = this.articleModel.findById(new Types.ObjectId(articleId));
+    if (options?.session) dbQuery.session(options.session);
+
+    const article = await dbQuery.lean({ virtuals: true }).exec();
+    return article;
+  }
+
+  /**
+   * Получить список статей с фильтрами
+   */
+  async getArticles(
+    query: GetArticlesQuery,
+    options?: CommonQueryOptions
+  ): Promise<Article[]> {
+    const { filters } = query;
+
+    const queryFilter: any = {};
+    if (filters?.statuses && filters.statuses.length > 0) queryFilter.status = { $in: filters.statuses };
+    if (filters?.authorType) queryFilter.authorType = filters.authorType;
+    if (filters?.targetAudience) queryFilter.targetAudience = filters.targetAudience;
+    if (filters?.tags && filters.tags.length > 0) {
+      queryFilter.tags = { $in: filters.tags };
+    }
+    if (filters?.fromDate || filters?.toDate) {
+      queryFilter.createdAt = {};
+      if (filters.fromDate) queryFilter.createdAt.$gte = filters.fromDate;
+      if (filters.toDate) queryFilter.createdAt.$lte = filters.toDate;
+    }
+
+    const dbQuery = this.articleModel.find(queryFilter).sort({ createdAt: -1 });
+    if (options?.session) dbQuery.session(options.session);
+
+    const articles = await dbQuery.lean({ virtuals: true }).exec();
+    return articles;
+  }
+
+
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+
+  /**
+   * Создать статью
+   */
   async createArticle(
-    authedAdmin: AuthenticatedUser,
-    dto: CreateArticleDto,
-    articleImage?: Express.Multer.File
-  ): Promise<ArticleFullResponseDto> {
-    const session = await this.articleModel.db.startSession();
-    try {
+    command: CreateArticleCommand,
+    options?: CommonCommandOptions
+  ): Promise<Article> {
+    const { title, content, targetAudience, tags, articleImageFile } = command;
 
-    const createdArticleId = await session.withTransaction(async () => {
-      // 1) создаём статью и сразу сохраняем
-      const article = new this.articleModel({
-        title: dto.title,
-        content: dto.content,
-        contentPreview: dto.content.slice(0, 200),
-        targetAudience: dto.targetAudience,
-        authorType: ArticleAuthorType.ADMIN,
-        status: ArticleStatus.PUBLISHED,
-        publishedAt: new Date(),
-        articleImage: null,
-      });
+    const contentPreview = content.slice(0, 200);
 
-      await article.save({ session });
-
-      // 2) опциональная загрузка изображения
-      if (articleImage) {
-        const createdImage = await this.uploadsService.uploadImage({
-          file: articleImage,
-          accessLevel: 'public',
-          entityType: EntityType.article,
-          entityId: article._id.toString(),
-          imageType: ImageType.articleImage,
-          session,
-        });
-
-        article.articleImage = createdImage._id;
-        await article.save({ session });
-      }
-      return article._id.toString();
+    // Создаем статью без изображения
+    const article = new this.articleModel({
+      title,
+      content,
+      contentPreview,
+      targetAudience,
+      tags,
+      authorType: ArticleAuthorType.ADMIN,
+      status: ArticleStatus.DRAFT,
+      publishedAt: undefined,
+      articleImage: undefined,
+      viewCount: 0,
     });
 
-      if (!createdArticleId) throw new NotFoundException('Не удалось создать статью');
-      return this.getArticleDetail(authedAdmin, createdArticleId);
+    // Загружаем изображение если передано
+    if (articleImageFile) {
+      const uploadedImage = await this.imagesPort.uploadImage(
+        new UploadImageCommand(articleImageFile, {
+          accessLevel: ImageAccessLevel.PUBLIC,
+          entityType: ImageEntityType.ARTICLE,
+          entityId: article._id.toString(),
+          imageType: ImageType.ARTICLE_IMAGE,
+        }),
+        options || {}
+      );
 
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
-      console.error('Ошибка при создании статьи:', error);
-      throw new InternalServerErrorException('Не удалось создать статью');
-    } finally {
-      session.endSession();
+      article.articleImage = new Types.ObjectId(uploadedImage.id);
     }
+
+    const saveOptions: any = {};
+    if (options?.session) saveOptions.session = options.session;
+    await article.save(saveOptions);
+
+    return article.toObject({ virtuals: true });
   }
 
-
-  // Обновление статьи (только для админов)
+  /**
+   * Обновить статью
+   */
   async updateArticle(
-    authedAdmin: AuthenticatedUser,
-    articleId: string,
-    dto: UpdateArticleDto,
-    articleImage?: Express.Multer.File
-  ): Promise<ArticleFullResponseDto> {
+    command: UpdateArticleCommand,
+    options?: CommonCommandOptions
+  ): Promise<void> {
+    const { articleId, title, content, targetAudience, tags, status, articleImageFile } = command;
     checkId([articleId]);
-    
-    const session = await this.articleModel.db.startSession();
-    try {
-      const updatedArticleId = await session.withTransaction(async () => {
-        const article = await this.articleModel.findById(new Types.ObjectId(articleId)).session(session);
-        if (!article) throw new NotFoundException('Статья не найдена');
 
-        if (dto.title !== undefined) article.title = dto.title;
-        if (dto.content !== undefined) {
-          article.content = dto.content;
-          article.contentPreview = dto.content.slice(0, 200);
-        }
-        if (dto.targetAudience !== undefined) article.targetAudience = dto.targetAudience;
-        if (dto.status !== undefined) article.status = dto.status;
-        if (dto.status === ArticleStatus.PUBLISHED && !article.publishedAt) article.publishedAt = new Date();
-        if (articleImage) {
-          const oldImageId = article.articleImage || null;
-          const createdImage = await this.uploadsService.uploadImage({
-            file: articleImage,
-            accessLevel: 'public',
-            entityType: EntityType.article,
-            entityId: article._id.toString(),
-            imageType: ImageType.articleImage,
-            allowedUsers: [{ userId: authedAdmin.id, role: UserType.ADMIN }],
-            session
-          });
-          article.articleImage = createdImage._id;
-          if (oldImageId) await this.uploadsService.deleteFile(oldImageId.toString(), session);
-        }
-        await article.save({ session });
-        return article._id.toString();
-      });
-      if (!updatedArticleId) throw new NotFoundException('Не удалось обновить статью');
-      return this.getArticleDetail(authedAdmin, updatedArticleId);
+    const dbQuery = this.articleModel.findById(new Types.ObjectId(articleId));
+    if (options?.session) dbQuery.session(options.session);
 
-    } catch (error) {
-      if (error instanceof NotFoundException || error instanceof BadRequestException || error instanceof InternalServerErrorException) throw error;
-      console.error('Ошибка при обновлении статьи:', error);
-      throw new InternalServerErrorException('Не удалось обновить статью');
-    } finally {
-      session.endSession();
+    const article = await dbQuery.exec();
+    if (!article) throw DomainError.notFound('Article', articleId);
+
+    assignField(article, 'title', title);
+    if (content !== undefined) {
+      article.content = content;
+      article.contentPreview = content.slice(0, 200);
     }
+    assignField(article, 'targetAudience', targetAudience);
+    assignField(article, 'tags', tags);
+    assignField(article, 'status', status);
+
+    // Работа с изображениями
+    if (articleImageFile !== undefined) {
+      const oldImageId = article.articleImage?.toString();
+
+      if (articleImageFile === null) {
+        // Удалить изображение
+        if (oldImageId) {
+          await this.imagesPort.deleteImage(oldImageId, options || {});
+          article.articleImage = undefined;
+        }
+      } else {
+        // Загрузить новое изображение
+        const uploadedImage = await this.imagesPort.uploadImage(
+          new UploadImageCommand(articleImageFile, {
+            accessLevel: ImageAccessLevel.PUBLIC,
+            entityType: ImageEntityType.ARTICLE,
+            entityId: article._id.toString(),
+            imageType: ImageType.ARTICLE_IMAGE,
+          }),
+          options || {}
+        );
+
+        // Удалить старое изображение если было
+        if (oldImageId) {
+          await this.imagesPort.deleteImage(oldImageId, options || {});
+        }
+
+        article.articleImage = new Types.ObjectId(uploadedImage.id);
+      }
+    }
+
+    // Установить publishedAt при первой публикации
+    if (status === ArticleStatus.PUBLISHED && !article.publishedAt) {
+      article.publishedAt = new Date();
+    }
+
+    const saveOptions: any = {};
+    if (options?.session) saveOptions.session = options.session;
+    await article.save(saveOptions);
   }
 
-
-  // Получение детальной информации о статье (для админов)
-  async getArticleDetail(authedAdmin: AuthenticatedUser, articleId: string): Promise<ArticleFullResponseDto> {
+  /**
+   * Изменить статус статьи
+   */
+  async changeStatus(
+    command: ChangeArticleStatusCommand,
+    options?: CommonCommandOptions
+  ): Promise<void> {
+    const { articleId, status } = command;
     checkId([articleId]);
 
-    const article = await this.articleModel.findById(new Types.ObjectId(articleId)).lean({ virtuals: true }).exec();
-    if (!article) throw new NotFoundException('Статья не найдена');
+    const dbQuery = this.articleModel.findById(new Types.ObjectId(articleId));
+    if (options?.session) dbQuery.session(options.session);
+
+    const article = await dbQuery.exec();
+    if (!article) throw DomainError.notFound('Article', articleId);
+
+    article.status = status;
     
-    return plainToInstance(ArticleFullResponseDto, article, {excludeExtraneousValues: true});
+    // Установить publishedAt при первой публикации
+    if (status === ArticleStatus.PUBLISHED && !article.publishedAt) {
+      article.publishedAt = new Date();
+    }
+
+    const saveOptions: any = {};
+    if (options?.session) saveOptions.session = options.session;
+    await article.save(saveOptions);
   }
 
-
-  // Получение списка всех статей (для админов)
-  async getAllArticles(
-    authedAdmin: AuthenticatedUser,
-    articlesQuery: ArticleQueryDto
-  ): Promise<ArticlePreviewResponseDto[]> {
-    const filter: any = {};
-    if (articlesQuery.targetAudience) filter.targetAudience = articlesQuery.targetAudience;
-    const articles = await this.articleModel.find(filter).sort({ createdAt: -1 }).lean({ virtuals: true }).exec();
-      
-    return plainToInstance(ArticlePreviewResponseDto, articles, {excludeExtraneousValues: true});
-  }
-
-
-  // Архивирование статьи (для админов)
-  async archiveArticle(authedAdmin: AuthenticatedUser, articleId: string): Promise<ArticleFullResponseDto> {
+  /**
+   * Удалить статью
+   */
+  async deleteArticle(
+    articleId: string,
+    options?: CommonCommandOptions
+  ): Promise<void> {
     checkId([articleId]);
-    
-    const article = await this.articleModel.findById(new Types.ObjectId(articleId)).lean({ virtuals: true }).exec();
-    if (!article) throw new NotFoundException('Статья не найдена');
-    
-    article.status = ArticleStatus.ARCHIVED;
-    const updatedArticle = await article.save();
-    
-    return plainToInstance(ArticleFullResponseDto, updatedArticle, {excludeExtraneousValues: true});
+
+    const deleteQuery = this.articleModel.deleteOne({ _id: new Types.ObjectId(articleId) });
+    if (options?.session) deleteQuery.session(options.session);
+
+    const result = await deleteQuery.exec();
+    if (result.deletedCount === 0) throw DomainError.notFound('Article', articleId);
   }
 
-
-
-
-
-
-
-  // Получение опубликованной статьи (для публики)
-  async getPublishedArticle(articleId: string): Promise<ArticleFullResponseDto> {
+  /**
+   * Увеличить счетчик просмотров
+   */
+  async incrementView(
+    articleId: string,
+    options?: CommonCommandOptions
+  ): Promise<void> {
     checkId([articleId]);
-    
-    const article = await this.articleModel.findOne({
-      _id: new Types.ObjectId(articleId),
-      status: ArticleStatus.PUBLISHED
-    }).lean({ virtuals: true }).exec();
-    
-    if (!article) throw new NotFoundException('Статья не найдена');
-    // Увеличиваем счетчик просмотров (отдельный запрос, не в транзакции)
-    await this.articleModel.findByIdAndUpdate(
-      article._id,
+
+    const updateQuery = this.articleModel.findByIdAndUpdate(
+      new Types.ObjectId(articleId),
       { $inc: { viewCount: 1 } }
-    ).exec();
-    
-    return plainToInstance(ArticleFullResponseDto, article, {excludeExtraneousValues: true});
-  }
+    );
+    if (options?.session) updateQuery.session(options.session);
 
-
-  // Получение списка опубликованных статей (для публики)
-  async getPublishedArticles(targetAudience?: ArticleTargetAudience): Promise<ArticlePreviewResponseDto[]> {
-    const filter: any = { status: ArticleStatus.PUBLISHED };
-    if (targetAudience) filter.targetAudience = targetAudience;
-    
-    const articles = await this.articleModel.find(filter).sort({ publishedAt: -1 }).lean({ virtuals: true }).exec();
-      
-    return plainToInstance(ArticlePreviewResponseDto, articles, {excludeExtraneousValues: true});
+    await updateQuery.exec();
   }
 }

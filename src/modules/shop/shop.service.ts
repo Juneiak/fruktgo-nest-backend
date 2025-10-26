@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ShopModel, Shop } from './shop.schema';
 import { Types, PaginateResult } from 'mongoose';
 import { CreateShopCommand, UpdateShopCommand, BlockShopCommand } from './shop.commands';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { assignField, checkId } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
@@ -19,7 +19,49 @@ export class ShopService {
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
   ) {}
 
+  // ====================================================
+  // QUERIES
+  // ==================================================== 
+    async getShops(
+    query: GetShopsQuery,
+    options: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Shop>> {
+    const { filters } = query;
 
+    const queryFilter: any = {};
+    if (filters?.city) queryFilter.city = filters.city;
+    if (filters?.sellerId) queryFilter.owner = new Types.ObjectId(filters.sellerId);
+
+    const queryOptions: any = {
+      page: options.pagination?.page || 1,
+      limit: options.pagination?.pageSize || 10,
+      lean: true, 
+      leanWithId: true,
+      sort: options.sort || { createdAt: -1 }
+    };
+    
+    const result = await this.shopModel.paginate(queryFilter, queryOptions);
+    return result;
+  }
+  
+  
+  async getShop(
+    shopId: string,
+    options: CommonQueryOptions
+  ): Promise<Shop | null> {
+    checkId([shopId]);
+
+    const dbQuery = this.shopModel.findOne({ _id: new Types.ObjectId(shopId) });
+    if (options.session) dbQuery.session(options.session);
+    const shop = await dbQuery.lean({ virtuals: true }).exec();
+
+    return shop;
+  }
+
+
+  // ====================================================
+  // COMMANDS
+  // ==================================================== 
   async createShop(
     command: CreateShopCommand,
     options: CommonCommandOptions
@@ -128,43 +170,6 @@ export class ShopService {
     if (options.session) saveOptions.session = options.session;
     
     await shop.save(saveOptions);
-  }
-
-
-  async getShops(
-    query: GetShopsQuery,
-    options: CommonListQueryOptions<'createdAt'>
-  ): Promise<PaginateResult<Shop>> {
-    const { filters } = query;
-
-    const queryFilter: any = {};
-    if (filters?.city) queryFilter.city = filters.city;
-    if (filters?.sellerId) queryFilter.owner = new Types.ObjectId(filters.sellerId);
-
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
-      lean: true, 
-      leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
-    };
-    
-    const result = await this.shopModel.paginate(queryFilter, queryOptions);
-    return result;
-  }
-  
-  
-  async getShop(
-    shopId: string,
-    options: CommonQueryOptions
-  ): Promise<Shop | null> {
-    checkId([shopId]);
-
-    const dbQuery = this.shopModel.findOne({ _id: new Types.ObjectId(shopId) });
-    if (options.session) dbQuery.session(options.session);
-    const shop = await dbQuery.lean({ virtuals: true }).exec();
-
-    return shop;
   }
 
   

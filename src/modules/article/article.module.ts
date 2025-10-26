@@ -1,19 +1,19 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ArticleSchema } from './article.schema';
-import { BlogPublicService } from './roles/public/blog.public.service';
-import { BlogPublicController } from './roles/public/blog.public.controller';
-import { BlogAdminController } from './roles/admin/blog.admin.controller';
-import { UploadsModule } from 'src/infra/images/images.module';
-import { BlogAdminService } from './roles/admin/blog.admin.service';
+import { Article, ArticleSchema } from './article.schema';
+import { ArticleService } from './article.service';
+import { ArticleFacade } from './article.facade';
+import { ARTICLE_PORT } from './article.port';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: 'Article', schema: ArticleSchema }]),
-    UploadsModule
+    MongooseModule.forFeature([{ name: Article.name, schema: ArticleSchema }]),
   ],
-  controllers: [BlogAdminController, BlogPublicController],
-  providers: [BlogAdminService, BlogPublicService],
-  exports: [],
+  providers: [
+    ArticleService,
+    ArticleFacade,
+    { provide: ARTICLE_PORT, useExisting: ArticleFacade }
+  ],
+  exports: [ARTICLE_PORT],
 })
 export class ArticleModule {}

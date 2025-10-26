@@ -13,7 +13,7 @@ import {
 } from './shift.commands';
 import { Shift } from './shift.schema';
 import { PaginateResult } from 'mongoose';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { GetShiftsQuery } from './shift.queries';
 

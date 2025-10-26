@@ -5,7 +5,7 @@ import { ShiftModel, Shift } from './shift.schema';
 import { checkId, assignField } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { GetShiftsQuery } from './shift.queries';
 import {
   OpenShiftCommand,

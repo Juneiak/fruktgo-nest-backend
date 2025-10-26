@@ -4,7 +4,7 @@ import { ProductPort } from './product.port';
 import { CreateProductCommand, UpdateProductCommand, DeleteProductCommand } from './product.commands';
 import { Product } from './product.schema';
 import { PaginateResult } from 'mongoose';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { GetProductsQuery } from './product.queries';
 

@@ -11,7 +11,7 @@ import {
 import { GetShopProductQuery, GetShopProductsQuery } from './shop-product.queries';
 import { ShopProduct } from './shop-product.schema';
 import { PaginateResult } from 'mongoose';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
 @Injectable()

@@ -1,10 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { MongooseExceptionFilter } from './common/filters/mongo-exception.filter';
 import * as express from 'express';
-import { Reflector } from '@nestjs/core';
 
 import { TelegramEmployeeBotService } from './modules/telegram/employee-bot/telegram-employee-bot.service';
 import { TelegramSellerBotService } from './modules/telegram/seller-bot/telegram-seller-bot.service';

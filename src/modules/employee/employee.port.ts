@@ -1,4 +1,4 @@
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { Employee } from './employee.schema';
 import { PaginateResult } from 'mongoose';

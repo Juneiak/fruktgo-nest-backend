@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { EmployeePort } from './employee.port';
 import { EmployeeService } from './employee.service';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { Employee } from './employee.schema';
 import { PaginateResult } from 'mongoose';

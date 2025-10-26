@@ -2,7 +2,7 @@ import { Shop } from './shop.schema';
 import { PaginateResult } from 'mongoose';
 import { CreateShopCommand, UpdateShopCommand, BlockShopCommand } from './shop.commands';
 import { GetShopsQuery } from './shop.queries';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
 export interface ShopPort {

@@ -10,7 +10,7 @@ import {
   AbandonShiftCommand,
   UpdateStatisticsCommand
 } from './shift.commands';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { GetShiftsQuery } from './shift.queries';
 

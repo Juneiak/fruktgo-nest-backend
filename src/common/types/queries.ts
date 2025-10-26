@@ -11,7 +11,9 @@ export interface PaginationOptions {
 export interface CommonListQueryOptions<K extends string> {
   pagination?: PaginationOptions;
   sort?: Sortable<K>;
+  session?: ClientSession;
 }
+
 
 export interface CommonQueryOptions {
   session?: ClientSession;

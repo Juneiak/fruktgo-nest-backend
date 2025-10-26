@@ -1,7 +1,7 @@
 import { Seller } from './seller.schema';
 import { PaginateResult } from 'mongoose';
 import { CreateSellerCommand, UpdateSellerCommand, BlockSellerCommand } from './seller.commands';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
 export interface SellerPort {

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { GetEmployeeQuery, GetEmployeesQuery } from './employee.queries';
 import { checkId, assignField } from 'src/common/utils';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { PaginateResult, Types } from 'mongoose';
 import { EmployeeModel, Employee } from './employee.schema';

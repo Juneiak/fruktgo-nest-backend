@@ -3,7 +3,7 @@ import { ImagesPort } from './images.port';
 import { UpdateImageCommand, UploadImageCommand } from './images.commands';
 import { Image } from './image.schema';
 import { LocalImagesService } from './local-images.service';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { GetImageBufferQuery } from './images.queries';
 import { CommonQueryOptions } from 'src/common/types/queries';
 import { ImageSize } from './images.enums';

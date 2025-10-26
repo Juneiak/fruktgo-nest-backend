@@ -3,7 +3,7 @@ import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/que
 import { Log } from './log.schema';
 import { CreateLogCommand, DeleteAllEntityLogsCommand } from './logs.commands';
 import { GetEntityLogsQuery } from './logs.queries';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 
 export interface LogsPort {
   // ====================================================

@@ -4,9 +4,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
 import { CustomerAuthModule } from './modules/auth/customer-auth/customer-auth.module';
 import { SellerAuthModule } from './modules/auth/seller-auth/seller-auth.module';
 import { EmployeeAuthModule } from './modules/auth/employee-auth/employee-auth.module';
@@ -69,9 +66,7 @@ import { DomainErrorFilter } from 'src/common/errors/domain-error.filter';
     HttpApiModule,
     WsModule
   ],
-  controllers: [AppController],
   providers: [
-    AppService,
     { provide: APP_FILTER, useClass: DomainErrorFilter }
   ],
 })

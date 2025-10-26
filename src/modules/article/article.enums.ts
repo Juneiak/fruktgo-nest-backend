@@ -1,20 +1,24 @@
+import { UserType } from 'src/common/enums/common.enum';
+
 // Тип автора статьи
 export enum ArticleAuthorType {
-  ADMIN = 'Admin',  // Статья от администратора
+  ADMIN = UserType.ADMIN,  // Статья от администратора
 }
 
 // Статус статьи
 export enum ArticleStatus {
-  PUBLISHED = 'published', // Опубликована
-  ARCHIVED = 'archived'  // Архивная
+  DRAFT = 'draft',           // Черновик
+  PUBLISHED = 'published',   // Опубликована
+  HIDDEN = 'hidden',         // Скрыта
+  ARCHIVED = 'archived'      // Архивирована
 }
 
 // Целевая аудитория статьи
 export enum ArticleTargetAudience {
   ALL = 'all',         // Для всех пользователей
-  SELLERS = 'sellers', // Только для продавцов
-  EMPLOYEES = 'employees', // Только для сотрудников
-  CUSTOMERS = 'customers'  // Только для клиентов
+  SELLERS = UserType.SELLER, // Только для продавцов
+  EMPLOYEES = UserType.EMPLOYEE, // Только для сотрудников
+  CUSTOMERS = UserType.CUSTOMER  // Только для клиентов
 }
 
 export enum ArtcilesTag {
@@ -31,3 +35,5 @@ export enum ArtcilesTag {
   VEGETABLES = 'vegetables',       // Об овощах
   EXOTIC = 'exotic'                // Экзотические продукты
 }
+
+

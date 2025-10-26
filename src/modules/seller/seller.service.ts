@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { SellerModel, Seller } from './seller.schema';
 import { Types, PaginateResult } from 'mongoose';
 import { CreateSellerCommand, UpdateSellerCommand, BlockSellerCommand } from './seller.commands';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { assignField, checkId, parcePhoneNumber } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
@@ -16,7 +16,36 @@ export class SellerService {
   constructor(
     @InjectModel(Seller.name) private readonly sellerModel: SellerModel,
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
-  ) {}
+  ) { }
+  
+
+  async getSellers(
+    options: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Seller>> {
+    
+    const queryOptions: any = {
+      page: options.pagination?.page || 1,
+      limit: options.pagination?.pageSize || 10,
+      lean: true, leanWithId: true,
+      sort: options.sort || { createdAt: -1 }
+    };
+    
+    const result = await this.sellerModel.paginate({}, queryOptions);
+    return result;
+  }
+  
+  
+  async getSeller(
+    sellerId: string,
+    options: CommonQueryOptions
+  ): Promise<Seller | null> {
+
+    const dbQuery = this.sellerModel.findOne({ _id: new Types.ObjectId(sellerId) });
+    if (options.session) dbQuery.session(options.session);
+    const seller = await dbQuery.lean({ virtuals: true }).exec()
+
+    return seller;
+  }
 
 
   async createSeller(
@@ -170,35 +199,6 @@ export class SellerService {
     if (options.session) saveOptions.session = options.session;
     
     await seller.save(saveOptions);
-  }
-
-
-  async getSellers(
-    options: CommonListQueryOptions<'createdAt'>
-  ): Promise<PaginateResult<Seller>> {
-    
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
-      lean: true, leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
-    };
-    
-    const result = await this.sellerModel.paginate({}, queryOptions);
-    return result;
-  }
-  
-  
-  async getSeller(
-    sellerId: string,
-    options: CommonQueryOptions
-  ): Promise<Seller | null> {
-
-    const dbQuery = this.sellerModel.findOne({ _id: new Types.ObjectId(sellerId) });
-    if (options.session) dbQuery.session(options.session);
-    const seller = await dbQuery.lean({ virtuals: true }).exec()
-
-    return seller;
   }
 
   

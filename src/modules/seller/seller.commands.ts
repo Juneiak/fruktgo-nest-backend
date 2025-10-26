@@ -1,5 +1,5 @@
 import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { BlockPayload } from 'src/common/types/comands';
+import { BlockPayload } from 'src/common/types/commands';
 
 export type CreateSellerPayload = {
   sellerAccountId: string;

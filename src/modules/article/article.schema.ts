@@ -1,8 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Types, Model } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import { ArticleAuthorType, ArticleStatus, ArticleTargetAudience, ArtcilesTag } from './article.enums';
-import { Image } from 'src/infra/images/infrastructure/image.schema';
+import { Image } from 'src/infra/images/image.schema';
 
 @Schema({
   toJSON: { virtuals: true },
@@ -35,7 +35,7 @@ export class Article extends Document {
   @Prop({ type: [String], enum: ArtcilesTag, default: () => [] })
   tags: ArtcilesTag[];
 
-  @Prop({ type: String, enum: ArticleStatus, required: true, default: ArticleStatus.PUBLISHED })
+  @Prop({ type: String, enum: ArticleStatus, required: true, default: ArticleStatus.DRAFT })
   status: ArticleStatus;
 
   @Prop({ type: String, enum: ArticleTargetAudience, required: true, default: ArticleTargetAudience.ALL })
@@ -57,3 +57,5 @@ ArticleSchema.plugin(mongooseLeanVirtuals as any);
 ArticleSchema.virtual('articleId').get(function (this: Article): string {
   return this._id.toString();
 });
+
+export type ArticleModel = Model<Article>;

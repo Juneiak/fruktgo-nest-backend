@@ -6,7 +6,7 @@ import { PaginateResult } from 'mongoose';
 import { UserType } from "src/common/enums/common.enum";
 import { CreateLogCommand, DeleteAllEntityLogsCommand } from './logs.commands';
 import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { GetEntityLogsQuery } from './logs.queries';
 import { DomainError } from 'src/common/errors/domain-error';
 import { checkId } from 'src/common/utils';

@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { PositiveFeedbackTag, NegativeFeedbackTag } from './order.enums';
+import { PositiveFeedbackTag, NegativeFeedbackTag, EventActorType, OrderEventActorType } from './order.enums';
 import { Shop } from 'src/modules/shop/shop.schema';
 import { Image } from 'src/infra/images/image.schema';
 import { ShopProduct } from '../shop-product/shop-product.schema';
@@ -12,7 +12,8 @@ import { Shift } from 'src/modules/shift/shift.schema';
 import {
   OrderStatus,
   OrderCancelReason,
-  OrderDeclineReason
+  OrderDeclineReason,
+  OrderEventType
 } from './order.enums';
 import {
   ProductCategory,
@@ -58,8 +59,6 @@ export interface HandledBy {
 }
 
 
-
-
 // finance
 const OrderFinancesSchema = {
   totalCartSum: { type: Number, required: true, default: 0, min: 0 },
@@ -94,6 +93,35 @@ export interface OrderRating {
   feedbackAt: Date | null;
   feedbackTags: (PositiveFeedbackTag | NegativeFeedbackTag)[];
   feedbackComment: string;
+}
+
+// Order Event (Event Sourcing)
+const OrderEventSchema = {
+  type: { type: String, enum: Object.values(OrderEventType), required: true },
+  timestamp: { type: Date, required: true, default: () => new Date() },
+  actor: {
+    type: { type: String, enum: Object.values(OrderEventActorType), required: true },
+    id: { type: Types.ObjectId, required: true },
+    name: { type: String, required: false }
+  },
+  data: { type: Object, required: false }, // Дополнительные данные события
+  metadata: { type: Object, required: false }, // Метаданные (например, IP, user-agent)
+  _id: true // Оставляем _id для событий для уникальности
+};
+
+export interface OrderEventActor {
+  type?: OrderEventActorType;
+  id?: Types.ObjectId;
+  name?: string;
+}
+
+export interface OrderEvent {
+  _id: Types.ObjectId;
+  type: OrderEventType;
+  timestamp: Date;
+  actor?: OrderEventActor;
+  data?: Record<string, any>;
+  metadata?: Record<string, any>;
 }
 
 // delivery
@@ -161,41 +189,12 @@ export class Order {
   @Prop({ type: Date, required: true })
   orderedAt: Date;
 
-  @Prop({ type: Date, required: false, default: null })
-  acceptedAt: Date | null;
-
-  @Prop({ type: Date, required: false, default: null })
-  assembledAt: Date | null;
-
-  @Prop({ type: Date, required: false, default: null })
-  courierCalledAt: Date | null;
-
-  @Prop({ type: Date, required: false, default: null })
-  handedToCourierAt: Date | null;
-
-  @Prop({ type: Date, required: false, default: null })
-  deliveredAt: Date | null;
-
-  @Prop({ type: Date, required: false, default: null })
-  canceledAt: Date | null;
-
-  @Prop({ type: String, enum: OrderCancelReason, required: false, default: null })
-  canceledReason: OrderCancelReason | null;
-
-  @Prop({ type: String, required: false, default: null })
-  canceledComment: string | null;
-
-  @Prop({ type: Date, required: false, default: null })
-  declinedAt: Date | null;
-
-  @Prop({ type: String, enum: OrderDeclineReason, required: false, default: null })
-  declinedReason: OrderDeclineReason | null;
-
-  @Prop({ type: String, required: false, default: null })
-  declinedComment: string | null;
-
-  @Prop({ type: String, required: false, default: null })
+  @Prop({ type: String, default: null })
   customerComment: string | null;
+
+  // Events (Event Sourcing)
+  @Prop({ type: [OrderEventSchema], default: [] })
+  events: OrderEvent[];
 
   @Prop({ type: HandledBySchema, required: false, default: null })
   handledBy: HandledBy | null;
@@ -215,7 +214,6 @@ export class Order {
   // products
   @Prop({ type: [OrderProductSchema], required: true, default: [] })
   products: OrderProduct[]
-
 };
 
 

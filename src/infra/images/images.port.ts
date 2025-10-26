@@ -1,7 +1,7 @@
 import { Image } from './image.schema';
 import { UploadImageCommand, UpdateImageCommand } from './images.commands';
 import { GetImageBufferQuery } from './images.queries';
-import { CommonCommandOptions } from 'src/common/types/comands';
+import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonQueryOptions } from 'src/common/types/queries';
 import { ImageSize } from './images.enums';
 
