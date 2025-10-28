@@ -20,4 +20,4 @@ import { LOGS_PORT } from './logs.port';
   ],
   exports: [LOGS_PORT],
 })
-export class LogModule {}
+export class LogsModule {}

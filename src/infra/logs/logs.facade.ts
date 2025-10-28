@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { ClientSession, PaginateResult } from 'mongoose';
+import { PaginateResult } from 'mongoose';
 import { LogsService } from './logs.service';
 import { LogsPort } from './logs.port';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { Log } from '../infrastructure/log.schema';
+import { Log } from './log.schema';
 import { CreateLogCommand, DeleteAllEntityLogsCommand } from './logs.commands';
 import { GetEntityLogsQuery } from './logs.queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
@@ -12,32 +12,30 @@ import { CommonCommandOptions } from 'src/common/types/commands';
 export class LogsFacade implements LogsPort {
   constructor(private readonly logsService: LogsService) {}
 
-
-  // ====================================================
-  // COMMANDS
-  // ====================================================
-  async createLog(command: CreateLogCommand, options: CommonCommandOptions): Promise<Log> {
-    return this.logsService.createLog(command, { session: options?.session });
-  }
-
-  async deleteLog(logId: string, options: CommonCommandOptions): Promise<void> {
-    return this.logsService.deleteLog(logId, options);
-  }
-
-  async deleteAllEntityLogs(command: DeleteAllEntityLogsCommand, options: CommonCommandOptions): Promise<void> {
-    return this.logsService.deleteAllEntityLogs(command, options);
-  }
-
-  
-
   // ====================================================
   // QUERIES
   // ====================================================
-  async getEntityLogs(query: GetEntityLogsQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Log>> {
-    return this.logsService.getEntityLogs(query, options);
+  async getEntityLogs(query: GetEntityLogsQuery, queryOptions: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Log>> {
+    return this.logsService.getEntityLogs(query, queryOptions);
   }
 
-  async getLog(logId: string, options: CommonQueryOptions): Promise<Log | null> {
-    return this.logsService.getLog(logId, options);
+  async getLog(logId: string, queryOptions: CommonQueryOptions): Promise<Log | null> {
+    return this.logsService.getLog(logId, queryOptions);
+  }
+
+  
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+  async createLog(command: CreateLogCommand, commandOptions: CommonCommandOptions): Promise<Log> {
+    return this.logsService.createLog(command, commandOptions);
+  }
+
+  async deleteLog(logId: string, commandOptions: CommonCommandOptions): Promise<void> {
+    return this.logsService.deleteLog(logId, commandOptions);
+  }
+
+  async deleteAllEntityLogs(command: DeleteAllEntityLogsCommand, commandOptions: CommonCommandOptions): Promise<void> {
+    return this.logsService.deleteAllEntityLogs(command, commandOptions);
   }
 }

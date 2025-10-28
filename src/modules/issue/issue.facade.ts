@@ -13,24 +13,37 @@ export class IssueFacade implements IssuePort {
   constructor(private readonly issueService: IssueService) {}
 
   // ====================================================
-  // COMMANDS
-  // ====================================================
-  async createIssue(command: CreateIssueCommand, options: CommonCommandOptions): Promise<Issue> {
-    return this.issueService.createIssue(command, options);
-  }
-
-  async updateIssue(command: UpdateIssueCommand, options: CommonCommandOptions): Promise<Issue> {
-    return this.issueService.updateIssue(command, options);
-  }
-
-  // ====================================================
   // QUERIES
   // ====================================================
-  async getIssue(issueId: string, options?: CommonQueryOptions): Promise<Issue | null> {
-    return this.issueService.getIssue(issueId, options);
+  async getIssue(
+    issueId: string,
+    queryOptions?: CommonQueryOptions
+  ): Promise<Issue | null> {
+    return this.issueService.getIssue(issueId, queryOptions);
   }
 
-  async getPaginatedIssues(query: GetIssuesQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Issue>> {
-    return this.issueService.getPaginatedIssues(query, options);
+  async getPaginatedIssues(
+    query: GetIssuesQuery,
+    queryOptions?: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Issue>> {
+    return this.issueService.getPaginatedIssues(query, queryOptions);
+  }
+
+
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+  async createIssue(
+    command: CreateIssueCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<Issue> {
+    return this.issueService.createIssue(command, commandOptions);
+  }
+
+  async updateIssue(
+    command: UpdateIssueCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<Issue> {
+    return this.issueService.updateIssue(command, commandOptions);
   }
 }

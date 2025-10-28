@@ -28,47 +28,41 @@ export class ArticleService {
   // ====================================================
   // QUERIES
   // ====================================================
-
-  /**
-   * Получить одну статью по ID
-   */
   async getArticle(
     articleId: string,
-    options?: CommonQueryOptions
+    queryOptions?: CommonQueryOptions
   ): Promise<Article | null> {
     checkId([articleId]);
 
     const dbQuery = this.articleModel.findById(new Types.ObjectId(articleId));
-    if (options?.session) dbQuery.session(options.session);
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
 
     const article = await dbQuery.lean({ virtuals: true }).exec();
     return article;
   }
 
-  /**
-   * Получить список статей с фильтрами
-   */
+
   async getArticles(
     query: GetArticlesQuery,
-    options?: CommonQueryOptions
+    queryOptions?: CommonQueryOptions
   ): Promise<Article[]> {
     const { filters } = query;
 
-    const queryFilter: any = {};
-    if (filters?.statuses && filters.statuses.length > 0) queryFilter.status = { $in: filters.statuses };
-    if (filters?.authorType) queryFilter.authorType = filters.authorType;
-    if (filters?.targetAudience) queryFilter.targetAudience = filters.targetAudience;
+    const dbQueryFilter: any = {};
+    if (filters?.statuses && filters.statuses.length > 0) dbQueryFilter.status = { $in: filters.statuses };
+    if (filters?.authorType) dbQueryFilter.authorType = filters.authorType;
+    if (filters?.targetAudience) dbQueryFilter.targetAudience = filters.targetAudience;
     if (filters?.tags && filters.tags.length > 0) {
-      queryFilter.tags = { $in: filters.tags };
+      dbQueryFilter.tags = { $in: filters.tags };
     }
     if (filters?.fromDate || filters?.toDate) {
-      queryFilter.createdAt = {};
-      if (filters.fromDate) queryFilter.createdAt.$gte = filters.fromDate;
-      if (filters.toDate) queryFilter.createdAt.$lte = filters.toDate;
+      dbQueryFilter.createdAt = {};
+      if (filters.fromDate) dbQueryFilter.createdAt.$gte = filters.fromDate;
+      if (filters.toDate) dbQueryFilter.createdAt.$lte = filters.toDate;
     }
 
-    const dbQuery = this.articleModel.find(queryFilter).sort({ createdAt: -1 });
-    if (options?.session) dbQuery.session(options.session);
+    const dbQuery = this.articleModel.find(dbQueryFilter).sort({ createdAt: -1 });
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
 
     const articles = await dbQuery.lean({ virtuals: true }).exec();
     return articles;
@@ -78,170 +72,160 @@ export class ArticleService {
   // ====================================================
   // COMMANDS
   // ====================================================
-
-  /**
-   * Создать статью
-   */
   async createArticle(
     command: CreateArticleCommand,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<Article> {
-    const { title, content, targetAudience, tags, articleImageFile } = command;
+    const { payload, articleId } = command;
 
-    const contentPreview = content.slice(0, 200);
+    const articleIdToCreate = articleId ? new Types.ObjectId(articleId) : new Types.ObjectId();
 
-    // Создаем статью без изображения
-    const article = new this.articleModel({
-      title,
-      content,
-      contentPreview,
-      targetAudience,
-      tags,
+    // Создаем статью с указанным ID или автоматическим
+    const articleData: any = {
+      _id: articleIdToCreate,
+      title: payload.title,
+      content: payload.content,
+      contentPreview: payload.content.slice(0, 200),
+      targetAudience: payload.targetAudience,
+      tags: payload.tags,
       authorType: ArticleAuthorType.ADMIN,
       status: ArticleStatus.DRAFT,
       publishedAt: undefined,
-      articleImage: undefined,
       viewCount: 0,
-    });
+    };
 
     // Загружаем изображение если передано
-    if (articleImageFile) {
-      const uploadedImage = await this.imagesPort.uploadImage(
-        new UploadImageCommand(articleImageFile, {
+    if (payload.articleImageFile) {
+      const imageId = new Types.ObjectId();
+      await this.imagesPort.uploadImage(
+        new UploadImageCommand(imageId.toString(), {
+          imageFile: payload.articleImageFile,
           accessLevel: ImageAccessLevel.PUBLIC,
           entityType: ImageEntityType.ARTICLE,
-          entityId: article._id.toString(),
+          entityId: articleIdToCreate.toString(),
           imageType: ImageType.ARTICLE_IMAGE,
         }),
-        options || {}
+        commandOptions
       );
 
-      article.articleImage = new Types.ObjectId(uploadedImage.id);
+      articleData.articleImage = imageId;
     }
 
-    const saveOptions: any = {};
-    if (options?.session) saveOptions.session = options.session;
-    await article.save(saveOptions);
+    const createOptions: any = {};
+    if (commandOptions?.session) createOptions.session = commandOptions.session;
+    const article = await this.articleModel.create([articleData], createOptions).then(docs => docs[0]);
 
     return article.toObject({ virtuals: true });
   }
 
-  /**
-   * Обновить статью
-   */
+
   async updateArticle(
     command: UpdateArticleCommand,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
-    const { articleId, title, content, targetAudience, tags, status, articleImageFile } = command;
+    const { articleId, payload } = command;
     checkId([articleId]);
 
     const dbQuery = this.articleModel.findById(new Types.ObjectId(articleId));
-    if (options?.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
     const article = await dbQuery.exec();
     if (!article) throw DomainError.notFound('Article', articleId);
 
-    assignField(article, 'title', title);
-    if (content !== undefined) {
-      article.content = content;
-      article.contentPreview = content.slice(0, 200);
+    assignField(article, 'title', payload.title);
+    assignField(article, 'targetAudience', payload.targetAudience);
+    assignField(article, 'tags', payload.tags);
+    assignField(article, 'status', payload.status);
+    if (payload.content !== undefined) {
+      article.content = payload.content;
+      article.contentPreview = payload.content.slice(0, 200);
     }
-    assignField(article, 'targetAudience', targetAudience);
-    assignField(article, 'tags', tags);
-    assignField(article, 'status', status);
-
+    
     // Работа с изображениями
-    if (articleImageFile !== undefined) {
+    if (payload.articleImageFile !== undefined) {
       const oldImageId = article.articleImage?.toString();
 
-      if (articleImageFile === null) {
+      if (payload.articleImageFile === null) {
         // Удалить изображение
         if (oldImageId) {
-          await this.imagesPort.deleteImage(oldImageId, options || {});
+          await this.imagesPort.deleteImage(oldImageId, commandOptions);
           article.articleImage = undefined;
         }
       } else {
         // Загрузить новое изображение
-        const uploadedImage = await this.imagesPort.uploadImage(
-          new UploadImageCommand(articleImageFile, {
+        const imageId = new Types.ObjectId();
+        await this.imagesPort.uploadImage(
+          new UploadImageCommand(imageId.toString(), {
+            imageFile: payload.articleImageFile,
             accessLevel: ImageAccessLevel.PUBLIC,
             entityType: ImageEntityType.ARTICLE,
             entityId: article._id.toString(),
             imageType: ImageType.ARTICLE_IMAGE,
           }),
-          options || {}
+          commandOptions
         );
 
         // Удалить старое изображение если было
-        if (oldImageId) {
-          await this.imagesPort.deleteImage(oldImageId, options || {});
-        }
+        if (oldImageId) await this.imagesPort.deleteImage(oldImageId, commandOptions);
 
-        article.articleImage = new Types.ObjectId(uploadedImage.id);
+        article.articleImage = imageId;
       }
     }
 
     // Установить publishedAt при первой публикации
-    if (status === ArticleStatus.PUBLISHED && !article.publishedAt) {
+    if (payload.status === ArticleStatus.PUBLISHED && !article.publishedAt) {
       article.publishedAt = new Date();
     }
 
     const saveOptions: any = {};
-    if (options?.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
     await article.save(saveOptions);
   }
 
-  /**
-   * Изменить статус статьи
-   */
+  
   async changeStatus(
     command: ChangeArticleStatusCommand,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
-    const { articleId, status } = command;
+    const { articleId, payload } = command;
     checkId([articleId]);
 
     const dbQuery = this.articleModel.findById(new Types.ObjectId(articleId));
-    if (options?.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
     const article = await dbQuery.exec();
     if (!article) throw DomainError.notFound('Article', articleId);
 
-    article.status = status;
+    article.status = payload.status;
     
     // Установить publishedAt при первой публикации
-    if (status === ArticleStatus.PUBLISHED && !article.publishedAt) {
+    if (payload.status === ArticleStatus.PUBLISHED && !article.publishedAt) {
       article.publishedAt = new Date();
     }
 
     const saveOptions: any = {};
-    if (options?.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
     await article.save(saveOptions);
   }
 
-  /**
-   * Удалить статью
-   */
+
   async deleteArticle(
     articleId: string,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     checkId([articleId]);
 
     const deleteQuery = this.articleModel.deleteOne({ _id: new Types.ObjectId(articleId) });
-    if (options?.session) deleteQuery.session(options.session);
+    if (commandOptions?.session) deleteQuery.session(commandOptions.session);
 
     const result = await deleteQuery.exec();
     if (result.deletedCount === 0) throw DomainError.notFound('Article', articleId);
   }
 
-  /**
-   * Увеличить счетчик просмотров
-   */
+
   async incrementView(
     articleId: string,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     checkId([articleId]);
 
@@ -249,7 +233,7 @@ export class ArticleService {
       new Types.ObjectId(articleId),
       { $inc: { viewCount: 1 } }
     );
-    if (options?.session) updateQuery.session(options.session);
+    if (commandOptions?.session) updateQuery.session(commandOptions.session);
 
     await updateQuery.exec();
   }

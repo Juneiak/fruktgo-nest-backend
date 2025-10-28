@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
-import { Model, Types, ClientSession } from "mongoose";
+import { Model, Types } from "mongoose";
 import { promises as fs } from "fs";
 import { join, extname } from "path";
 import * as sharp from "sharp";
@@ -19,7 +19,7 @@ import {
 } from "./images.constants";
 import { UpdateImageCommand, UploadImageCommand } from "./images.commands";
 import { GetImageBufferQuery } from "./images.queries";
-import { CommonCommandOptions } from "src/common/types/comands";
+import { CommonCommandOptions } from "src/common/types/commands";
 import { CommonQueryOptions } from "src/common/types/queries";
 import { DomainError } from "src/common/errors/domain-error";
 import { assignField } from "src/common/utils";
@@ -191,24 +191,24 @@ export class LocalImagesService {
 
   async uploadImage(
     command: UploadImageCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<Image> {
-    const { imageFile, payload } = command;
+    const { imageId, payload } = command;
     
     // Валидируем файл
-    this.validateFile(imageFile);
+    this.validateFile(payload.imageFile);
 
     // Получаем метаданные изображения
-    const { width } = await this.getImageMetadata(imageFile.buffer);
+    const { width } = await this.getImageMetadata(payload.imageFile.buffer);
 
     // Определяем размеры для генерации
     const sizes = payload.sizes || DEFAULT_IMAGE_SIZES;
 
     // Генерируем версии изображения
-    const imageSizes = await this.generateImageSizes(imageFile.buffer, width, sizes);
+    const imageSizes = await this.generateImageSizes(payload.imageFile.buffer, width, sizes);
 
     // Используем предоставленный imageId или генерируем новый
-    const finalImageId = payload.imageId ? new Types.ObjectId(payload.imageId) : new Types.ObjectId();
+    const finalImageId = imageId ? new Types.ObjectId(imageId) : new Types.ObjectId();
     const filename = `${finalImageId.toString()}.webp`;
 
     // Сохраняем все версии
@@ -234,7 +234,7 @@ export class LocalImagesService {
       const imageData: any = {
         _id: finalImageId,
         filename,
-        originalFilename: imageFile.originalname,
+        originalFilename: payload.imageFile.originalname,
         accessLevel: payload.accessLevel,
         entityType: payload.entityType,
         entityId: payload.entityId ? new Types.ObjectId(payload.entityId) : undefined,
@@ -247,7 +247,7 @@ export class LocalImagesService {
       };
 
       const queryOptions: any = {};
-      if (options.session) queryOptions.session = options.session;
+      if (commandOptions?.session) queryOptions.session = commandOptions.session;
 
       const image = await this.imageModel.create([imageData], queryOptions).then(docs => docs[0]);
       
@@ -265,12 +265,12 @@ export class LocalImagesService {
 
   async updateImage(
     command: UpdateImageCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<Image> {
     const { imageId, payload } = command;
 
     const dbQuery = this.imageModel.findById(imageId);
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const image = await dbQuery.exec();
     if (!image) throw new DomainError({ code: 'NOT_FOUND', message: 'Изображение не найдено' });
@@ -296,7 +296,7 @@ export class LocalImagesService {
     }
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
     
     await image.save(saveOptions);
     return image;
@@ -305,7 +305,7 @@ export class LocalImagesService {
 
   async getImageBuffer(
     query: GetImageBufferQuery,
-    options: CommonQueryOptions
+    queryOptions?: CommonQueryOptions
   ): Promise<Buffer> {
     const image = await this.getImage(query.imageId);
     const size = query.size || ImageSize.MD;
@@ -326,13 +326,13 @@ export class LocalImagesService {
 
   async deleteImage(
     imageId: string,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     const image = await this.getImage(imageId);
     
     // Удаляем запись из БД
     const deleteOptions: any = {};
-    if (options.session) deleteOptions.session = options.session;
+    if (commandOptions?.session) deleteOptions.session = commandOptions.session;
     
     await this.imageModel.findByIdAndDelete(image._id, deleteOptions).exec();
     

@@ -23,7 +23,6 @@ interface EmployeeStatistics {
   shiftRating: number;
 };
 
-
 @Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true },
@@ -48,10 +47,10 @@ export class Employee {
   @Prop({ type: String, required: true })
   employeeName: string;
 
-  @Prop({ type: String, required: true })
-  phoneNumber: string;
+  @Prop({ type: String, unique: true })
+  phone: string;
   
-  @Prop({ type: Number, unique: true, required: true })
+  @Prop({ type: Number, unique: true })
   telegramId: number;
 
   @Prop({ type: String })

@@ -17,60 +17,72 @@ export class EmployeeService {
   ) {}
 
 
+  // ====================================================
+  // QUERIES
+  // ====================================================
   async getEmployees(
     query: GetEmployeesQuery,
-    options: CommonListQueryOptions<'createdAt'>
+    queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Employee>> {
-    checkId([query.sellerId, query.shopId]);
 
-    const queryFilter: any = {};
-    if (query.shopId) queryFilter.pinnedTo = new Types.ObjectId(query.shopId);
-    if (query.sellerId) queryFilter.employer = new Types.ObjectId(query.sellerId);
+    const { filters } = query;
 
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
+    const dbQueryFilter: any = {};
+    if (filters?.shopId) dbQueryFilter.pinnedTo = new Types.ObjectId(filters.shopId);
+    if (filters?.sellerId) dbQueryFilter.employer = new Types.ObjectId(filters.sellerId);
+    if (filters?.verifiedStatuses) dbQueryFilter.verifiedStatus = { $in: filters.verifiedStatuses };
+    if (filters?.blockedStatuses) dbQueryFilter.blocked.status = { $in: filters.blockedStatuses };
+    if (filters?.sexes) dbQueryFilter.sex = { $in: filters.sexes };
+    if (filters?.statuses) dbQueryFilter.status = { $in: filters.statuses };
+    
+    const dbQueryOptions: any = {
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
       lean: true, leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
+      sort: queryOptions?.sort || { createdAt: -1 }
     };
     
-    const result = await this.employeeModel.paginate(queryFilter, queryOptions);
+    const result = await this.employeeModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
 
 
   async getEmployee(
     query: GetEmployeeQuery,
-    option: CommonQueryOptions
+    queryOptions?: CommonQueryOptions
   ): Promise<Employee | null> {
-    checkId([query.employeeId]);
+    const { filter } = query;
 
-    const queryFilter: any = {};
-    if (query.employeeId) queryFilter._id = new Types.ObjectId(query.employeeId);
-    else if (query.phoneNumber) {
-      const phone = parcePhoneNumber(query.phoneNumber);
-      if (!phone) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
-      queryFilter.phoneNumber = phone.number;
+    let dbQueryFilter: any;
+    if (filter?.employeeId) dbQueryFilter = { _id: new Types.ObjectId(filter.employeeId) };
+    else if (filter?.telegramId) dbQueryFilter = { telegramId: filter.telegramId };
+    else if (filter?.phone) {
+      const phone = parcePhoneNumber(filter.phone);
+      if (!phone) throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверные параметры запроса' });
+      dbQueryFilter.phone = phone.number;
     }
-    else throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
+    else throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверные параметры запроса' });
 
-    const dbQuery = this.employeeModel.findOne(queryFilter)
-    if (option.session) dbQuery.session(option.session);
+    const dbQuery = this.employeeModel.findOne(dbQueryFilter)
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
     const employee = await dbQuery.lean({ virtuals: true }).exec();
-
     return employee;
   }
 
 
+  // ====================================================
+  // COMMANDS
+  // ====================================================
   async updateSellerEmployee(
     command: UpdateEmployeeCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     const { employeeId, payload } = command;
     checkId([employeeId ]);
      
     const dbQuery = this.employeeModel.findById(new Types.ObjectId(employeeId));
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const employee = await dbQuery.exec();
     if (!employee) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
@@ -83,34 +95,33 @@ export class EmployeeService {
     assignField(employee, 'status', payload.status, {onNull: 'skip'});
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
     
     await employee.save(saveOptions);
   };
 
 
+  async blockEmployee(
+    command: BlockEmployeeCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    const { employeeId, payload } = command;
+    checkId([employeeId]);
+    
+    const dbQuery = this.employeeModel.findById(new Types.ObjectId(employeeId));
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
-   async blockEmployee(
-     command: BlockEmployeeCommand,
-     options: CommonCommandOptions
-   ): Promise<void> {
-     const { employeeId, payload } = command;
-     checkId([employeeId]);
-     
-     const dbQuery = this.employeeModel.findById(new Types.ObjectId(employeeId));
-     if (options.session) dbQuery.session(options.session);
+    const employee = await dbQuery.exec();
+    if (!employee) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
+    
+    assignField(employee.blocked, 'status', payload.status, { onNull: 'skip' });
+    assignField(employee.blocked, 'reason', payload.reason );
+    assignField(employee.blocked, 'code', payload.code );
+    assignField(employee.blocked, 'blockedUntil', payload.blockedUntil );
 
-     const employee = await dbQuery.exec();
-     if (!employee) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
-     
-     assignField(employee.blocked, 'status', payload.status, { onNull: 'skip' });
-     assignField(employee.blocked, 'reason', payload.reason );
-     assignField(employee.blocked, 'code', payload.code );
-     assignField(employee.blocked, 'blockedUntil', payload.blockedUntil );
- 
-     const saveOptions: any = {};
-     if (options.session) saveOptions.session = options.session;
- 
-     await employee.save(saveOptions);
-   }
+    const saveOptions: any = {};
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
+
+    await employee.save(saveOptions);
+  }
 }

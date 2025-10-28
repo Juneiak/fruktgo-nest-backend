@@ -11,24 +11,26 @@ import {
   DeleteAddressCommand,
   SelectAddressCommand
 } from './customer.commands';
+import { GetCustomersQuery, GetCustomerQuery } from './customer.queries';
 
 export interface CustomerPort {
 
   // ====================================================
-  // COMMANDS
-  // ==================================================== 
-  createCustomer(command: CreateCustomerCommand, options: CommonCommandOptions): Promise<Customer>;
-  updateCustomer(command: UpdateCustomerCommand, options: CommonCommandOptions): Promise<void>;
-  blockCustomer(command: BlockCustomerCommand, options: CommonCommandOptions): Promise<void>;
-  addAddress(command: AddAddressCommand, options: CommonCommandOptions): Promise<void>;
-  deleteAddress(command: DeleteAddressCommand, options: CommonCommandOptions): Promise<void>;
-  selectAddress(command: SelectAddressCommand, options: CommonCommandOptions): Promise<void>;
-
-  // ====================================================
   // QUERIES
   // ==================================================== 
-  getCustomers(options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Customer>>;
-  getCustomer(customerId: string, options: CommonCommandOptions): Promise<Customer | null>;
+  getCustomers(query: GetCustomersQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Customer>>;
+  getCustomer(query: GetCustomerQuery, queryOptions?: CommonCommandOptions): Promise<Customer | null>;
+
+
+  // ====================================================
+  // COMMANDS
+  // ==================================================== 
+  createCustomer(command: CreateCustomerCommand, commandOptions?: CommonCommandOptions): Promise<Customer>;
+  updateCustomer(command: UpdateCustomerCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  blockCustomer(command: BlockCustomerCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  addAddress(command: AddAddressCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  deleteAddress(command: DeleteAddressCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  selectAddress(command: SelectAddressCommand, commandOptions?: CommonCommandOptions): Promise<void>;
 }
 
 export const CUSTOMER_PORT = Symbol('CUSTOMER_PORT');

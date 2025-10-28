@@ -10,8 +10,6 @@ import { DomainError } from 'src/common/errors/domain-error';
 import {
   GetOrdersQuery,
   GetOrderQuery,
-  GetActiveOrdersQuery,
-  GetOrderEventsQuery,
 } from './order.queries';
 import {
   CreateOrderCommand,
@@ -29,7 +27,6 @@ import {
   createDeclineEvent,
   createRatingEvent,
   hasEvent,
-  getEventsTimeline,
 } from './order.events.helpers';
 import { canTransitionTo, isTerminalStatus } from './order.helpers';
 
@@ -44,18 +41,18 @@ export class OrderService {
   // ====================================================
   async getOrder(
     query: GetOrderQuery,
-    options?: CommonQueryOptions
+    queryOptions?: CommonQueryOptions
   ): Promise<Order | null> {
-    const { orderId, options: queryOptions } = query;
+    const { orderId, options } = query;
     checkId([orderId]);
 
     const dbQuery = this.orderModel.findById(new Types.ObjectId(orderId));
-    if (options?.session) dbQuery.session(options.session);
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
     
     // Handle population options
-    if (queryOptions?.populateProducts) dbQuery.populate('products.shopProduct');
-    if (queryOptions?.populateShop) dbQuery.populate('orderedFrom.shop');
-    if (queryOptions?.populateCustomer) dbQuery.populate('orderedBy.customer');
+    if (options?.populateProducts) dbQuery.populate('products.shopProduct');
+    if (options?.populateShop) dbQuery.populate('orderedFrom.shop');
+    if (options?.populateCustomer) dbQuery.populate('orderedBy.customer');
 
     const order = await dbQuery.lean({ virtuals: true }).exec();
     return order;
@@ -64,95 +61,39 @@ export class OrderService {
 
   async getOrders(
     query: GetOrdersQuery,
-    options: CommonListQueryOptions<'orderedAt' | 'createdAt'>
+    queryOptions?: CommonListQueryOptions<'orderedAt' | 'createdAt'>
   ): Promise<PaginateResult<Order>> {
-    const { filters, options: queryOptions } = query;
+    const { filters, options } = query;
 
-    // Build query filter
-    const queryFilter: any = {};
-    if (filters?.customerId) queryFilter['orderedBy.customer'] = new Types.ObjectId(filters.customerId);
-    if (filters?.shopId) queryFilter['orderedFrom.shop'] = new Types.ObjectId(filters.shopId);
-    if (filters?.employeeId) queryFilter['handledBy.employee'] = new Types.ObjectId(filters.employeeId);
-    if (filters?.shiftId) queryFilter.shift = new Types.ObjectId(filters.shiftId);
-    if (filters?.statuses && filters.statuses.length > 0) {
-      queryFilter.orderStatus = { $in: filters.statuses };
-    }
+    const dbQueryFilter: any = {};
+    if (filters?.customerId) dbQueryFilter['orderedBy.customer'] = new Types.ObjectId(filters.customerId);
+    if (filters?.shopId) dbQueryFilter['orderedFrom.shop'] = new Types.ObjectId(filters.shopId);
+    if (filters?.employeeId) dbQueryFilter['handledBy.employee'] = new Types.ObjectId(filters.employeeId);
+    if (filters?.shiftId) dbQueryFilter.shift = new Types.ObjectId(filters.shiftId);
+    if (filters?.statuses && filters.statuses.length > 0) dbQueryFilter.orderStatus = { $in: filters.statuses };
     if (filters?.fromDate || filters?.toDate) {
-      queryFilter.orderedAt = {};
-      if (filters.fromDate) queryFilter.orderedAt.$gte = filters.fromDate;
-      if (filters.toDate) queryFilter.orderedAt.$lte = filters.toDate;
+      dbQueryFilter.orderedAt = {};
+      if (filters.fromDate) dbQueryFilter.orderedAt.$gte = filters.fromDate;
+      if (filters.toDate) dbQueryFilter.orderedAt.$lte = filters.toDate;
     }
 
-    // Build paginate options
-    const paginateOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
+    const dbQueryOptions: any = {
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
       lean: true,
       leanWithId: true,
-      sort: options.sort || { orderedAt: -1 }
+      sort: queryOptions?.sort || { orderedAt: -1 }
     };
 
-    // Handle population
-    if (queryOptions?.populateProducts) {
-      paginateOptions.populate = paginateOptions.populate || [];
-      paginateOptions.populate.push({ path: 'products.shopProduct' });
-    }
+    const dbQueryPopulateArray: any[] = [];
+    if (options?.populateProducts) dbQueryPopulateArray.push({ path: 'products.shopProduct' });
+    if (options?.populateShop) dbQueryPopulateArray.push({ path: 'orderedFrom.shop' });
+    if (options?.populateCustomer) dbQueryPopulateArray.push({ path: 'orderedBy.customer' });
+    if (dbQueryPopulateArray.length > 0) dbQueryOptions.populate = dbQueryPopulateArray;
 
-    const result = await this.orderModel.paginate(queryFilter, paginateOptions);
+    const result = await this.orderModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
-
-
-  async getActiveOrders(
-    query: GetActiveOrdersQuery,
-    options: CommonListQueryOptions<'orderedAt'>
-  ): Promise<PaginateResult<Order>> {
-    const activeStatuses = [
-      OrderStatus.PENDING,
-      OrderStatus.ASSEMBLING,
-      OrderStatus.AWAITING_COURIER,
-      OrderStatus.IN_DELIVERY
-    ];
-
-    const ordersQuery = new GetOrdersQuery(
-      {
-        ...query.filters,
-        statuses: activeStatuses
-      },
-      query.options
-    );
-
-    return this.getOrders(ordersQuery, options);
-  }
-
-
-  async getOrderEvents(
-    query: GetOrderEventsQuery,
-    options?: CommonQueryOptions
-  ): Promise<OrderEvent[]> {
-    const { orderId, filters } = query;
-    checkId([orderId]);
-
-    const order = await this.getOrder(
-      new GetOrderQuery(orderId),
-      options
-    );
-
-    if (!order) throw DomainError.notFound('Order', orderId);
-
-    let events = order.events;
-
-    // Apply filters
-    if (filters?.types && filters.types.length > 0) {
-      events = events.filter(e => filters.types!.includes(e.type));
-    }
-    if (filters?.actorId) {
-      events = events.filter(e => e.actor?.id?.toString() === filters.actorId);
-    }
-
-    return getEventsTimeline(events);
-  }
-
 
   // ====================================================
   // COMMANDS
@@ -161,6 +102,7 @@ export class OrderService {
     command: CreateOrderCommand,
     options?: CommonCommandOptions
   ): Promise<Order> {
+    const { payload, orderId } = command;
     const { 
       customerId,
       shopId,
@@ -170,7 +112,7 @@ export class OrderService {
       finances,
       customerComment,
       metadata
-    } = command;
+    } = payload;
 
     checkId([customerId, shopId, shiftId]);
     
@@ -250,7 +192,8 @@ export class OrderService {
     command: AcceptOrderCommand,
     options?: CommonCommandOptions
   ): Promise<void> {
-    const { orderId, employeeId, employeeName } = command;
+    const { orderId, payload } = command;
+    const { employeeId, employeeName } = payload;
     checkId([orderId, employeeId]);
 
     const order = await this.orderModel.findById(new Types.ObjectId(orderId));
@@ -272,7 +215,7 @@ export class OrderService {
       createOrderEvent(
         OrderEventType.ACCEPTED,
         {
-          type: 'employee',
+          type: OrderEventActorType.EMPLOYEE,
           id: new Types.ObjectId(employeeId),
           name: employeeName
         }
@@ -280,7 +223,7 @@ export class OrderService {
       createOrderEvent(
         OrderEventType.ASSEMBLY_STARTED,
         {
-          type: 'employee',
+          type: OrderEventActorType.EMPLOYEE,
           id: new Types.ObjectId(employeeId),
           name: employeeName
         }
@@ -296,7 +239,8 @@ export class OrderService {
     command: CompleteAssemblyCommand,
     options?: CommonCommandOptions
   ): Promise<void> {
-    const { orderId, employeeId, employeeName, actualProducts } = command;
+    const { orderId, payload } = command;
+    const { employeeId, employeeName, actualProducts } = payload;
     checkId([orderId, employeeId]);
 
     const order = await this.orderModel.findById(new Types.ObjectId(orderId));
@@ -331,7 +275,7 @@ export class OrderService {
       createOrderEvent(
         OrderEventType.ASSEMBLY_COMPLETED,
         {
-          type: 'employee',
+          type: OrderEventActorType.EMPLOYEE,
           id: new Types.ObjectId(employeeId),
           name: employeeName
         },
@@ -351,7 +295,8 @@ export class OrderService {
     command: HandToCourierCommand,
     options?: CommonCommandOptions
   ): Promise<void> {
-    const { orderId, employeeId, employeeName, courierInfo } = command;
+    const { orderId, payload } = command;
+    const { employeeId, employeeName, courierInfo } = payload;
     checkId([orderId, employeeId]);
 
     const order = await this.orderModel.findById(new Types.ObjectId(orderId));
@@ -371,7 +316,7 @@ export class OrderService {
         createOrderEvent(
           OrderEventType.COURIER_CALLED,
           {
-            type: 'employee',
+            type: OrderEventActorType.EMPLOYEE,
             id: new Types.ObjectId(employeeId),
             name: employeeName
           }
@@ -385,13 +330,13 @@ export class OrderService {
       createOrderEvent(
         OrderEventType.HANDED_TO_COURIER,
         {
-          type: 'employee',
+          type: OrderEventActorType.EMPLOYEE,
           id: new Types.ObjectId(employeeId),
           name: employeeName
         },
         { courierInfo }
       ),
-      createOrderEvent(OrderEventType.DELIVERY_STARTED, { type: 'system' })
+      createOrderEvent(OrderEventType.DELIVERY_STARTED, undefined)
     );
 
     const saveOptions: any = {};
@@ -422,7 +367,7 @@ export class OrderService {
     order.events.push(
       createOrderEvent(
         OrderEventType.DELIVERED,
-        { type: 'system' },
+        undefined,
         { deliveredAt: new Date() }
       )
     );
@@ -436,7 +381,8 @@ export class OrderService {
     command: CancelOrderCommand,
     options?: CommonCommandOptions
   ): Promise<void> {
-    const { orderId, reason, canceledBy, comment } = command;
+    const { orderId, payload } = command;
+    const { reason, canceledBy, comment } = payload;
     checkId([orderId]);
 
     const order = await this.orderModel.findById(new Types.ObjectId(orderId));
@@ -474,7 +420,8 @@ export class OrderService {
     command: DeclineOrderCommand,
     options?: CommonCommandOptions
   ): Promise<void> {
-    const { orderId, reason, declinedBy, comment } = command;
+    const { orderId, payload } = command;
+    const { reason, declinedBy, comment } = payload;
     checkId([orderId]);
 
     const order = await this.orderModel.findById(new Types.ObjectId(orderId));
@@ -497,10 +444,10 @@ export class OrderService {
         reason,
         comment,
         declinedBy.id ? {
-          type: declinedBy.type as 'employee' | 'system',
+          type: declinedBy.type,
           id: new Types.ObjectId(declinedBy.id),
           name: declinedBy.name
-        } : { type: 'system' }
+        } : undefined
       )
     );
 
@@ -513,7 +460,8 @@ export class OrderService {
     command: SetOrderRatingCommand,
     options?: CommonCommandOptions
   ): Promise<void> {
-    const { orderId, customerId, customerName, rating, tags, comment } = command;
+    const { orderId, payload } = command;
+    const { customerId, customerName, rating, tags, comment } = payload;
     checkId([orderId, customerId]);
 
     const order = await this.orderModel.findById(new Types.ObjectId(orderId));
@@ -550,7 +498,7 @@ export class OrderService {
         tags,
         comment,
         {
-          type: 'customer',
+          type: OrderEventActorType.CUSTOMER,
           id: new Types.ObjectId(customerId),
           name: customerName
         }

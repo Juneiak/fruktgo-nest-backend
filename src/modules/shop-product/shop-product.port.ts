@@ -15,17 +15,17 @@ export interface ShopProductPort {
   // ====================================================
   // QUERIES
   // ==================================================== 
-  getShopProduct(query: GetShopProductQuery, options?: CommonQueryOptions): Promise<ShopProduct | null>;
-  getShopProducts(query: GetShopProductsQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<ShopProduct>>;
+  getShopProduct(query: GetShopProductQuery, queryOptions?: CommonQueryOptions): Promise<ShopProduct | null>;
+  getShopProducts(query: GetShopProductsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<ShopProduct>>;
 
   // ====================================================
   // COMMANDS
   // ==================================================== 
-  createShopProduct(command: CreateShopProductCommand, options: CommonCommandOptions): Promise<ShopProduct>;
-  updateShopProduct(command: UpdateShopProductCommand, options: CommonCommandOptions): Promise<void>;
-  archiveShopProduct(command: ArchiveShopProductCommand, options: CommonCommandOptions): Promise<void>;
-  addShopProductImage(command: AddShopProductImageCommand, options: CommonCommandOptions): Promise<string>;
-  removeShopProductImage(command: RemoveShopProductImageCommand, options: CommonCommandOptions): Promise<void>;
+  createShopProduct(command: CreateShopProductCommand, commandOptions?: CommonCommandOptions): Promise<ShopProduct>;
+  updateShopProduct(command: UpdateShopProductCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  archiveShopProduct(command: ArchiveShopProductCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  addShopProductImage(command: AddShopProductImageCommand, commandOptions?: CommonCommandOptions): Promise<string>;
+  removeShopProductImage(command: RemoveShopProductImageCommand, commandOptions?: CommonCommandOptions): Promise<void>;
 }
 
 export const SHOP_PRODUCT_PORT = Symbol('SHOP_PRODUCT_PORT');

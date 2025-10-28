@@ -10,6 +10,7 @@ export const DOMAIN_ERROR_CODES = [
   'DEPENDENCY_FAILED',
   'RATE_LIMITED',
   'UNAVAILABLE',
+  'BAD_REQUEST',
 ] as const;
 export type DomainErrorCode = typeof DOMAIN_ERROR_CODES[number];
 
@@ -69,6 +70,9 @@ export class DomainError extends Error {
   }
   static concurrency(message = 'Version conflict', meta?: DomainErrorMeta) {
     return new DomainError({ code: 'CONCURRENCY', message, meta });
+  }
+  static badRequest(message = 'Bad request', meta?: DomainErrorMeta) {
+    return new DomainError({ code: 'BAD_REQUEST', message, meta });
   }
 }
 

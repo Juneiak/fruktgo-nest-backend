@@ -1,45 +1,45 @@
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { BlockPayload } from 'src/common/types/commands';
-
-export type CreateSellerPayload = {
-  sellerAccountId: string;
-  telegramId: number;
-  phone: string;
-  companyName: string;
-  inn: string;
-  email: string;
-  telegramUsername?: string;
-  telegramFirstName?: string;
-  telegramLastName?: string;
-}
+import { VerifiedStatus, BlockStatus } from 'src/common/enums/common.enum';
 
 export class CreateSellerCommand {
   constructor(
-    public readonly sellerId: string,
-    public readonly payload: CreateSellerPayload
+    public readonly payload: {
+      sellerAccountId: string;
+      telegramId: number;
+      phone: string;
+      companyName: string;
+      inn: string;
+      email: string;
+      telegramUsername?: string;
+      telegramFirstName?: string;
+      telegramLastName?: string;
+    },
+    public readonly sellerId?: string
   ) {}
-}
-
-export type UpdateSellerPayload = {
-  phone?: string,
-  verifiedStatus?: VerifiedStatus,
-  internalNote?: string | null,
-  companyName?: string,
-  inn?: string,
-  email?: string,
-  sellerLogo?: Express.Multer.File | null,
 }
 
 export class UpdateSellerCommand {
   constructor(
     public readonly sellerId: string,
-    public readonly payload: UpdateSellerPayload,
+    public readonly payload: {
+      phone?: string;
+      verifiedStatus?: VerifiedStatus;
+      internalNote?: string | null;
+      companyName?: string;
+      inn?: string;
+      email?: string;
+      sellerLogo?: Express.Multer.File | null;
+    }
   ) {}
 }
 
 export class BlockSellerCommand {
   constructor(
     public readonly sellerId: string,
-    public readonly payload: BlockPayload
+    public readonly payload: {
+      status: BlockStatus;
+      reason?: string | null;
+      code?: string | null;
+      blockedUntil?: Date | null;
+    }
   ) {}
 }

@@ -8,17 +8,18 @@ import { GetProductsQuery } from './product.queries';
 export interface ProductPort {
 
   // ====================================================
-  // COMMANDS
-  // ==================================================== 
-  createProduct(command: CreateProductCommand, options: CommonCommandOptions): Promise<Product>;
-  updateProduct(command: UpdateProductCommand, options: CommonCommandOptions): Promise<Product>;
-  deleteProduct(productId: string, options: CommonCommandOptions): Promise<Product>;
-
-  // ====================================================
   // QUERIES
   // ==================================================== 
-  getProducts(query: GetProductsQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Product>>;
-  getProduct(productId: string, options: CommonQueryOptions): Promise<Product | null>;
+  getProducts(query: GetProductsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Product>>;
+  getProduct(productId: string, queryOptions?: CommonQueryOptions): Promise<Product | null>;
+
+
+  // ====================================================
+  // COMMANDS
+  // ==================================================== 
+  createProduct(command: CreateProductCommand, commandOptions?: CommonCommandOptions): Promise<Product>;
+  updateProduct(command: UpdateProductCommand, commandOptions?: CommonCommandOptions): Promise<Product>;
+  deleteProduct(productId: string, commandOptions?: CommonCommandOptions): Promise<Product>;
 }
 
 export const PRODUCT_PORT = Symbol('PRODUCT_PORT');

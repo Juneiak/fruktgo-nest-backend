@@ -13,28 +13,29 @@ export class ImagesFacade implements ImagesPort {
   constructor(private readonly localImagesService: LocalImagesService) {}
 
   // ====================================================
-  // COMMANDS
-  // ====================================================
-  async uploadImage(command: UploadImageCommand, options: CommonCommandOptions): Promise<Image> {
-    return this.localImagesService.uploadImage(command, options);
-  }
-
-  async updateImage(command: UpdateImageCommand, options: CommonCommandOptions): Promise<Image> {
-    return this.localImagesService.updateImage(command, options);
-  }
-
-  async deleteImage(imageId: string, options: CommonCommandOptions): Promise<void> {
-    return this.localImagesService.deleteImage(imageId, options);
-  }
-
-  // ====================================================
   // QUERIES
   // ====================================================
-  async getImageBuffer(query: GetImageBufferQuery, options: CommonQueryOptions): Promise<Buffer> {
-    return this.localImagesService.getImageBuffer(query, options);
+  async getImageBuffer(query: GetImageBufferQuery, queryOptions?: CommonQueryOptions): Promise<Buffer> {
+    return this.localImagesService.getImageBuffer(query, queryOptions);
   }
 
   getImageUrl(imageId: string, size: ImageSize): string {
     return this.localImagesService.getImageUrl(imageId, size);
+  }
+
+
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+  async uploadImage(command: UploadImageCommand, commandOptions?: CommonCommandOptions): Promise<Image> {
+    return this.localImagesService.uploadImage(command, commandOptions);
+  }
+
+  async updateImage(command: UpdateImageCommand, commandOptions?: CommonCommandOptions): Promise<Image> {
+    return this.localImagesService.updateImage(command, commandOptions);
+  }
+
+  async deleteImage(imageId: string, commandOptions?: CommonCommandOptions): Promise<void> {
+    return this.localImagesService.deleteImage(imageId, commandOptions);
   }
 }

@@ -16,24 +16,37 @@ export class EmployeeFacade implements EmployeePort {
   constructor(private readonly employeeService: EmployeeService) {}
 
   // ====================================================
-  // COMMANDS
-  // ====================================================
-  async updateEmployee(command: UpdateEmployeeCommand, options: CommonCommandOptions): Promise<void> {
-    return this.employeeService.updateSellerEmployee(command, options);
-  }
-
-  async blockEmployee(command: BlockEmployeeCommand, options: CommonCommandOptions): Promise<void> {
-    return this.employeeService.blockEmployee(command, options);
-  }
-
-  // ====================================================
   // QUERIES
   // ====================================================
-  async getEmployees(query: GetEmployeesQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Employee>> {
-    return this.employeeService.getEmployees(query, options);
+  async getEmployees(
+    query: GetEmployeesQuery,
+    queryOptions?: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Employee>> {
+    return this.employeeService.getEmployees(query, queryOptions);
   }
 
-  async getEmployee(query: GetEmployeeQuery, options: CommonQueryOptions): Promise<Employee | null> {
-    return this.employeeService.getEmployee(query, options);
+  async getEmployee(
+    query: GetEmployeeQuery,
+    queryOptions?: CommonQueryOptions
+  ): Promise<Employee | null> {
+    return this.employeeService.getEmployee(query, queryOptions);
+  }
+
+
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+  async updateEmployee(
+    command: UpdateEmployeeCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    return this.employeeService.updateSellerEmployee(command, commandOptions);
+  }
+
+  async blockEmployee(
+    command: BlockEmployeeCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    return this.employeeService.blockEmployee(command, commandOptions);
   }
 }

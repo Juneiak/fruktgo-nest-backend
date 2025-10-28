@@ -29,14 +29,14 @@ interface CustomerStatistics {
 export class Customer {
   _id: Types.ObjectId;
   
-  readonly customerId: string;
+  customerId: string;
   createdAt: Date;
   updatedAt: Date;
 
-  @Prop({ type: String })
+  @Prop({ type: String, unique: true, sparse: true })
   phone?: string;
 
-  @Prop({ type: String })
+  @Prop({ type: String, unique: true, sparse: true })
   email?: string;
   
   @Prop({ type: Number, unique: true, required: true })

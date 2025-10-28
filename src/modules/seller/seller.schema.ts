@@ -38,7 +38,7 @@ export class Seller {
   createdAt: Date;
   updatedAt: Date;
   
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, unique: true })
   phone: string;
 
   @Prop({ type: Types.ObjectId, ref: SellerAccount.name, required: true })
@@ -62,10 +62,10 @@ export class Seller {
   @Prop({ type: String, required: true })
   companyName: string;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, unique: true })
   inn: string;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, unique: true })
   email: string;
 
   @Prop({ type: BlockedSchema, required: true, default: () => initBlocked })
@@ -97,7 +97,6 @@ SellerSchema.virtual('sellerId').get(function (this: Seller): string {
   return this._id.toString();
 });
 
-SellerSchema.index({ telegramId: 1 }, { unique: true });
 
 export type SellerDocument = HydratedDocument<Seller>;
 export type SellerModel = PaginateModel<SellerDocument>;

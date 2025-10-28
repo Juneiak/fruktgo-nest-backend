@@ -11,16 +11,19 @@ import { GetEmployeeQuery, GetEmployeesQuery } from './employee.queries';
 export interface EmployeePort {
 
   // ====================================================
-  // COMMANDS
-  // ==================================================== 
-  updateEmployee(command: UpdateEmployeeCommand, options: CommonCommandOptions): Promise<void>;
-  blockEmployee(command: BlockEmployeeCommand, options: CommonCommandOptions): Promise<void>;
-
-  // ====================================================
   // QUERIES
   // ==================================================== 
-  getEmployees(query: GetEmployeesQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Employee>>;
-  getEmployee(query: GetEmployeeQuery, options: CommonQueryOptions): Promise<Employee | null>;
+  getEmployees(query: GetEmployeesQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Employee>>;
+  getEmployee(query: GetEmployeeQuery, queryOptions?: CommonQueryOptions): Promise<Employee | null>;
+
+  
+  // ====================================================
+  // COMMANDS
+  // ==================================================== 
+  updateEmployee(command: UpdateEmployeeCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  blockEmployee(command: BlockEmployeeCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+
+
 }
 
 export const EMPLOYEE_PORT = Symbol('EMPLOYEE_PORT');

@@ -10,6 +10,7 @@ import { DomainError } from 'src/common/errors/domain-error';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
+import { GetSellersQuery, GetSellerQuery } from './seller.queries';
 
 @Injectable()
 export class SellerService {
@@ -19,41 +20,61 @@ export class SellerService {
   ) { }
   
 
+  // ====================================================
+  // QUERIES
+  // ====================================================
   async getSellers(
-    options: CommonListQueryOptions<'createdAt'>
+    query: GetSellersQuery,
+    queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Seller>> {
     
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
+    let dbQueryFilter: any;
+    if (query.filters?.verifiedStatuses && query.filters.verifiedStatuses.length > 0) dbQueryFilter.verifiedStatus = { $in: query.filters.verifiedStatuses };
+    if (query.filters?.blockedStatuses && query.filters.blockedStatuses.length > 0) dbQueryFilter.blocked.status = { $in: query.filters.blockedStatuses };
+    
+    const dbQueryOptions: any = {
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
       lean: true, leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
+      sort: queryOptions?.sort || { createdAt: -1 }
     };
     
-    const result = await this.sellerModel.paginate({}, queryOptions);
+    const result = await this.sellerModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
   
   
   async getSeller(
-    sellerId: string,
-    options: CommonQueryOptions
+    query: GetSellerQuery,
+    queryOptions?: CommonQueryOptions
   ): Promise<Seller | null> {
 
-    const dbQuery = this.sellerModel.findOne({ _id: new Types.ObjectId(sellerId) });
-    if (options.session) dbQuery.session(options.session);
-    const seller = await dbQuery.lean({ virtuals: true }).exec()
+    const { filter } = query;
+    let dbQueryFilter: any;
+    if (filter?.sellerId) dbQueryFilter = { _id: new Types.ObjectId(filter.sellerId) };
+    else if (filter?.telegramId) dbQueryFilter = { telegramId: filter.telegramId };
+    else if (filter?.phone) dbQueryFilter = { phone: filter.phone };
+    else if (filter?.inn) dbQueryFilter = { inn: filter.inn };
+    else throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверные параметры запроса' });
+    
+    const dbQuery = this.sellerModel.findOne(dbQueryFilter);
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
 
+    const seller = await dbQuery.lean({ virtuals: true }).exec();
     return seller;
   }
 
 
+  
+  // ====================================================
+  // COMMANDS
+  // ====================================================
   async createSeller(
     command: CreateSellerCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<Seller> {
-    const { sellerId, payload } = command;
-    checkId([sellerId, payload.sellerAccountId]);
+    const { payload, sellerId } = command;
+    checkId([payload.sellerAccountId, sellerId]);
 
     // Парсим и валидируем номер телефона
     const parsedPhone = parcePhoneNumber(payload.phone);
@@ -70,7 +91,7 @@ export class SellerService {
         { email: payload.email }
       ]
     }).select('telegramId phone email');
-    if (options?.session) existingQuery.session(options.session);
+    if (commandOptions?.session) existingQuery.session(commandOptions.session);
     
     const existing = await existingQuery.exec();
     if (existing) {
@@ -87,7 +108,7 @@ export class SellerService {
 
     // Создаем только обязательные поля, остальные заполнятся через defaults в схеме
     const sellerData = {
-      _id: new Types.ObjectId(sellerId),
+      _id: sellerId ? new Types.ObjectId(sellerId) : new Types.ObjectId(),
       account: new Types.ObjectId(payload.sellerAccountId),
       telegramId: payload.telegramId,
       phone: phoneNumber,
@@ -100,7 +121,7 @@ export class SellerService {
     };
 
     const createOptions: any = {};
-    if (options?.session) createOptions.session = options.session;
+    if (commandOptions?.session) createOptions.session = commandOptions.session;
 
     const seller = await this.sellerModel.create([sellerData], createOptions).then(docs => docs[0]);
     return seller;
@@ -109,13 +130,13 @@ export class SellerService {
 
   async updateSeller(
     command: UpdateSellerCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     const { sellerId, payload } = command;
     checkId([sellerId]);
 
     const dbQuery = this.sellerModel.findOne({ _id: new Types.ObjectId(sellerId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const seller = await dbQuery.exec();
     if (!seller) {
@@ -141,12 +162,10 @@ export class SellerService {
         phone: phoneNumber,
         _id: { $ne: new Types.ObjectId(sellerId) }
       });
-      if (options?.session) existingQuery.session(options.session);
+      if (commandOptions?.session) existingQuery.session(commandOptions.session);
       
       const existing = await existingQuery.exec();
-      if (existing) {
-        throw new DomainError({ code: 'CONFLICT', message: 'Продавец с таким номером телефона уже существует' });
-      }
+      if (existing) throw new DomainError({ code: 'CONFLICT', message: 'Продавец с таким номером телефона уже существует' });
       
       assignField(seller, 'phone', phoneNumber, { onNull: 'skip' });
     }
@@ -156,11 +175,7 @@ export class SellerService {
     if (payload.sellerLogo === null) {
       // Удаляем логотип если передан null
       const oldLogo = seller.sellerLogo;
-      if (oldLogo) {
-        const deleteImageOptions: any = {};
-        if (options.session) deleteImageOptions.session = options.session;
-        await this.imagesPort.deleteImage(oldLogo.toString(), deleteImageOptions);
-      }
+      if (oldLogo) await this.imagesPort.deleteImage(oldLogo.toString(), commandOptions);
       seller.sellerLogo = null;
 
     } else if (payload.sellerLogo) {
@@ -169,34 +184,26 @@ export class SellerService {
       const newLogoId = new Types.ObjectId();
       
       // Загружаем новый логотип
-      const uploadImageCommand = new UploadImageCommand(
-        payload.sellerLogo,
-        {
-          imageId: newLogoId.toString(),
+      await this.imagesPort.uploadImage(
+        new UploadImageCommand(newLogoId.toString(), {
+          imageFile: payload.sellerLogo,
           accessLevel: ImageAccessLevel.PUBLIC,
           entityType: ImageEntityType.SELLER,
           entityId: sellerId,
           imageType: ImageType.SELLER_LOGO
-        }
+        }),
+        commandOptions
       );
-      
-      const uploadImageOptions: any = {};
-      if (options.session) uploadImageOptions.session = options.session;
-      await this.imagesPort.uploadImage(uploadImageCommand, uploadImageOptions);
       
       // Обновляем ссылку на логотип
       seller.sellerLogo = newLogoId;
       
       // Удаляем старый логотип если был
-      if (oldLogo) {
-        const deleteImageOptions: any = {};
-        if (options.session) deleteImageOptions.session = options.session;
-        await this.imagesPort.deleteImage(oldLogo.toString(), deleteImageOptions);
-      }
+      if (oldLogo) await this.imagesPort.deleteImage(oldLogo.toString(), commandOptions);
     }
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
     
     await seller.save(saveOptions);
   }
@@ -204,13 +211,13 @@ export class SellerService {
   
   async blockSeller(
     command: BlockSellerCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     const { sellerId, payload } = command;
     checkId([sellerId]);
 
     const dbQuery = this.sellerModel.findOne({ _id: new Types.ObjectId(sellerId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
     const seller = await dbQuery.exec();
     if (!seller) throw new DomainError({ code: 'NOT_FOUND', message: 'Продавец не найден' });
@@ -221,7 +228,7 @@ export class SellerService {
     assignField(seller.blocked, 'blockedUntil', payload.blockedUntil);
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
     
     await seller.save(saveOptions);
   }

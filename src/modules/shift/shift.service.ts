@@ -52,43 +52,43 @@ export class ShiftService {
 
   async getShifts(
     query: GetShiftsQuery,
-    options: CommonListQueryOptions<'createdAt'>
+    queryOptions: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Shift>> {
     const { filters } = query;
 
-    const queryFilter: any = {};
-    if (filters?.shopId) queryFilter.shop = new Types.ObjectId(filters.shopId);
+    const dbQueryFilter: any = {};
+    if (filters?.shopId) dbQueryFilter.shop = new Types.ObjectId(filters.shopId);
     if (filters?.actorType && filters?.actorId) {
-      queryFilter.openedBy = {
+      dbQueryFilter.openedBy = {
         actorType: filters.actorType,
         actorId: new Types.ObjectId(filters.actorId)
       };
     }
-    if (filters?.startDate) queryFilter.openedAt = { $gte: filters.startDate };
-    if (filters?.endDate) queryFilter.openedAt = { $lte: filters.endDate };
+    if (filters?.startDate) dbQueryFilter.openedAt = { $gte: filters.startDate };
+    if (filters?.endDate) dbQueryFilter.openedAt = { $lte: filters.endDate };
 
 
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
+    const dbQueryOptions: any = {
+      page: queryOptions.pagination?.page || 1,
+      limit: queryOptions.pagination?.pageSize || 10,
       lean: true,
       leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
+      sort: queryOptions.sort || { createdAt: -1 }
     };
     
-    const result = await this.shiftModel.paginate(queryFilter, queryOptions);
+    const result = await this.shiftModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
 
 
   async getShift(
     shiftId: string,
-    options: CommonQueryOptions
+    queryOptions: CommonQueryOptions
   ): Promise<Shift | null> {
     checkId([shiftId]);
 
     const dbQuery = this.shiftModel.findById(shiftId);
-    if (options.session) dbQuery.session(options.session);
+    if (queryOptions.session) dbQuery.session(queryOptions.session);
 
     const shift = await dbQuery.lean({ virtuals: true }).exec();
     return shift;
@@ -97,7 +97,7 @@ export class ShiftService {
 
   async getCurrentShiftOfShop(
     shopId: string,
-    options: CommonQueryOptions
+    queryOptions: CommonQueryOptions
   ): Promise<Shift | null> {
     checkId([shopId]);
 
@@ -105,7 +105,7 @@ export class ShiftService {
       .findOne({ shop: new Types.ObjectId(shopId) })
       .sort({ createdAt: -1 });
     
-    if (options.session) dbQuery.session(options.session);
+    if (queryOptions.session) dbQuery.session(queryOptions.session);
 
     const shift = await dbQuery.lean({ virtuals: true }).exec();
     return shift;

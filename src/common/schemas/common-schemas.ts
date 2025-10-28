@@ -1,6 +1,7 @@
 import { BlockStatus } from '../enums/common.enum';
 import { Types } from 'mongoose';
 import { randomUUID } from 'crypto';
+import { Platform } from 'src/modules/platform';
 
 // ====================================================
 // BLOCKED
@@ -10,7 +11,7 @@ export const BlockedSchema = {
   status: { type: String, enum: Object.values(BlockStatus), required: true, default: BlockStatus.ACTIVE },
   reason: { type: String },
   code: { type: String },
-  by: { type: Types.ObjectId, ref: 'Admin' },
+  by: { type: Types.ObjectId, ref: Platform.name },
   blockedAt: { type: Date },
   blockedUntil: { type: Date },
 }

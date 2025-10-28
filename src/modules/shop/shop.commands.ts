@@ -1,48 +1,48 @@
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { BlockPayload } from 'src/common/types/commands';
-
-export type CreateShopPayload = {
-  shopAccountId: string;
-  ownerId: string;
-  city: string;
-  shopName: string;
-  address?: {
-    city?: string;
-    street?: string;
-    house?: string;
-    latitude?: number;
-    longitude?: number;
-  };
-}
+import { VerifiedStatus, BlockStatus } from 'src/common/enums/common.enum';
 
 export class CreateShopCommand {
   constructor(
     public readonly shopId: string,
-    public readonly payload: CreateShopPayload
+    public readonly payload: {
+      shopAccountId: string;
+      ownerId: string;
+      city: string;
+      shopName: string;
+      address?: {
+        city?: string;
+        street?: string;
+        house?: string;
+        latitude?: number;
+        longitude?: number;
+      };
+    }
   ) {}
-}
-
-export type UpdateShopPayload = {
-  aboutShop?: string | null;
-  openAt?: string | null;
-  closeAt?: string | null;
-  minOrderSum?: number;
-  verifiedStatus?: VerifiedStatus;
-  internalNote?: string | null;
-  sellerNote?: string | null;
-  shopImage?: Express.Multer.File | null;
 }
 
 export class UpdateShopCommand {
   constructor(
     public readonly shopId: string,
-    public readonly payload: UpdateShopPayload,
+    public readonly payload: {
+      aboutShop?: string | null;
+      openAt?: string | null;
+      closeAt?: string | null;
+      minOrderSum?: number;
+      verifiedStatus?: VerifiedStatus;
+      internalNote?: string | null;
+      sellerNote?: string | null;
+      shopImageFile?: Express.Multer.File | null;
+    },
   ) {}
 }
 
 export class BlockShopCommand {
   constructor(
     public readonly shopId: string,
-    public readonly payload: BlockPayload
+    public readonly payload: {
+      status: BlockStatus;
+      reason?: string | null;
+      code?: string | null;
+      blockedUntil?: Date | null;
+    }
   ) {}
 }

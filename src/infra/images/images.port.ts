@@ -8,17 +8,18 @@ import { ImageSize } from './images.enums';
 export interface ImagesPort {
 
   // ====================================================
-  // COMMANDS
-  // ==================================================== 
-  uploadImage(command: UploadImageCommand, options: CommonCommandOptions): Promise<Image>;
-  updateImage(command: UpdateImageCommand, options: CommonCommandOptions): Promise<Image>;
-  deleteImage(imageId: string, options: CommonCommandOptions): Promise<void>;
-
-  // ====================================================
   // QUERIES
   // ==================================================== 
-  getImageBuffer(query: GetImageBufferQuery, options: CommonQueryOptions): Promise<Buffer>;
+  getImageBuffer(query: GetImageBufferQuery, queryOptions?: CommonQueryOptions): Promise<Buffer>;
   getImageUrl(imageId: string, size: ImageSize): string;
+
+
+  // ====================================================
+  // COMMANDS
+  // ==================================================== 
+  uploadImage(command: UploadImageCommand, commandOptions?: CommonCommandOptions): Promise<Image>;
+  updateImage(command: UpdateImageCommand, commandOptions?: CommonCommandOptions): Promise<Image>;
+  deleteImage(imageId: string, commandOptions?: CommonCommandOptions): Promise<void>;
 }
 
 export const IMAGES_PORT = Symbol('IMAGES_PORT');

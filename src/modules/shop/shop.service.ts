@@ -10,7 +10,7 @@ import { DomainError } from 'src/common/errors/domain-error';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
-import { GetShopsQuery } from './shop.queries';
+import { GetShopQuery, GetShopsQuery } from './shop.queries';
 
 @Injectable()
 export class ShopService {
@@ -28,11 +28,11 @@ export class ShopService {
   ): Promise<PaginateResult<Shop>> {
     const { filters } = query;
 
-    const queryFilter: any = {};
-    if (filters?.city) queryFilter.city = filters.city;
-    if (filters?.sellerId) queryFilter.owner = new Types.ObjectId(filters.sellerId);
+    const dbQueryFilter: any = {};
+    if (filters?.city) dbQueryFilter.city = filters.city;
+    if (filters?.sellerId) dbQueryFilter.owner = new Types.ObjectId(filters.sellerId);
 
-    const queryOptions: any = {
+    const dbQueryOptions: any = {
       page: options.pagination?.page || 1,
       limit: options.pagination?.pageSize || 10,
       lean: true, 
@@ -40,21 +40,26 @@ export class ShopService {
       sort: options.sort || { createdAt: -1 }
     };
     
-    const result = await this.shopModel.paginate(queryFilter, queryOptions);
+    const result = await this.shopModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
   
   
   async getShop(
-    shopId: string,
+    query: GetShopQuery,
     options: CommonQueryOptions
   ): Promise<Shop | null> {
-    checkId([shopId]);
+    const { filter } = query;
 
-    const dbQuery = this.shopModel.findOne({ _id: new Types.ObjectId(shopId) });
+    const dbQueryFilter: any = {};
+    if (filter?.shopId) dbQueryFilter._id = new Types.ObjectId(filter.shopId);
+    else if (filter?.shopAccountId) dbQueryFilter.account = new Types.ObjectId(filter.shopAccountId);
+    else throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверный запрос' });
+
+    const dbQuery = this.shopModel.findOne(dbQueryFilter);
     if (options.session) dbQuery.session(options.session);
-    const shop = await dbQuery.lean({ virtuals: true }).exec();
 
+    const shop = await dbQuery.lean({ virtuals: true }).exec();
     return shop;
   }
 
@@ -78,9 +83,7 @@ export class ShopService {
     if (options?.session) existingQuery.session(options.session);
     
     const existing = await existingQuery.exec();
-    if (existing) {
-      throw new DomainError({ code: 'CONFLICT', message: 'Магазин с таким названием уже существует в этом городе' });
-    }
+    if (existing) throw new DomainError({ code: 'CONFLICT', message: 'Магазин с таким названием уже существует в этом городе' });
 
     // Создаем только обязательные поля, остальные заполнятся через defaults в схеме
     const shopData = {
@@ -111,9 +114,7 @@ export class ShopService {
     if (options.session) dbQuery.session(options.session);
     
     const shop = await dbQuery.exec();
-    if (!shop) {
-      throw new DomainError({ code: 'NOT_FOUND', message: 'Магазин не найден' });
-    }
+    if (!shop) throw new DomainError({ code: 'NOT_FOUND', message: 'Магазин не найден' });
 
     assignField(shop, 'aboutShop', payload.aboutShop);
     assignField(shop, 'openAt', payload.openAt);
@@ -124,7 +125,7 @@ export class ShopService {
     assignField(shop, 'sellerNote', payload.sellerNote);
 
     // Обработка изображения магазина
-    if (payload.shopImage === null) {
+    if (payload.shopImageFile === null) {
       // Удаляем изображение если передан null
       const oldImage = shop.shopImage;
       if (oldImage) {
@@ -134,16 +135,16 @@ export class ShopService {
       }
       shop.shopImage = null;
 
-    } else if (payload.shopImage) {
+    } else if (payload.shopImageFile) {
       // Заменяем изображение если передан новый файл
       const oldImage = shop.shopImage;
       const newImageId = new Types.ObjectId();
       
       // Загружаем новое изображение
       const uploadImageCommand = new UploadImageCommand(
-        payload.shopImage,
+        newImageId.toString(),
         {
-          imageId: newImageId.toString(),
+          imageFile: payload.shopImageFile,
           accessLevel: ImageAccessLevel.PUBLIC,
           entityType: ImageEntityType.SHOP,
           entityId: shopId,

@@ -29,6 +29,8 @@ interface ProductStatistics {
 export class Product {
   readonly productId: string;
   _id: Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
 
   @Prop({ type: Types.ObjectId, ref: Image.name })
   cardImage?: Types.ObjectId | null;

@@ -1,3 +1,5 @@
+import { UserType } from 'src/common/enums/common.enum'
+
 export enum IssueStatus {
   NEW = 'new',
   IN_PROGRESS = 'inProgress',
@@ -6,8 +8,8 @@ export enum IssueStatus {
 
 //TODO: привести к общему 
 export enum IssueUserType {
-  CUSTOMER = 'Customer',
-  SELLER = 'Seller'
+  CUSTOMER = UserType.CUSTOMER,
+  SELLER = UserType.SELLER
 };
 
 export enum IssueLevel {

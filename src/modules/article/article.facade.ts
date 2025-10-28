@@ -11,67 +11,63 @@ import { Article } from './article.schema';
 import { CommonQueryOptions } from 'src/common/types/queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 
-/**
- * Фасад для модуля статей
- */
 @Injectable()
 export class ArticleFacade implements ArticlePort {
   constructor(private readonly articleService: ArticleService) {}
 
   // ====================================================
   // QUERIES
-  // ==================================================== 
-
-  /**
-   * Получить одну статью по ID
-   */
-  async getArticle(articleId: string, options?: CommonQueryOptions): Promise<Article | null> {
-    return this.articleService.getArticle(articleId, options);
+  // ====================================================
+  async getArticle(
+    articleId: string,
+    queryOptions?: CommonQueryOptions
+  ): Promise<Article | null> {
+    return this.articleService.getArticle(articleId, queryOptions);
   }
 
-  /**
-   * Получить список статей с фильтрами
-   */
-  async getArticles(query: GetArticlesQuery, options?: CommonQueryOptions): Promise<Article[]> {
-    return this.articleService.getArticles(query, options);
+  async getArticles(
+    query: GetArticlesQuery,
+    queryOptions?: CommonQueryOptions
+  ): Promise<Article[]> {
+    return this.articleService.getArticles(query, queryOptions);
   }
+
 
   // ====================================================
   // COMMANDS
-  // ==================================================== 
-
-  /**
-   * Создать статью
-   */
-  async createArticle(command: CreateArticleCommand, options?: CommonCommandOptions): Promise<Article> {
-    return this.articleService.createArticle(command, options);
+  // ====================================================
+  async createArticle(
+    command: CreateArticleCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<Article> {
+    return this.articleService.createArticle(command, commandOptions);
   }
 
-  /**
-   * Обновить статью
-   */
-  async updateArticle(command: UpdateArticleCommand, options?: CommonCommandOptions): Promise<void> {
-    return this.articleService.updateArticle(command, options);
+  async updateArticle(
+    command: UpdateArticleCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    return this.articleService.updateArticle(command, commandOptions);
   }
 
-  /**
-   * Изменить статус статьи
-   */
-  async changeStatus(command: ChangeArticleStatusCommand, options?: CommonCommandOptions): Promise<void> {
-    return this.articleService.changeStatus(command, options);
+  async changeStatus(
+    command: ChangeArticleStatusCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    return this.articleService.changeStatus(command, commandOptions);
   }
 
-  /**
-   * Удалить статью
-   */
-  async deleteArticle(articleId: string, options?: CommonCommandOptions): Promise<void> {
-    return this.articleService.deleteArticle(articleId, options);
+  async deleteArticle(
+    articleId: string,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    return this.articleService.deleteArticle(articleId, commandOptions);
   }
 
-  /**
-   * Увеличить счетчик просмотров
-   */
-  async incrementView(articleId: string, options?: CommonCommandOptions): Promise<void> {
-    return this.articleService.incrementView(articleId, options);
+  async incrementView(
+    articleId: string,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    return this.articleService.incrementView(articleId, commandOptions);
   }
 }

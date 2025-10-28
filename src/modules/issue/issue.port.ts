@@ -8,16 +8,17 @@ import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/que
 export interface IssuePort {
 
   // ====================================================
-  // COMMANDS
-  // ==================================================== 
-  createIssue(command: CreateIssueCommand, options: CommonCommandOptions): Promise<Issue>;
-  updateIssue(command: UpdateIssueCommand, options: CommonCommandOptions): Promise<Issue>;
-
-  // ====================================================
   // QUERIES
   // ==================================================== 
-  getIssue(issueId: string, options?: CommonQueryOptions): Promise<Issue | null>;
-  getPaginatedIssues(query: GetIssuesQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Issue>>;
+  getIssue(issueId: string, queryOptions?: CommonQueryOptions): Promise<Issue | null>;
+  getPaginatedIssues(query: GetIssuesQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Issue>>;
+
+
+  // ====================================================
+  // COMMANDS
+  // ==================================================== 
+  createIssue(command: CreateIssueCommand, commandOptions?: CommonCommandOptions): Promise<Issue>;
+  updateIssue(command: UpdateIssueCommand, commandOptions?: CommonCommandOptions): Promise<Issue>;
 }
 
 export const ISSUE_PORT = Symbol('ISSUE_PORT');

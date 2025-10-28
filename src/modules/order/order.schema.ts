@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { PositiveFeedbackTag, NegativeFeedbackTag, EventActorType, OrderEventActorType } from './order.enums';
+import { PositiveFeedbackTag, NegativeFeedbackTag, OrderEventActorType } from './order.enums';
 import { Shop } from 'src/modules/shop/shop.schema';
 import { Image } from 'src/infra/images/image.schema';
 import { ShopProduct } from '../shop-product/shop-product.schema';
@@ -171,8 +171,9 @@ export interface OrderProduct {
 export class Order {
 
   _id: Types.ObjectId;
-  // virtuals (TS-объявления)
-  readonly orderId?: string;
+  orderId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 
   @Prop({ type: OrderedFromSchema, required: true })
   orderedFrom: OrderedFrom;

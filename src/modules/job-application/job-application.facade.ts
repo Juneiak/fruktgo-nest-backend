@@ -16,28 +16,44 @@ export class JobApplicationFacade implements JobApplicationPort {
   constructor(private readonly jobApplicationService: JobApplicationService) {}
 
   // ====================================================
-  // COMMANDS
-  // ====================================================
-  async createJobApplication(command: CreateJobApplicationCommand, options: CommonCommandOptions): Promise<JobApplication> {
-    return this.jobApplicationService.createJobApplication(command, options);
-  }
-
-  async updateJobApplication(command: UpdateJobApplicationCommand, options: CommonCommandOptions): Promise<JobApplication> {
-    return this.jobApplicationService.updateJobApplication(command, options);
-  }
-
-  async deleteJobApplication(jobApplicationId: string, options: CommonCommandOptions): Promise<JobApplication> {
-    return this.jobApplicationService.deleteJobApplication(jobApplicationId, options);
-  }
-
-  // ====================================================
   // QUERIES
   // ====================================================
-  async getPaginatedJobApplications(query: GetJobApplicationsQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<JobApplication>> {
-    return this.jobApplicationService.getPaginatedJobApplications(query, options);
+  async getPaginatedJobApplications(
+    query: GetJobApplicationsQuery,
+    queryOptions?: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<JobApplication>> {
+    return this.jobApplicationService.getPaginatedJobApplications(query, queryOptions);
   }
 
-  async getJobApplications(query: GetJobApplicationsQuery, options: CommonQueryOptions): Promise<JobApplication[]> {
-    return this.jobApplicationService.getJobApplications(query, options);
+  async getJobApplications(
+    query: GetJobApplicationsQuery,
+    queryOptions?: CommonQueryOptions
+  ): Promise<JobApplication[]> {
+    return this.jobApplicationService.getJobApplications(query, queryOptions);
+  }
+
+
+  // ====================================================
+  // COMMANDS
+  // ====================================================
+  async createJobApplication(
+    command: CreateJobApplicationCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<JobApplication> {
+    return this.jobApplicationService.createJobApplication(command, commandOptions);
+  }
+
+  async updateJobApplication(
+    command: UpdateJobApplicationCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<JobApplication> {
+    return this.jobApplicationService.updateJobApplication(command, commandOptions);
+  }
+
+  async deleteJobApplication(
+    jobApplicationId: string,
+    commandOptions?: CommonCommandOptions
+  ): Promise<JobApplication> {
+    return this.jobApplicationService.deleteJobApplication(jobApplicationId, commandOptions);
   }
 }

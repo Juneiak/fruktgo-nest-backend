@@ -14,8 +14,16 @@ export const LOG_EVENTS = {
   DELETE_ENTITY_ALL_COMPLETED: 'log.delete.entity_all.completed',
 } as const;
 
-export class CreateLogRequestedEvent { constructor(public readonly payload: CreateLogCommand) {} }
-export class DeleteEntityAllRequestedEvent { constructor(public readonly payload: DeleteAllEntityLogsCommand) {} }
+export class CreateLogRequestedEvent {
+  constructor(
+    public readonly payload: CreateLogCommand
+  ) {}
+}
+export class DeleteEntityAllRequestedEvent {
+  constructor(
+    public readonly payload: DeleteAllEntityLogsCommand
+  ) {}
+}
 
 @Injectable()
 export class LogsEventsListener {

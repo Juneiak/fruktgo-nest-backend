@@ -87,9 +87,9 @@ export interface ShiftEvent {
   id: false,
 })
 export class Shift {
-  _id: Types.ObjectId;
-  readonly shiftId?: string;
 
+  _id: Types.ObjectId;
+  shiftId?: string;
   createdAt: Date;
   updatedAt: Date;
 

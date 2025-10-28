@@ -41,9 +41,6 @@ LogSchema.virtual('logId').get(function (this: Log) {
   return this._id?.toString();
 });
 
-// Индексы для производительности
-LogSchema.index({ entityType: 1, entityId: 1, createdAt: -1 });
-LogSchema.index({ logLevel: 1, createdAt: -1 });
 
 export type LogDocument = Log & Document;
 export type LogModel = PaginateModel<LogDocument>;

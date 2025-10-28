@@ -1,26 +1,26 @@
 import { LogLevel, LogEntityType } from "./logs.enums";
 import { UserType } from "src/common/enums/common.enum";
 
-export type CreateLogPayload = {
-  text: string,
-  logLevel?: LogLevel,
-  forRoles?: UserType[],
-}
 
-//create log
 export class CreateLogCommand {
   constructor(
-    public readonly entityType: LogEntityType,
-    public readonly entityId: string,
-    public readonly payload: CreateLogPayload,
+    public readonly payload: {
+      entityType: LogEntityType,
+      entityId: string,
+      text: string,
+      logLevel?: LogLevel,
+      forRoles?: UserType[],
+    },
+    public readonly logId?: string,
   ) {}
 }
 
 
-//delete all entity logs
 export class DeleteAllEntityLogsCommand {
   constructor(
-    public readonly entityType: LogEntityType,
-    public readonly entityId: string,
+    public readonly payload: {
+      entityType: LogEntityType,
+      entityId: string,
+    }
   ) {}
 };

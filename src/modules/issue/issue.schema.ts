@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types, Model } from 'mongoose';
+import { Types, PaginateModel, HydratedDocument } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { IssueUserType, IssueStatus, IssueLevel, IssueCategory } from './issue.enums';
@@ -10,7 +10,7 @@ import { IssueUserType, IssueStatus, IssueLevel, IssueCategory } from './issue.e
   timestamps: true,
   id: false,
 })
-export class Issue extends Document {
+export class Issue {
 
   _id: Types.ObjectId;
   issueId: string;
@@ -57,4 +57,5 @@ IssueSchema.virtual('issueId').get(function (this: Issue): string {
   return this._id.toString();
 });
 
-export type IssueModel = Model<Issue>;
+export type IssueDocument = HydratedDocument<Issue>;
+export type IssueModel = PaginateModel<IssueDocument>;

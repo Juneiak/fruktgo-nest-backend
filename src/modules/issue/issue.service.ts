@@ -17,17 +17,59 @@ export class IssueService {
   ) {}
 
   // ====================================================
+  // QUERIES
+  // ====================================================
+  async getIssue(
+    issueId: string,
+    queryOptions?: CommonQueryOptions,
+  ): Promise<Issue | null> {
+    checkId([issueId]);
+
+    const dbQuery = this.issueModel.findById(new Types.ObjectId(issueId));
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
+    const issue = await dbQuery.lean({ virtuals: true }).exec();
+    return issue;
+  }
+  
+
+  async getPaginatedIssues(
+    query: GetIssuesQuery,
+    queryOptions?: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Issue>> {
+    const { filters } = query;
+
+    const dbQueryFilter: any = {};
+    if (filters?.fromUserType) dbQueryFilter.fromUserType = filters.fromUserType;
+    if (filters?.fromTelegramId) dbQueryFilter.fromTelegramId = filters.fromTelegramId;
+    if (filters?.statuses && filters.statuses.length > 0) dbQueryFilter.status = { $in: filters.statuses };
+    if (filters?.categories && filters.categories.length > 0) dbQueryFilter.category = { $in: filters.categories };
+    if (filters?.levels && filters.levels.length > 0) dbQueryFilter.level = { $in: filters.levels };
+
+    const dbQueryOptions: any = {
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
+      lean: true,
+      leanWithId: true,
+      sort: queryOptions?.sort || { createdAt: -1 }
+    };
+
+    const result = await this.issueModel.paginate(dbQueryFilter, dbQueryOptions);
+    return result;
+  }
+
+
+  // ====================================================
   // COMMANDS
   // ====================================================
-
   async createIssue(
     command: CreateIssueCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions,
   ): Promise<Issue> {
     const { payload } = command;
 
     const issueData = {
-      _id: new Types.ObjectId(payload.issueId),
+      _id: command.issueId ? new Types.ObjectId(command.issueId) : new Types.ObjectId(),
       fromUserType: payload.userType,
       from: new Types.ObjectId(payload.userId),
       issueText: payload.text,
@@ -40,7 +82,7 @@ export class IssueService {
     };
 
     const createOptions: any = {};
-    if (options?.session) createOptions.session = options.session;
+    if (commandOptions?.session) createOptions.session = commandOptions.session;
 
     const issue = await this.issueModel.create([issueData], createOptions).then(docs => docs[0]);
     return issue;
@@ -49,13 +91,13 @@ export class IssueService {
 
   async updateIssue(
     command: UpdateIssueCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<Issue> {
     const { issueId, payload } = command;
     checkId([issueId]);
 
     const dbQuery = this.issueModel.findById(new Types.ObjectId(issueId));
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
     const issue = await dbQuery.exec();
     if (!issue) throw new DomainError({ code: 'NOT_FOUND', message: 'Заявка не найдена' });
@@ -69,70 +111,12 @@ export class IssueService {
     
     
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
 
     await issue.save(saveOptions);
     return issue;
   }
   
   
-  // ====================================================
-  // QUERIES
-  // ====================================================
 
-  async getIssue(
-    issueId: string,
-    options?: CommonQueryOptions,
-  ): Promise<Issue | null> {
-    checkId([issueId]);
-
-    const dbQuery = this.issueModel.findById(new Types.ObjectId(issueId));
-    if (options?.session) dbQuery.session(options.session);
-
-    const issue = await dbQuery.lean({ virtuals: true }).exec();
-    return issue;
-  }
-  
-
-  async getPaginatedIssues(
-    query: GetIssuesQuery,
-    options: CommonListQueryOptions<'createdAt'>
-  ): Promise<PaginateResult<Issue>> {
-    const { filters } = query;
-
-    // Строим фильтр запроса
-    const dbFilter: any = {};
-    
-    if (filters?.fromUserType) {
-      dbFilter.fromUserType = filters.fromUserType;
-    }
-    
-    if (filters?.fromTelegramId) {
-      dbFilter.fromTelegramId = filters.fromTelegramId;
-    }
-    
-    if (filters?.statuses && filters.statuses.length > 0) {
-      dbFilter.status = { $in: filters.statuses };
-    }
-
-    if (filters?.categories && filters.categories.length > 0) {
-      dbFilter.category = { $in: filters.categories };
-    }
-
-    if (filters?.levels && filters.levels.length > 0) {
-      dbFilter.level = { $in: filters.levels };
-    }
-
-    // Пагинация
-    const paginateOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
-      lean: true,
-      leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
-    };
-
-    const result = await (this.issueModel as any).paginate(dbFilter, paginateOptions);
-    return result;
-  }
 }

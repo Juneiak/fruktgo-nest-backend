@@ -4,7 +4,29 @@ import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { JobApplicationStatus } from './job-application.enums';
 import { Seller } from 'src/modules/seller/seller.schema';
-import { Employee } from 'src/modules/employee/employee.schema';
+import { Employee } from 'src/modules/employee';
+
+const JobApplicationEmployeeSchema = {
+  employeeId: { type: Types.ObjectId, required: true, ref: Employee.name },
+  employeeName: { type: String, required: true },
+  employeePhone: { type: String, required: true },
+  _id: false,
+};
+export interface JobApplicationEmployee {
+  employeeId: Types.ObjectId;
+  employeeName: string;
+  employeePhone: string;
+}
+
+const JobApplicationSellerSchema = {
+  sellerId: { type: Types.ObjectId, required: true, ref: Seller.name },
+  sellerCompanyName: { type: String, required: true },
+  _id: false,
+};
+export interface JobApplicationSeller {
+  sellerId: Types.ObjectId;
+  sellerCompanyName: string;
+}
 
 @Schema({
   toJSON: { virtuals: true },
@@ -18,23 +40,14 @@ export class JobApplication {
   createdAt: Date;
   updatedAt: Date;
   
-  @Prop({ type: Types.ObjectId, ref: Employee.name, required: true })
-  employeeId: Types.ObjectId;
+  @Prop({ type: JobApplicationEmployeeSchema, required: true })
+  employee: JobApplicationEmployee;
 
-  @Prop({ type: String, required: true })
-  employeeName: string;
-
-  @Prop({ type: String, required: true })
-  employeePhoneNumber: string;
-
-  @Prop({ type: Types.ObjectId, ref: Seller.name, required: true })
-  sellerId: Types.ObjectId;
-
-  @Prop({ type: String, required: true })
-  companyName: string;
+  @Prop({ type: JobApplicationSellerSchema, required: true })
+  seller: JobApplicationSeller;
 
   @Prop({ type: String, enum: Object.values(JobApplicationStatus), required: true, default: JobApplicationStatus.PENDING })
-  jobApplicationStatus: JobApplicationStatus;
+  status: JobApplicationStatus;
 }
 
 export const JobApplicationSchema = SchemaFactory.createForClass(JobApplication);

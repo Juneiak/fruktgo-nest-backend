@@ -1,6 +1,10 @@
 import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { ArticleStatus, ArticleTargetAudience } from 'src/modules/article/article.schema';
+import { 
+  ArticleStatus,
+  ArticleTargetAudience,
+  ArtcilesTag
+ } from 'src/modules/article/article.enums';
 import { transformDtoToFormDataString } from 'src/common/utils';
 
 export class CreateArticleDto {
@@ -41,4 +45,10 @@ export class UpdateArticleDto {
   @IsOptional()
   @Transform(transformDtoToFormDataString)
   status?: ArticleStatus;
+}
+
+
+export class ChangeArticleStatusDto {
+  @IsEnum(ArticleStatus)
+  status: ArticleStatus;
 }

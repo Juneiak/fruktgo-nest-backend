@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { CommonCommandOptions } from 'src/common/types/commands';
+import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import {
   CreateCustomerCommand,
   BlockCustomerCommand,
@@ -12,30 +13,85 @@ import {
   SelectAddressCommand
 } from './customer.commands';
 import { DomainError } from 'src/common/errors/domain-error';
-import { Customer, CustomerModel} from './customer.schema';
+import { Customer, CustomerModel } from './customer.schema';
 import { PaginateResult } from 'mongoose';
-import { CommonListQueryOptions } from 'src/common/types/queries';
 import { assignField, checkId } from 'src/common/utils';
 import { Address } from 'src/common/schemas/common-schemas';
+import { GetCustomersQuery, GetCustomerQuery } from './customer.queries';
 
 @Injectable()
 export class CustomerService {
   constructor(
-    @InjectModel('Customer') private customerModel: CustomerModel,
+    @InjectModel(Customer.name) private customerModel: CustomerModel,
   ) { }
 
 
+  // ====================================================
+  // QUERIES
+  // ==================================================== 
+  async getCustomers(
+    query: GetCustomersQuery,
+    queryOptions?: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Customer>> {
+    
+    const { filters } = query;
+    const dbQueryFilter: any = {};
+
+    if (filters?.verifiedStatuses && filters.verifiedStatuses.length > 0) dbQueryFilter.verifiedStatus = { $in: filters.verifiedStatuses };
+    if (filters?.blockedStatuses && filters.blockedStatuses.length > 0) dbQueryFilter.blocked.status = { $in: filters.blockedStatuses };
+    if (filters?.sexes && filters.sexes.length > 0) dbQueryFilter.sex = { $in: filters.sexes };
+    if (filters?.fromBirthDate || filters?.toBirthDate) {
+      dbQueryFilter.birthDate = {};
+      if (filters.fromBirthDate) dbQueryFilter.birthDate.$gte = filters.fromBirthDate.getTime();
+      if (filters.toBirthDate) dbQueryFilter.birthDate.$lte = filters.toBirthDate.getTime();
+    }
+
+    const dbQueryOptions: any = {
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
+      lean: true, leanWithId: true,
+      sort: queryOptions?.sort || { createdAt: -1 }
+    };
+    
+    const result = await this.customerModel.paginate(dbQueryFilter, dbQueryOptions);
+    return result;
+  }
+
+
+  async getCustomer(
+    query: GetCustomerQuery,
+    queryOptions?: CommonQueryOptions
+  ): Promise<Customer | null> {
+
+    const { filter } = query;
+
+    let dbQueryFilter: any;
+    if (filter?.customerId) dbQueryFilter = { _id: new Types.ObjectId(filter.customerId) };
+    else if (filter?.telegramId) dbQueryFilter = { telegramId: filter.telegramId };
+    else if (filter?.phone) dbQueryFilter = { phone: filter.phone };
+    else if (filter?.email) dbQueryFilter = { email: filter.email };
+    else throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверные параметры запроса' });
+    
+    const dbQuery = this.customerModel.findOne(dbQueryFilter);
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
+    
+    const customer = await dbQuery.lean({ virtuals: true }).exec();
+    return customer;
+  }
+  
+
+  // ====================================================
+  // COMMANDS
+  // ====================================================
   async createCustomer(
     command: CreateCustomerCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<Customer> {
     const { payload } = command;
 
     // Проверяем уникальность telegramId
     const existing = await this.customerModel.findOne({ telegramId: payload.telegramId }).exec();
-    if (existing) {
-      throw new DomainError({ code: 'CONFLICT', message: 'Клиент с таким Telegram ID уже существует' });
-    }
+    if (existing) throw new DomainError({ code: 'CONFLICT', message: 'Клиент с таким Telegram ID уже существует' });
 
     // Создаем только обязательные поля, остальные заполнятся через defaults в схеме
     const customerData = {
@@ -50,7 +106,7 @@ export class CustomerService {
     };
 
     const createOptions: any = {};
-    if (options?.session) createOptions.session = options.session;
+    if (commandOptions?.session) createOptions.session = commandOptions.session;
 
     const customer = await this.customerModel.create([customerData], createOptions).then(docs => docs[0]);
     
@@ -58,44 +114,15 @@ export class CustomerService {
   }
 
 
-  async getCustomers(
-    options: CommonListQueryOptions<'createdAt'>
-  ): Promise<PaginateResult<Customer>> {
-    
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
-      lean: true, leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
-    };
-    
-    const result = await this.customerModel.paginate({}, queryOptions);
-    return result;
-  }
-
-
-  async getCustomer(
-    customerId: string,
-    options: CommonCommandOptions
-  ): Promise<Customer | null> {
-
-    const dbQuery = this.customerModel.findOne({ _id: new Types.ObjectId(customerId)});
-    if (options.session) dbQuery.session(options.session);
-    const customer = await dbQuery.lean({ virtuals: true }).exec()
-
-    return customer;
-  }
-
-
   async updateCustomer(
     command: UpdateCustomerCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     const { customerId, payload } = command;
     checkId([customerId]);
 
     const dbQuery = this.customerModel.findOne({ _id: new Types.ObjectId(customerId)});
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions?.session);
     
     const customer = await dbQuery.exec();
     if (!customer) throw new DomainError({ code: 'NOT_FOUND', message: 'Клиент не найден' });
@@ -108,7 +135,7 @@ export class CustomerService {
     assignField(customer, 'email', payload.email );
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions?.session;
     
     await customer.save(saveOptions);
   }
@@ -116,13 +143,13 @@ export class CustomerService {
 
   async blockCustomer(
     command: BlockCustomerCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     const { customerId, payload } = command;
     checkId([customerId]);
 
     const dbQuery = this.customerModel.findOne({ _id: new Types.ObjectId(customerId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const customer = await dbQuery.exec();
     if (!customer) throw new DomainError({ code: 'NOT_FOUND', message: 'Клиент не найден' });
@@ -133,7 +160,7 @@ export class CustomerService {
     assignField(customer.blocked, 'blockedUntil', payload.blockedUntil );
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions?.session;
     
     await customer.save(saveOptions);
   }
@@ -141,13 +168,13 @@ export class CustomerService {
 
   async addAddress(
     command: AddAddressCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     const { customerId, payload } = command;
     checkId([customerId]);
 
     const dbQuery = this.customerModel.findOne({ _id: new Types.ObjectId(customerId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const customer = await dbQuery.exec();
     if (!customer) throw new DomainError({ code: 'NOT_FOUND', message: 'Клиент не найден' });
@@ -174,7 +201,7 @@ export class CustomerService {
     if (customer.savedAddresses.length === 1) customer.selectedAddressId = newAddress.id;
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions?.session;
     
     await customer.save(saveOptions);
   }
@@ -182,19 +209,19 @@ export class CustomerService {
 
   async deleteAddress(
     command: DeleteAddressCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
-    const { customerId, addressId } = command;
+    const { customerId, payload } = command;
     checkId([customerId]);
 
     const dbQuery = this.customerModel.findOne({ _id: new Types.ObjectId(customerId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const customer = await dbQuery.exec();
     if (!customer) throw new DomainError({ code: 'NOT_FOUND', message: 'Клиент не найден' });
 
-    const wasSelected = customer.selectedAddressId === addressId;
-    const addressIndex = customer.savedAddresses.findIndex(addr => addr.id === addressId);
+    const wasSelected = customer.selectedAddressId === payload.addressId;
+    const addressIndex = customer.savedAddresses.findIndex(addr => addr.id === payload.addressId);
     if (addressIndex === -1) throw new DomainError({ code: 'NOT_FOUND', message: 'Адрес не найден' });
 
     customer.savedAddresses.splice(addressIndex, 1);
@@ -205,7 +232,7 @@ export class CustomerService {
     }
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions?.session;
     
     await customer.save(saveOptions);
   }
@@ -213,25 +240,25 @@ export class CustomerService {
 
   async selectAddress(
     command: SelectAddressCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
-    const { customerId, addressId } = command;
+    const { customerId, payload } = command;
     checkId([customerId]);
 
     const dbQuery = this.customerModel.findOne({ _id: new Types.ObjectId(customerId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const customer = await dbQuery.exec();
     if (!customer) throw new DomainError({ code: 'NOT_FOUND', message: 'Клиент не найден' });
 
     // Найдём адрес по ID в списке сохранённых адресов
-    const exists = customer.savedAddresses.some(addr => addr.id === addressId);
+    const exists = customer.savedAddresses.some(addr => addr.id === payload.addressId);
     if (!exists) throw new DomainError({ code: 'NOT_FOUND', message: 'Адрес не найден' });
 
-    customer.selectedAddressId = addressId;
+    customer.selectedAddressId = payload.addressId;
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions?.session;
     
     await customer.save(saveOptions);
   }

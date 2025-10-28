@@ -1,37 +1,36 @@
 import { VerifiedStatus, UserSex} from "src/common/enums/common.enum"
-import { BlockPayload } from "src/common/types/comands"
+import { BlockPayload } from "src/common/types/commands"
 
-export type CreateCustomerPayload = {
-  telegramId: number;
-  customerName: string;
-  telegramUsername?: string;
-  telegramFirstName?: string;
-  telegramLastName?: string;
-  phone?: string;
-  email?: string;
-}
 
 export class CreateCustomerCommand {
   constructor(
-    public readonly payload: CreateCustomerPayload
+    public readonly payload: {
+      telegramId: number;
+      customerName: string;
+      telegramUsername?: string;
+      telegramFirstName?: string;
+      telegramLastName?: string;
+      phone?: string;
+      email?: string;
+    }
   ) {}
 }
 
-export type UpdateCustomerPayload = {
-  verifiedStatus?: VerifiedStatus,
-  bonusPoints?: number,
-  internalNote?: string | null,
-  customerName?: string | null,
-  sex?: UserSex,
-  birthDate?: Date | null,
-  email?: string | null
-}
+
 export class UpdateCustomerCommand {
   constructor(
     public readonly customerId: string,
-    public readonly payload: UpdateCustomerPayload
+    public readonly payload: {
+      verifiedStatus?: VerifiedStatus,
+      bonusPoints?: number,
+      internalNote?: string | null,
+      customerName?: string | null,
+      sex?: UserSex,
+      birthDate?: Date | null,
+      email?: string | null
+    }
   ) {}
-};
+}
 
 
 export class BlockCustomerCommand {
@@ -41,21 +40,21 @@ export class BlockCustomerCommand {
   ) {}
 }
 
-export type AddAddressPayload = {
-  latitude: number;
-  longitude: number;
-  city: string;
-  street: string;
-  house: string;
-  apartment?: string | null;
-  floor?: string | null;
-  entrance?: string | null;
-  intercomCode?: string | null;
-}
+
 export class AddAddressCommand {
   constructor(
     public readonly customerId: string,
-    public readonly payload: AddAddressPayload
+    public readonly payload: {
+      latitude: number;
+      longitude: number;
+      city: string;
+      street: string;
+      house: string;
+      apartment?: string | null;
+      floor?: string | null;
+      entrance?: string | null;
+      intercomCode?: string | null;
+    }
   ) {}
 }
 
@@ -63,13 +62,18 @@ export class AddAddressCommand {
 export class DeleteAddressCommand {
   constructor(
     public readonly customerId: string,
-    public readonly addressId: string
+    public readonly payload: {
+      addressId: string
+    }
   ) {}
 }
+
 
 export class SelectAddressCommand {
   constructor(
     public readonly customerId: string,
-    public readonly addressId: string
+    public readonly payload: {
+      addressId: string
+    }
   ) {}
 }

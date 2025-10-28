@@ -20,20 +20,72 @@ export class LogsService {
   ) {}
   
   // ====================================================
+  // QUERIES
+  // ====================================================
+  async getEntityLogs(
+    query: GetEntityLogsQuery,
+    queryOptions: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Log>> {
+    const { payload, filters } = query;
+    checkId([payload.entityId]);
+
+    const dbQueryFilter: any = {
+      entityType: payload.entityType,
+      entityId: new Types.ObjectId(payload.entityId),
+      forRoles: payload.forRoles?.length ? { $in: payload.forRoles } : undefined,
+    };
+  
+    if (filters) {
+      if (filters.level) dbQueryFilter.logLevel = Array.isArray(filters.level) ? { $in: filters.level } : filters.level;
+      if (filters.search) dbQueryFilter.text = { $regex: filters.search, $options: 'i' };
+      if (filters.fromDate || filters.toDate) {
+        dbQueryFilter.createdAt = {
+          ...(filters.fromDate ? { $gte: filters.fromDate } : {}),
+          ...(filters.toDate ? { $lte: filters.toDate } : {}),
+        };
+      }
+    }
+
+    const dbQueryOptions: any = {
+      page: queryOptions.pagination?.page || 1,
+      limit: queryOptions.pagination?.pageSize || 10,
+      lean: true, leanWithId: true,
+      sort: queryOptions.sort || { createdAt: -1 }
+    };
+    
+    const result = await this.logModel.paginate(dbQueryFilter, dbQueryOptions);
+    return result;
+  }
+
+
+  async getLog(
+    logId: string,
+    queryOptions: CommonQueryOptions
+  ): Promise<Log | null> {
+    checkId([logId]);
+    
+    const dbQuery = this.logModel.findOne({_id: new Types.ObjectId(logId)})
+    if (queryOptions.session) dbQuery.session(queryOptions.session);
+
+    const log = await dbQuery.lean({ virtuals: true }).exec();
+    return log;
+  }
+
+  
+  // ====================================================
   // COMMANDS
   // ====================================================
-  /**
-   * Создание лога
-   */ 
   async createLog(
     command: CreateLogCommand,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<Log> {
-    const { entityType, entityId, payload } = command;
+    const { payload, logId } = command;
+    checkId([payload.entityId]);
 
-    const logData: Omit<Log, '_id'> = {
-      entityType,
-      entityId: new Types.ObjectId(entityId),
+    const logData: any = {
+      _id: logId ? new Types.ObjectId(logId) : undefined,
+      entityType: payload.entityType,
+      entityId: new Types.ObjectId(payload.entityId),
       text: payload.text,
       logLevel: payload.logLevel || LogLevel.LOW,
       forRoles: [ 
@@ -42,120 +94,54 @@ export class LogsService {
       ]
     };
 
-    const queryOptions: any = {};
-    if (options?.session) queryOptions.session = options.session;
+    const createOptions: any = {};
+    if (commandOptions?.session) createOptions.session = commandOptions.session;
 
-    return await this.logModel.create([logData], queryOptions).then(docs => docs[0]);
+    const log = await this.logModel.create([logData], createOptions).then(docs => docs[0]);
+    return log;
   }
 
 
-  /**
-   * Удаление конкретного лога
-   */
   async deleteLog(
     logId: string,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
     checkId([logId]);
 
-    const queryFilter: any = {
+    const dbQueryFilter: any = {
       _id: new Types.ObjectId(logId),
     };
     
-    const queryOptions: any = {};
-    if (options?.session) queryOptions.session = options.session;
+    const deleteOptions: any = {};
+    if (commandOptions?.session) deleteOptions.session = commandOptions.session;
     
-    const res = await this.logModel.deleteOne(queryFilter, queryOptions).exec();
+    const res = await this.logModel.deleteOne(dbQueryFilter, deleteOptions).exec();
     if (res.deletedCount === 0) throw DomainError.notFound('Log', String(logId));
   }
 
 
-  /**
-   * Удаление всех логов сущности
-   */
   async deleteAllEntityLogs(
     command: DeleteAllEntityLogsCommand,
-    options?: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<void> {
-    checkId([command.entityId]);
+    const { payload } = command;
+    checkId([payload.entityId]);
     
-    const queryFilter: any = {
-      entityType: command.entityType,
-      entityId: new Types.ObjectId(command.entityId)
+    const dbQueryFilter: any = {
+      entityType: payload.entityType,
+      entityId: new Types.ObjectId(payload.entityId)
     };
     
-    const queryOptions: any = {};
-    if (options?.session) queryOptions.session = options.session;
+    const deleteOptions: any = {};
+    if (commandOptions?.session) deleteOptions.session = commandOptions.session;
     
-    await this.logModel.deleteMany(queryFilter, queryOptions).exec();
+    await this.logModel.deleteMany(dbQueryFilter, deleteOptions).exec();
   }
 
 
 
 
-  // ====================================================
-  // QUERIES
-  // ====================================================
-  /**
-   * Получение всех логов для сущности с пагинацией
-   */
-  async getEntityLogs(
-    query: GetEntityLogsQuery,
-    options: CommonListQueryOptions<'createdAt'>
-  ): Promise<PaginateResult<Log>> {
-    const { entityType, entityId, forRoles, filters } = query;
-    checkId([entityId]);
-
-    const queryFilter: any = {
-      entityType,
-      entityId: new Types.ObjectId(entityId)
-    };
   
-    // Фильтрация по ролям (обязательное поле)
-    if (forRoles?.length) queryFilter.forRoles = { $in: forRoles };
-    
-    // Опциональные фильтры
-    if (filters) {
-      if (filters.level) {
-        queryFilter.logLevel = Array.isArray(filters.level) ? { $in: filters.level } : filters.level;
-      }
-      if (filters.fromDate || filters.toDate) {
-        queryFilter.createdAt = {
-          ...(filters.fromDate ? { $gte: filters.fromDate } : {}),
-          ...(filters.toDate ? { $lte: filters.toDate } : {}),
-        };
-      }
-      if (filters.search) {
-        queryFilter.text = { $regex: filters.search, $options: 'i' };
-      }
-    }
-
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
-      lean: true, leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
-    };
-    
-    return this.logModel.paginate(queryFilter, queryOptions);
-  }
-
-
-  /**
-   * Получение конкретного лога
-   */
-  async getLog(
-    logId: string,
-    options: CommonQueryOptions
-  ): Promise<Log | null> {
-    checkId([logId]);
-    
-    const query = this.logModel.findOne({_id: new Types.ObjectId(logId)})
-    if (options.session) query.session(options.session);
-    const log = await query.lean({ virtuals: true }).exec();
-    
-    return log;
-  }
 
 
 }

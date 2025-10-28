@@ -1,9 +1,11 @@
 
 import { Module } from "@nestjs/common";
-import { AdminBlogRoleService } from "./admin.blog.role.service";
-import { AdminBlogController } from "./admin.blog.controller";
+import { AdminArticlesRoleService } from "./admin.articles.role.service";
+import { AdminArticlesController } from "./admin.articles.controller";
+import { ArticleModule } from "src/modules/article/article.module";
 
 @Module({
+  imports: [ArticleModule],
   controllers: [AdminArticlesController],
   providers: [AdminArticlesRoleService],
 })

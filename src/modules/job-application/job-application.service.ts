@@ -8,10 +8,11 @@ import { PaginateResult, Types } from 'mongoose';
 import { JobApplicationModel, JobApplication } from './job-application.schema';
 import { CreateJobApplicationCommand, UpdateJobApplicationCommand } from './job-application.commands';
 import { EMPLOYEE_PORT, EmployeePort } from '../employee/employee.port';
+import { EmployeeQueries } from '../employee';
 import { SELLER_PORT, SellerPort } from '../seller/seller.port';
+import { SellerQueries } from '../seller';
 import { JobApplicationStatus } from './job-application.enums';
 import { DomainError } from 'src/common/errors/domain-error';
-import { parcePhoneNumber } from 'src/common/utils';
 
 @Injectable()
 export class JobApplicationService {
@@ -21,120 +22,129 @@ export class JobApplicationService {
     @Inject(SELLER_PORT) private sellerPort: SellerPort,
   ) {}
 
-
+  // ====================================================
+  // QUERIES
+  // ====================================================
   async getPaginatedJobApplications(
     query: GetJobApplicationsQuery,
-    options: CommonListQueryOptions<'createdAt'>
+    queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<JobApplication>> {
     const { filters } = query;
     checkId([filters?.sellerId, filters?.employeeId]);
 
-    const queryFilter: any = {};
-    if (filters?.sellerId) queryFilter.sellerId = new Types.ObjectId(filters.sellerId);
-    if (filters?.employeeId) queryFilter.employeeId = new Types.ObjectId(filters.employeeId);
+    const dbQueryFilter: any = {};
+    if (filters?.sellerId) dbQueryFilter['seller.sellerId'] = new Types.ObjectId(filters.sellerId);
+    if (filters?.employeeId) dbQueryFilter['employee.employeeId'] = new Types.ObjectId(filters.employeeId);
     
-    if (filters?.jobApplicationStatus) {
-      queryFilter.jobApplicationStatus = Array.isArray(filters.jobApplicationStatus)
-        ? { $in: filters.jobApplicationStatus }
-        : filters.jobApplicationStatus;
+    if (filters?.statuses && filters.statuses.length > 0) {
+      dbQueryFilter.status = { $in: filters.statuses };
     }
     if (filters?.fromDate || filters?.toDate) {
-      queryFilter.createdAt = {
+      dbQueryFilter.createdAt = {
         ...(filters.fromDate ? { $gte: filters.fromDate } : {}),
         ...(filters.toDate ? { $lte: filters.toDate } : {}),
       };
     }
 
-    const queryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
+    const dbQueryOptions: any = {
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
       lean: true,
       leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
+      sort: queryOptions?.sort || { createdAt: -1 }
     };
     
-    const result = await this.jobApplicationModel.paginate(queryFilter, queryOptions);
+    const result = await this.jobApplicationModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
 
 
   async getJobApplications(
     query: GetJobApplicationsQuery,
-    options: CommonQueryOptions
+    queryOptions?: CommonQueryOptions
   ): Promise<JobApplication[]> {
     
     const { filters } = query;
     checkId([filters?.sellerId, filters?.employeeId]);
 
-    const queryFilter: any = {};
-    if (filters?.sellerId) queryFilter.sellerId = new Types.ObjectId(filters.sellerId);
-    if (filters?.employeeId) queryFilter.employeeId = new Types.ObjectId(filters.employeeId);
+    const dbQueryFilter: any = {};
+    if (filters?.sellerId) dbQueryFilter['seller.sellerId'] = new Types.ObjectId(filters.sellerId);
+    if (filters?.employeeId) dbQueryFilter['employee.employeeId'] = new Types.ObjectId(filters.employeeId);
     
-    if (filters?.jobApplicationStatus) {
-      queryFilter.jobApplicationStatus = Array.isArray(filters.jobApplicationStatus)
-        ? { $in: filters.jobApplicationStatus }
-        : filters.jobApplicationStatus;
+    if (filters?.statuses && filters.statuses.length > 0) {
+      dbQueryFilter.status = { $in: filters.statuses };
     }
     if (filters?.fromDate || filters?.toDate) {
-      queryFilter.createdAt = {
+      dbQueryFilter.createdAt = {
         ...(filters.fromDate ? { $gte: filters.fromDate } : {}),
         ...(filters.toDate ? { $lte: filters.toDate } : {}),
       };
     }
 
-    const dbQuery = this.jobApplicationModel.find(queryFilter).sort({ createdAt: -1 });
-    if (options.session) dbQuery.session(options.session);
+    const dbQuery = this.jobApplicationModel.find(dbQueryFilter).sort({ createdAt: -1 });
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
     
     const jobApplications = await dbQuery.lean({ virtuals: true }).exec();
     return jobApplications;
   }
 
 
+  // ====================================================
+  // COMMANDS
+  // ====================================================
   async createJobApplication(
     command: CreateJobApplicationCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<JobApplication> {
-    const { sellerId, payload } = command;
+    const { payload, jobApplicationId } = command;
 
-    checkId([sellerId]);
-    const phoneNumber = parcePhoneNumber(payload.employeePhoneNumber);
-    if (!phoneNumber || !phoneNumber.isValid) throw new DomainError({ code: 'VALIDATION', message: 'Неверный формат номера телефона' });
+    checkId([payload.sellerId, payload.employeeId]);
 
     // Получаем продавца через Port
-    const seller = await this.sellerPort.getSeller(sellerId, options);
+    const seller = await this.sellerPort.getSeller(
+      new SellerQueries.GetSellerQuery({ sellerId: payload.sellerId }), 
+      commandOptions
+    );
     if (!seller) throw new DomainError({ code: 'NOT_FOUND', message: 'Продавец не найден' });
 
-    // Получаем сотрудника по телефону через Port
-    const employee = await this.employeePort.getEmployee({ phoneNumber: phoneNumber.number }, options);
+    // Получаем сотрудника через Port
+    const employee = await this.employeePort.getEmployee(
+      new EmployeeQueries.GetEmployeeQuery({ employeeId: payload.employeeId }), 
+      commandOptions
+    );
     if (!employee) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
 
     // Бизнес-правило: сотрудник не должен быть занят
     if (employee.employer) throw new DomainError({ code: 'CONFLICT', message: 'Сотрудник уже работает у другого продавца' });
-
+    
     // Проверяем дубликаты
     const existingQuery = this.jobApplicationModel.findOne({
-      sellerId: new Types.ObjectId(seller.sellerId),
-      employeeId: new Types.ObjectId(employee.employeeId),
-      jobApplicationStatus: JobApplicationStatus.PENDING
+      'seller.sellerId': new Types.ObjectId(payload.sellerId),
+      'employee.employeeId': new Types.ObjectId(payload.employeeId),
+      status: JobApplicationStatus.PENDING
     });
-    if (options.session) existingQuery.session(options.session);
+    if (commandOptions?.session) existingQuery.session(commandOptions.session);
     
     const existing = await existingQuery.exec();
     if (existing) throw new DomainError({ code: 'CONFLICT', message: 'Запрос уже отправлен' });
 
-    // Создаем заявку
-
-    const jobApplicationData: Omit<JobApplication, '_id' | 'jobApplicationId' | 'createdAt' | 'updatedAt'> = {
-      sellerId: new Types.ObjectId(sellerId),
-      employeeId: employee._id,
-      employeeName: employee.employeeName,
-      employeePhoneNumber: employee.phoneNumber,
-      companyName: seller.companyName,
-      jobApplicationStatus: JobApplicationStatus.PENDING
+    // Создаем заявку с вложенными объектами
+    const jobApplicationData: any = {
+      _id: jobApplicationId ? new Types.ObjectId(jobApplicationId) : undefined,
+      employee: {
+        employeeId: employee._id,
+        employeeName: employee.employeeName,
+        employeePhone: employee.phone,
+      },
+      seller: {
+        sellerId: seller._id,
+        sellerCompanyName: seller.companyName,
+      },
+      status: JobApplicationStatus.PENDING,
     };
 
     const queryOptions: any = {};
-    if (options?.session) queryOptions.session = options.session;
+    if (commandOptions?.session) queryOptions.session = commandOptions.session;
 
     const jobApplication = await this.jobApplicationModel.create([jobApplicationData], queryOptions).then(docs => docs[0]);
     return jobApplication;
@@ -143,22 +153,22 @@ export class JobApplicationService {
 
   async updateJobApplication(
     command: UpdateJobApplicationCommand,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<JobApplication> {
 
     const { jobApplicationId, payload } = command;
     checkId([jobApplicationId]);
 
     const dbQuery = this.jobApplicationModel.findOne({ _id: new Types.ObjectId(jobApplicationId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const jobApplication = await dbQuery.exec();
     if (!jobApplication) throw new DomainError({ code: 'NOT_FOUND', message: 'Заявка не найдена' });
     
-    assignField(jobApplication, 'jobApplicationStatus', payload.jobApplicationStatus, { onNull: 'skip' });
+    assignField(jobApplication, 'status', payload.status, { onNull: 'skip' });
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
 
     await jobApplication.save(saveOptions);
     return jobApplication;
@@ -167,19 +177,19 @@ export class JobApplicationService {
 
   async deleteJobApplication(
     jobApplicationId: string,
-    options: CommonCommandOptions
+    commandOptions?: CommonCommandOptions
   ): Promise<JobApplication> {
     
     checkId([jobApplicationId]);
 
     const dbQuery = this.jobApplicationModel.findOne({ _id: new Types.ObjectId(jobApplicationId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const jobApplication = await dbQuery.exec();
     if (!jobApplication) throw new DomainError({ code: 'NOT_FOUND', message: 'Заявка не найдена' });
     
     const deleteOptions: any = {};
-    if (options.session) deleteOptions.session = options.session;
+    if (commandOptions?.session) deleteOptions.session = commandOptions.session;
 
     await jobApplication.deleteOne(deleteOptions);
     return jobApplication;

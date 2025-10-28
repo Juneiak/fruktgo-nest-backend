@@ -1,23 +1,20 @@
 import { JobApplicationStatus } from "./job-application.enums";
 
-export type CreateJobApplicationPayload = {
-  employeePhoneNumber: string;
-}
-
 export class CreateJobApplicationCommand {
   constructor(
-    public readonly sellerId: string,
-    public readonly payload: CreateJobApplicationPayload
+    public readonly payload: {
+      sellerId: string;
+      employeeId: string;
+    },
+    public readonly jobApplicationId?: string
   ) {}
-}
-
-export type UpdateJobApplicationPayload = {
-  jobApplicationStatus: JobApplicationStatus;
 }
 
 export class UpdateJobApplicationCommand {
   constructor(
     public readonly jobApplicationId: string,
-    public readonly payload: UpdateJobApplicationPayload
+    public readonly payload: {
+      status: JobApplicationStatus;
+    }
   ) {}
 }

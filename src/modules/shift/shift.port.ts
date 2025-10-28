@@ -12,28 +12,27 @@ import {
 } from './shift.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { GetShiftsQuery } from './shift.queries';
+import { GetShiftsQuery, GetShiftQuery } from './shift.queries';
 
 export interface ShiftPort {
 
   // ====================================================
-  // COMMANDS
-  // ==================================================== 
-  openShift(command: OpenShiftCommand, options: CommonCommandOptions): Promise<Shift>;
-  closeShift(command: CloseShiftCommand, options: CommonCommandOptions): Promise<Shift>;
-  startClosing(command: StartClosingShiftCommand, options: CommonCommandOptions): Promise<Shift>;
-  pauseShift(command: PauseShiftCommand, options: CommonCommandOptions): Promise<Shift>;
-  resumeShift(command: ResumeShiftCommand, options: CommonCommandOptions): Promise<Shift>;
-  forceCloseShift(command: ForceCloseShiftCommand, options: CommonCommandOptions): Promise<Shift>;
-  abandonShift(command: AbandonShiftCommand, options: CommonCommandOptions): Promise<Shift>;
-  updateStatistics(command: UpdateStatisticsCommand, options: CommonCommandOptions): Promise<Shift>;
-
-  // ====================================================
   // QUERIES
   // ==================================================== 
-  getShifts(query: GetShiftsQuery, options: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Shift>>;
-  getShift(shiftId: string, options: CommonQueryOptions): Promise<Shift | null>;
-  getCurrentShiftOfShop(shopId: string, options: CommonQueryOptions): Promise<Shift | null>;
+  getShifts(query: GetShiftsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Shift>>;
+  getShift(query: GetShiftQuery, queryOptions?: CommonQueryOptions): Promise<Shift | null>;
+
+  // ====================================================
+  // COMMANDS
+  // ==================================================== 
+  openShift(command: OpenShiftCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
+  closeShift(command: CloseShiftCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
+  startClosing(command: StartClosingShiftCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
+  pauseShift(command: PauseShiftCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
+  resumeShift(command: ResumeShiftCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
+  forceCloseShift(command: ForceCloseShiftCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
+  abandonShift(command: AbandonShiftCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
+  updateStatistics(command: UpdateStatisticsCommand, commandOptions?: CommonCommandOptions): Promise<Shift>;
 }
 
 export const SHIFT_PORT = Symbol('SHIFT_PORT');
