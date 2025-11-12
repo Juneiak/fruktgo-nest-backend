@@ -1,20 +1,20 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types, PaginateResult } from 'mongoose';
+import { Product, ProductModel } from './product.schema';
+import { ProductPort } from './product.port';
+import { checkId, assignField } from 'src/common/utils';
+import { DomainError } from 'src/common/errors/domain-error';
+import { CreateProductCommand, UpdateProductCommand } from './product.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { GetProductsQuery } from './product.queries';
-import { ProductModel, Product } from './product.schema';
-import { CreateProductCommand, UpdateProductCommand } from './product.commands';
-import { checkId, assignField } from 'src/common/utils';
-import { DomainError } from 'src/common/errors/domain-error';
-import { SELLER_PORT, SellerPort } from '../seller/seller.port';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand, UpdateImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType, ImageSize } from 'src/infra/images/images.enums';
 
 @Injectable()
-export class ProductService {
+export class ProductService implements ProductPort {
   constructor(
     @InjectModel(Product.name) private readonly productModel: ProductModel,
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
@@ -129,7 +129,7 @@ export class ProductService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const product = await dbQuery.exec();
-    if (!product) throw new DomainError({ code: 'NOT_FOUND', message: 'Продукт не найден' });
+    if (!product) throw DomainError.notFound('Product', productId);
     
     assignField(product, 'productName', payload.productName, { onNull: 'skip' });
     assignField(product, 'category', payload.category, { onNull: 'skip' });
@@ -190,7 +190,7 @@ export class ProductService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const product = await dbQuery.exec();
-    if (!product) throw new DomainError({ code: 'NOT_FOUND', message: 'Продукт не найден' });
+    if (!product) throw DomainError.notFound('Product', productId);
     
     // TODO: Проверка что продукт не используется в магазинах
     

@@ -5,17 +5,17 @@ import { IsOptional, IsEnum, IsString, IsDate } from "class-validator";
 export class BlockDto {
   @IsEnum(BlockStatus)
   @IsOptional()
-  status: BlockStatus;
+  status?: BlockStatus;
 
   @IsString()
   @IsOptional()
-  reason: string;
+  reason?: string;
 
   @IsString()
   @IsOptional()
-  code: string;
+  code?: string;
 
   @IsDate()
   @IsOptional()
-  blockedUntil: Date;
+  blockedUntil?: Date;
 }

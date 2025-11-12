@@ -4,7 +4,7 @@ import { VerifiedStatus } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Shift } from 'src/modules/shift/shift.schema';
-import { BlockedSchema, Blocked, AddressSchema, Address } from 'src/common/schemas/common-schemas';
+import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
 import {
   DEFAULT_MIN_WEIGHT_DIFFERENCE_PERCENTAGE,
   DEFAULT_ACCEPTANCE_LIMIT,
@@ -16,6 +16,7 @@ import { ShopAccount } from 'src/modules/finance/shop-account/schemas/shop-accou
 import { Image } from 'src/infra/images/image.schema';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { initBlocked } from 'src/common/schemas/common-schemas';
+import { Address } from 'src/infra/addresses/address.schema';
 
 
 const shopStatisticsSchema = {
@@ -73,8 +74,8 @@ export class Shop {
   @Prop({ type: String})
   aboutShop?: string;
 
-  @Prop({ type: AddressSchema })
-  address?: Address | null;
+  @Prop({ type: Types.ObjectId, ref: Address.name, default: null })
+  address?: Types.ObjectId | null;
 
   @Prop({ type: String, enum: Object.values(ShopStatus), default: ShopStatus.CLOSED, required: true })
   status: ShopStatus;

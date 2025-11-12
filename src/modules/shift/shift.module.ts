@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ShiftSchema, Shift } from './shift.schema';
 import { ShiftService } from './shift.service';
-import { ShiftFacade } from './shift.facade';
 import { SHIFT_PORT } from './shift.port';
 
 @Module({
@@ -11,8 +10,7 @@ import { SHIFT_PORT } from './shift.port';
   ],
   providers: [
     ShiftService,
-    ShiftFacade,
-    { provide: SHIFT_PORT, useExisting: ShiftFacade }
+    { provide: SHIFT_PORT, useExisting: ShiftService }
   ],
   exports: [SHIFT_PORT],
 })

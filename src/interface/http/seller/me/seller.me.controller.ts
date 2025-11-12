@@ -1,5 +1,5 @@
 import { Controller, Get, Body, Patch, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
-import { SellerMeRoleService } from './seller.me.role.service'
+import { SellerMeRoleService } from './seller.me.role.service';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
@@ -18,13 +18,13 @@ import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.int
 @UserType('seller')
 export class SellerMeController {
   constructor(
-    private readonly sellerMeRoleService: SellerMeRoleService,
+    private readonly sellerMeRoleService: SellerMeRoleService
   ) {}
 
   @ApiOperation({summary: 'Получает полную информацию о продавце'})
   @Get('')
   getSeller(
-    @GetUser() authedSeller: AuthenticatedUser,
+    @GetUser() authedSeller: AuthenticatedUser
   ): Promise<SellerFullResponseDto> {
     return this.sellerMeRoleService.getFullSeller(authedSeller);
   }
@@ -33,13 +33,13 @@ export class SellerMeController {
   @ApiOperation({summary: 'Получает краткую информацию о продавце'})
   @Get('preview')
   getSellerPreview(
-    @GetUser() authedSeller: AuthenticatedUser,
+    @GetUser() authedSeller: AuthenticatedUser
   ): Promise<SellerPreviewResponseDto> {
     return this.sellerMeRoleService.getPreviewSeller(authedSeller);
   }
 
 
-  @ApiOperation({summary: 'редактирует информацию о продавце'})
+  @ApiOperation({summary: 'Редактирует информацию о продавце'})
   @Patch()
   @UseInterceptors(ImageUploadInterceptor('sellerLogo'))
   updateSeller(

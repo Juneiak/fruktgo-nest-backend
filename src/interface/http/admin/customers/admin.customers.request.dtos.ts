@@ -6,10 +6,6 @@ export class UpdateCustomerDto {
   @IsOptional()
   verifiedStatus?: VerifiedStatus;
 
-  @IsNumber()
-  @IsOptional()
-  bonusPoints?: number;
-
   @IsString()
   @IsOptional()
   internalNote?: string;

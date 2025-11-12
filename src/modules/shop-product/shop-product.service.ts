@@ -157,7 +157,7 @@ export class ShopProductService {
     if (commandOptions.session) dbQuery.session(commandOptions.session);
 
     const shopProduct = await dbQuery.exec();
-    if (!shopProduct) throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    if (!shopProduct) throw DomainError.notFound('ShopProduct', shopProductId);
 
     // Обновляем stockQuantity
     if (payload.stockQuantity !== undefined) {
@@ -189,7 +189,7 @@ export class ShopProductService {
     if (commandOptions.session) dbQuery.session(commandOptions.session);
 
     const shopProduct = await dbQuery.exec();
-    if (!shopProduct) throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    if (!shopProduct) throw DomainError.notFound('ShopProduct', shopProductId);
 
     // Удаляем все изображения товара
     if (shopProduct.images && shopProduct.images.length > 0) {
@@ -224,7 +224,7 @@ export class ShopProductService {
     if (commandOptions.session) dbQuery.session(commandOptions.session);
 
     const shopProduct = await dbQuery.exec();
-    if (!shopProduct) throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    if (!shopProduct) throw DomainError.notFound('ShopProduct', shopProductId);
 
     // Загружаем изображение
     const newImageId = new Types.ObjectId();
@@ -265,12 +265,12 @@ export class ShopProductService {
     if (commandOptions.session) dbQuery.session(commandOptions.session);
 
     const shopProduct = await dbQuery.exec();
-    if (!shopProduct) throw new DomainError({ code: 'NOT_FOUND', message: 'Товар магазина не найден' });
+    if (!shopProduct) throw DomainError.notFound('ShopProduct', shopProductId);
 
     const imageObjectId = new Types.ObjectId(shopProductImageId);
     const imageIndex = shopProduct.images.findIndex(img => img.equals(imageObjectId));
     
-    if (imageIndex === -1) throw new DomainError({ code: 'NOT_FOUND', message: 'Изображение не найдено у данного товара' });
+    if (imageIndex === -1) throw DomainError.notFound('ShopProductImage', shopProductImageId);
 
     // Удаляем изображение из хранилища
     const deleteImageOptions: any = {};

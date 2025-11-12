@@ -1,6 +1,6 @@
 import { Expose, Type } from "class-transformer";
-import { UserType } from "src/common/enums/common.enum";
-import { LogLevel } from "src/infra/log/log.enums";
+import { UserType, BlockStatus } from "src/common/enums/common.enum";
+import { LogsEnums } from "src/infra/logs";
 
 
 export class PaginationMetaDto {
@@ -26,7 +26,32 @@ export class MessageResponseDto {
 export class LogResponseDto {
   @Expose() id: string;
   @Expose() createdAt: Date;
-  @Expose() logLevel: LogLevel;
+  @Expose() logLevel: LogsEnums.LogLevel;
   @Expose() text: string;
   @Expose() forRoles: UserType[];
+}
+
+
+export class BlockedResponseDto {
+  @Expose() status: BlockStatus;
+  @Expose() reason?: string | null;
+  @Expose() code?: string | null;
+  @Expose() by?: string | null;
+  @Expose() blockedAt?: Date | null;
+  @Expose() blockedUntil?: Date | null;
+}
+
+
+export class AddressResponseDto {
+  @Expose() id: string;
+  @Expose() city: string;
+  @Expose() street: string;
+  @Expose() house?: string;
+  @Expose() entrance?: string;
+  @Expose() floor?: string;
+  @Expose() apartment?: string;
+  @Expose() intercomCode?: string;
+  @Expose() address: string;
+  @Expose() latitude?: number;
+  @Expose() longitude?: number;
 }

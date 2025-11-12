@@ -1,18 +1,18 @@
 import { Expose, Type } from 'class-transformer';
 import { Types } from 'mongoose';
-import { ProductCategory, ProductMeasuringScale, ProductStepRate } from 'src/modules/product/product.schema';
-import { ShopProductStatus } from 'src/modules/shop-product/shop-product.schema';
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+import { ProductEnums } from 'src/modules/product';
+import { ShopProductEnums } from 'src/modules/shop-product';
 
 export class ProductPreviewDto {
   @Expose() productId: string;
   @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
-  @Expose() category: ProductCategory;
+  @Expose() category: ProductEnums.ProductCategory;
   @Expose() price: number;
-  @Expose() measuringScale: ProductMeasuringScale;
-  @Expose() stepRate: ProductStepRate;
+  @Expose() measuringScale: ProductEnums.ProductMeasuringScale;
+  @Expose() stepRate: ProductEnums.ProductStepRate;
   @Expose() aboutProduct?: string;
   @Expose() origin?: string;
 }
@@ -29,7 +29,7 @@ export class ShopProductFullResponseDto {
   @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
   @Expose() stockQuantity: number;
-  @Expose() status: ShopProductStatus;
+  @Expose() status: ShopProductEnums.ShopProductStatus;
   @Expose() last7daysSales: number;
   @Expose() last7daysWriteOff: number;
   @Expose() @Type(() => ShopProductImageDto) images: ShopProductImageDto[];
@@ -42,7 +42,7 @@ export class ShopProductPreviewResponseDto {
   @ExposeObjectId() pinnedTo: string;
   @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
   @Expose() stockQuantity: number;
-  @Expose() status: ShopProductStatus;
+  @Expose() status: ShopProductEnums.ShopProductStatus;
   @Expose() last7daysSales: number;
   @Expose() last7daysWriteOff: number;
 }

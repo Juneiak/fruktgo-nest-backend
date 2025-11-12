@@ -15,11 +15,13 @@ import { GetUser } from 'src/common/decorators/user.decorator';
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('customer')
 export class CustomerMeController {
-  constructor(private readonly customerMeRoleService: CustomerMeRoleService) {}
+  constructor(
+    private readonly customerMeRoleService: CustomerMeRoleService,
+  ) {}
 
 
   @ApiOperation({summary: 'Добавление нового адреса клиентом'})
-  @Post('address')
+  @Post('addresses')
   addAddress( 
     @GetUser() authedCustomer: AuthenticatedUser, 
     @Body() dto: CreateAddressDto
@@ -29,7 +31,7 @@ export class CustomerMeController {
 
 
   @ApiOperation({summary: 'Удаление сохраненного адреса клиентом по его addressId'})
-  @Delete('address/:addressId')
+  @Delete('addresses/:addressId')
   deleteAddress(
     @GetUser() authedCustomer: AuthenticatedUser, 
     @Param('addressId') addressId: string
@@ -39,7 +41,7 @@ export class CustomerMeController {
 
 
   @ApiOperation({summary: 'Выбор сохраненного адреса клиентом по его addressId'})
-  @Patch('address/:addressId')
+  @Patch('addresses/:addressId')
   selectAddress(
     @GetUser() authedCustomer: AuthenticatedUser, 
     @Param('addressId') addressId: string
@@ -50,7 +52,9 @@ export class CustomerMeController {
 
   @ApiOperation({summary: 'Получение информации о клиенте по своему customerId'})
   @Get()
-  getCustomer(@GetUser() authedCustomer: AuthenticatedUser): Promise<CustomerResponseDto> {
+  getCustomer(
+    @GetUser() authedCustomer: AuthenticatedUser
+  ): Promise<CustomerResponseDto> {
     return this.customerMeRoleService.getCustomer(authedCustomer);
   }
 

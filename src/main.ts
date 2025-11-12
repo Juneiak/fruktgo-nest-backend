@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import { MongooseExceptionFilter } from './common/filters/mongo-exception.filter';
+import { DomainErrorFilter } from './common/errors';
 import * as express from 'express';
 
 import { TelegramEmployeeBotService } from './modules/telegram/employee-bot/telegram-employee-bot.service';
@@ -45,7 +46,12 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true,
   }));
-  app.useGlobalFilters(new MongooseExceptionFilter())
+  
+  // Глобальные фильтры для обработки ошибок
+  app.useGlobalFilters(
+    new DomainErrorFilter(),        // Обработка доменных ошибок
+    new MongooseExceptionFilter(),  // Обработка ошибок Mongoose
+  );
 
   // Интеграция всех Telegram Bot сервисов
   const telegramEmployeeBotService = app.get(TelegramEmployeeBotService);

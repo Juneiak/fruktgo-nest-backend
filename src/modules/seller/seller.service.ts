@@ -11,9 +11,10 @@ import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
 import { GetSellersQuery, GetSellerQuery } from './seller.queries';
+import { SellerPort } from './seller.port';
 
 @Injectable()
-export class SellerService {
+export class SellerService implements SellerPort {
   constructor(
     @InjectModel(Seller.name) private readonly sellerModel: SellerModel,
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
@@ -55,7 +56,7 @@ export class SellerService {
     else if (filter?.telegramId) dbQueryFilter = { telegramId: filter.telegramId };
     else if (filter?.phone) dbQueryFilter = { phone: filter.phone };
     else if (filter?.inn) dbQueryFilter = { inn: filter.inn };
-    else throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверные параметры запроса' });
+    else throw DomainError.badRequest('Неверные параметры запроса');
     
     const dbQuery = this.sellerModel.findOne(dbQueryFilter);
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
@@ -79,7 +80,7 @@ export class SellerService {
     // Парсим и валидируем номер телефона
     const parsedPhone = parcePhoneNumber(payload.phone);
     if (!parsedPhone || !parsedPhone.isValid()) {
-      throw new DomainError({ code: 'VALIDATION', message: 'Неверный формат номера телефона' });
+      throw DomainError.validation('Неверный формат номера телефона');
     }
     const phoneNumber = parsedPhone.number as string;
 
@@ -96,13 +97,13 @@ export class SellerService {
     const existing = await existingQuery.exec();
     if (existing) {
       if (existing.telegramId === payload.telegramId) {
-        throw new DomainError({ code: 'CONFLICT', message: 'Продавец с таким Telegram ID уже существует' });
+        throw DomainError.conflict('Продавец с таким Telegram ID уже существует');
       }
       if (existing.phone === phoneNumber) {
-        throw new DomainError({ code: 'CONFLICT', message: 'Продавец с таким номером телефона уже существует' });
+        throw DomainError.conflict('Продавец с таким номером телефона уже существует');
       }
       if (existing.email === payload.email) {
-        throw new DomainError({ code: 'CONFLICT', message: 'Продавец с таким email уже существует' });
+        throw DomainError.conflict('Продавец с таким email уже существует');
       }
     }
 
@@ -140,7 +141,7 @@ export class SellerService {
     
     const seller = await dbQuery.exec();
     if (!seller) {
-      throw new DomainError({ code: 'NOT_FOUND', message: 'Продавец не найден' });
+      throw DomainError.notFound('seller', 'Продавец не найден');
     }
 
     assignField(seller, 'internalNote', payload.internalNote);
@@ -153,7 +154,7 @@ export class SellerService {
     if (payload.phone) {
       const parsedPhone = parcePhoneNumber(payload.phone);
       if (!parsedPhone || !parsedPhone.isValid()) {
-        throw new DomainError({ code: 'VALIDATION', message: 'Неверный формат номера телефона' });
+        throw DomainError.validation('Неверный формат номера телефона');
       }
       const phoneNumber = parsedPhone.number as string;
       
@@ -165,7 +166,7 @@ export class SellerService {
       if (commandOptions?.session) existingQuery.session(commandOptions.session);
       
       const existing = await existingQuery.exec();
-      if (existing) throw new DomainError({ code: 'CONFLICT', message: 'Продавец с таким номером телефона уже существует' });
+      if (existing) throw DomainError.conflict('Продавец с таким номером телефона уже существует');
       
       assignField(seller, 'phone', phoneNumber, { onNull: 'skip' });
     }
@@ -220,7 +221,7 @@ export class SellerService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
     const seller = await dbQuery.exec();
-    if (!seller) throw new DomainError({ code: 'NOT_FOUND', message: 'Продавец не найден' });
+    if (!seller) throw DomainError.notFound('seller', 'Продавец не найден');
 
     assignField(seller.blocked, 'status', payload.status, { onNull: 'skip' });
     assignField(seller.blocked, 'reason', payload.reason);

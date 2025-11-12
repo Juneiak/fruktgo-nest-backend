@@ -3,9 +3,10 @@ import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus, UserSex } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { BlockedSchema, Blocked, AddressSchema, Address, initBlocked } from 'src/common/schemas/common-schemas';
+import { BlockedSchema, Blocked, initBlocked } from 'src/common/schemas/common-schemas';
 import { Cart } from './cart.schema';
 import { Order } from 'src/modules/order/order.schema';
+import { Address } from 'src/infra/addresses/address.schema';
 
 
 const customerStatisticsSchema = {
@@ -78,11 +79,11 @@ export class Customer {
   @Prop({ type: String })
   internalNote?: string;
 
-  @Prop({ type: [AddressSchema], default: () => [] })
-  savedAddresses: Address[];
+  @Prop({ type: [Types.ObjectId], ref: Address.name, default: () => [] })
+  addresses: Types.ObjectId[];
 
-  @Prop({ type: String, default: null })
-  selectedAddressId: string | null;
+  @Prop({ type: Types.ObjectId, ref: Address.name, default: null })
+  selectedAddress: Types.ObjectId | null;
 
   @Prop({ type: Types.ObjectId, ref: Cart.name, default: null })
   cart: Types.ObjectId | null;

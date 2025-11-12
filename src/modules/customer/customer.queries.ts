@@ -1,13 +1,15 @@
 import { VerifiedStatus, UserSex, BlockStatus } from "src/common/enums/common.enum";
 
 export class GetCustomersQuery {
-  public readonly filters?: {
+  constructor(
+    public readonly filters?: {
     verifiedStatuses?: VerifiedStatus[];
     blockedStatuses?: BlockStatus[];
     sexes?: UserSex[];
     fromBirthDate?: Date;
     toBirthDate?: Date;
-  };
+  },
+  ) {}
 }
 
 export class GetCustomerQuery {

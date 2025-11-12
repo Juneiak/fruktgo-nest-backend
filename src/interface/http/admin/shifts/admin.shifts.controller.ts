@@ -1,16 +1,15 @@
 import { Controller, Get, Param, UseGuards, Query, Patch } from '@nestjs/common';
-import { AdminShiftsRoleService } from './admin.shifts.role.service'
+import { AdminShiftsRoleService } from './admin.shifts.role.service';
 import { ShiftResponseDto } from './admin.shifts.response.dtos';
 import { ShiftsQueryDto } from './admin.shifts.query.dtos';
-import { ApiTags, ApiOperation, ApiBearerAuth} from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -18,7 +17,9 @@ import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
 export class AdminShiftsController {
-  constructor(private readonly adminShiftsRoleService: AdminShiftsRoleService) {}
+  constructor(
+    private readonly adminShiftsRoleService: AdminShiftsRoleService
+  ) {}
 
   @ApiOperation({summary: 'Получает превью смен с пагинацией'})
   @Get()
@@ -47,13 +48,13 @@ export class AdminShiftsController {
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('shiftId') shiftId: string,
     @Query() paginationQuery: PaginationQueryDto,
-  ): Promise<PaginatedLogDto> {
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
     return this.adminShiftsRoleService.getShiftLogs(authedAdmin, shiftId, paginationQuery);
   }
 
 
-  @ApiOperation({summary: 'закрывает смену принудительно'})
-  @Patch(':shiftId')
+  @ApiOperation({summary: 'Закрывает смену принудительно'})
+  @Patch(':shiftId/force-close')
   forceCloseShift(
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('shiftId') shiftId: string,

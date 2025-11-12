@@ -1,21 +1,66 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { BadRequestException, Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { ShopProductResponseDto } from './public.shop-products.response.dtos';
-import { checkEntityStatus, checkId, transformPaginatedResult } from 'src/common/utils';
-import { ShopProductModel } from 'src/modules/shop-product/shop-product.schema';
-import { ShopModel } from 'src/modules/shop/shop.schema';
+import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { ShopProductQueryDto } from './public.shop-products.query.dtos';
+import { CommonListQueryOptions } from 'src/common/types/queries';
+import {
+  ShopProductPort,
+  SHOP_PRODUCT_PORT,
+  ShopProductQueries
+} from 'src/modules/shop-product';
+import { ShopPort, SHOP_PORT, ShopQueries } from 'src/modules/shop';
 
 @Injectable()
 export class PublicShopProductsRoleService {
   constructor(
-    @InjectModel('Shop') private shopModel: ShopModel,
-    @InjectModel('ShopProduct') private shopProductModel: ShopProductModel,
+    @Inject(SHOP_PRODUCT_PORT) private readonly shopProductPort: ShopProductPort,
+    @Inject(SHOP_PORT) private readonly shopPort: ShopPort,
   ) {}
+
+  async getPublicShopProducts(
+    shopProductQuery: ShopProductQueryDto,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
+    const { shopId } = shopProductQuery;
+    if (!shopId) throw new BadRequestException('Магазин не указан');
+    checkId([shopId]);
+
+    // Проверяем что магазин существует и доступен
+    const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId }));
+    if (!shop) throw new NotFoundException('Магазин не найден или недоступен');
+
+    const query = new ShopProductQueries.GetShopProductsQuery({
+      shopId,
+    }, {
+      populateProduct: true,
+    });
+
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+
+    const result = await this.shopProductPort.getShopProducts(query, queryOptions);
+    return transformPaginatedResult(result, ShopProductResponseDto);
+  }
+
+  async getPublicShopProduct(
+    shopProductId: string
+  ): Promise<ShopProductResponseDto> {
+    checkId([shopProductId]);
+
+    const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
+      populateProduct: true,
+      populateImages: true,
+    });
+
+    const shopProduct = await this.shopProductPort.getShopProduct(query);
+    if (!shopProduct) throw new NotFoundException('Товар не найден');
+
+    return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
+  }
 
   // async getPublicShopProducts(
   //   shopProductQuery: ShopProductQueryDto,

@@ -4,16 +4,16 @@ import {
   ShopPreviewResponseDto,
   ShopFullResponseDto,
 } from './admin.shops.response.dtos';
-import { UpdateShopDto } from './admin.shops.request.dtos';
+import { UpdateShopDto, BlockShopDto } from './admin.shops.request.dtos';
 import { ApiTags, ApiOperation, ApiBearerAuth} from '@nestjs/swagger';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
+import { ShopQueryFilterDto } from './admin.shops.query.dtos';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -21,15 +21,18 @@ import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
 export class AdminShopsController {
-  constructor(private readonly adminShopsRoleService: AdminShopsRoleService) {}
+  constructor(
+    private readonly adminShopsRoleService: AdminShopsRoleService
+  ) {}
 
   @ApiOperation({summary: 'Получает информацию обо всех магазинах с пагинацией'})
   @Get()
   getAllShops(
     @GetUser() authedAdmin: AuthenticatedUser,
+    @Query() shopQueryFilter: ShopQueryFilterDto,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopPreviewResponseDto>> {
-    return this.adminShopsRoleService.getShops(authedAdmin, paginationQuery);
+    return this.adminShopsRoleService.getShops(authedAdmin, shopQueryFilter, paginationQuery);
   }
 
 
@@ -49,7 +52,7 @@ export class AdminShopsController {
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('shopId') shopId: string,
     @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
     return this.adminShopsRoleService.getShopLogs(authedAdmin, shopId, paginationQuery);
   }
 
@@ -62,5 +65,16 @@ export class AdminShopsController {
     @Body() dto: UpdateShopDto,
   ): Promise<ShopFullResponseDto> {
     return this.adminShopsRoleService.updateShop(authedAdmin, shopId, dto);
+  }
+
+
+  @ApiOperation({summary: 'Блокирует/разблокирует магазин'})
+  @Patch(':shopId/block')
+  blockShop(
+    @GetUser() authedAdmin: AuthenticatedUser,
+    @Param('shopId') shopId: string,
+    @Body() dto: BlockShopDto
+  ): Promise<ShopFullResponseDto> {
+    return this.adminShopsRoleService.blockShop(authedAdmin, shopId, dto);
   }
 }

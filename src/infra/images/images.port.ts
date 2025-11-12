@@ -1,18 +1,15 @@
 import { Image } from './image.schema';
-import { UploadImageCommand, UpdateImageCommand } from './images.commands';
-import { GetImageBufferQuery } from './images.queries';
+import { UploadImageCommand, UpdateImageCommand, DeleteImageCommand } from './images.commands';
+import { GetImageBufferQuery, GetImageUrlQuery } from './images.queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonQueryOptions } from 'src/common/types/queries';
-import { ImageSize } from './images.enums';
 
 export interface ImagesPort {
-
   // ====================================================
   // QUERIES
   // ==================================================== 
   getImageBuffer(query: GetImageBufferQuery, queryOptions?: CommonQueryOptions): Promise<Buffer>;
-  getImageUrl(imageId: string, size: ImageSize): string;
-
+  getImageUrl(query: GetImageUrlQuery): string;
 
   // ====================================================
   // COMMANDS

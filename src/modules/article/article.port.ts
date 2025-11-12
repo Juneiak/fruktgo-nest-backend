@@ -1,5 +1,6 @@
 import { Article } from './article.schema';
-import { CommonQueryOptions } from 'src/common/types/queries';
+import { PaginateResult } from 'mongoose';
+import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import {
   CreateArticleCommand,
@@ -14,7 +15,7 @@ export interface ArticlePort {
   // QUERIES
   // ==================================================== 
   getArticle(articleId: string, queryOptions?: CommonQueryOptions): Promise<Article | null>;
-  getArticles(query: GetArticlesQuery, queryOptions?: CommonQueryOptions): Promise<Article[]>;
+  getArticles(query: GetArticlesQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Article>>;
 
 
   // ====================================================

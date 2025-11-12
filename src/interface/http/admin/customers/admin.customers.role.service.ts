@@ -1,141 +1,199 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { plainToInstance } from 'class-transformer';
-import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
-import { CustomerModel } from 'src/modules/customer/infrastructure/schemas/customer.schema';
+import { AuthenticatedUser } from 'src/common/types';
+import { UserType } from 'src/common/enums/common.enum';
+import { CommonListQueryOptions } from 'src/common/types/queries';
+import {
+  LOGS_PORT,
+  LogsPort,
+  LogsQueries,
+  LogsEnums,
+  LogsCommands,
+  LogsEvents
+} from 'src/infra/logs';
+import {
+  CustomerPort,
+  CUSTOMER_PORT,
+  CustomerCommands,
+  CustomerQueries,
+} from 'src/modules/customer';
 import {
   CustomerFullResponseDto,
   CustomerPreviewResponseDto
 } from './admin.customers.response.dtos';
-import { NotifyCustomerDto, UpdateCustomerDto } from './admin.customers.request.dtos';
-import { LogsService } from 'src/infra/log/application/log.service';
-import { AuthenticatedUser } from 'src/common/types';
-import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto, BlockDto } from 'src/interface/http/common/common.request.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
-import { NotificationService } from 'src/infra/notification/notification.service';
+import {
+  NotifyCustomerDto,
+  UpdateCustomerDto
+} from './admin.customers.request.dtos';
+import { CustomerQueryDto } from './admin.customers.query.dtos';
+import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import {
+  PaginatedResponseDto,
+  MessageResponseDto,
+  LogResponseDto
+} from 'src/interface/http/common/common.response.dtos';
+import { BlockDto } from 'src/interface/http/common/common.request.dtos';
+
 
 @Injectable()
 export class AdminCustomersRoleService {
   constructor(
-    @InjectModel('Customer') private customerModel: CustomerModel,
-    private readonly notificationService: NotificationService,
-    private logsService: LogsService,
+    @Inject(CUSTOMER_PORT) private readonly customerPort: CustomerPort,
+    @Inject(LOGS_PORT) private readonly logsPort: LogsPort,
+    private readonly eventEmitter: EventEmitter2,
   ) { }
 
-
-  // async getAllCustomers(
-  //   authedAdmin: AuthenticatedUser,
-  //   paginationQuery: PaginationQueryDto
-  // ): Promise<PaginatedResponseDto<CustomerPreviewResponseDto>> {
-  //   const { page = 1, pageSize = 10 } = paginationQuery;
-
-  //   const result = await this.customerModel.paginate({}, {
-  //     page,
-  //     limit: pageSize,
-  //     lean: true,
-  //     leanWithId: false,
-  //     sort: { createdAt: -1 },
-  //   });
-  //   return transformPaginatedResult(result, CustomerPreviewResponseDto);
-  // }
+  async sendNotificationToCustomer(
+    authedAdmin: AuthenticatedUser,
+    dto: NotifyCustomerDto
+  ): Promise<MessageResponseDto> {
+    // TODO: Процесс отправки уведомления клиенту (требует оркестратора)
+    // Должен включать:
+    // 1. Проверку существования клиента
+    // 2. Отправку через NotificationService
+    // 3. Логирование действия
+    throw new Error('Not implemented: notification orchestrator required');
+  }
 
 
-  // async getCustomer(authedAdmin: AuthenticatedUser, customerId: string): Promise<CustomerFullResponseDto> {
-  //   checkId([customerId]);
-  //   const customer = await this.customerModel.findById(new Types.ObjectId(customerId)).lean({ virtuals: true }).exec();
-  //   if (!customer) throw new NotFoundException('Клиент не найден');
+  async getCustomers(
+    authedAdmin: AuthenticatedUser,
+    queryDto: CustomerQueryDto,
+    paginationDto: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<CustomerPreviewResponseDto>> {
 
-  //   return plainToInstance(CustomerFullResponseDto, customer, { excludeExtraneousValues: true });
-  // }
-
-
-  // async getCustomerLogs(authedAdmin: AuthenticatedUser, customerId: string, paginationQuery: PaginationQueryDto): Promise<PaginatedLogDto> {
-  //   checkId([customerId]);
-  //   return await this.logsService.getAllCustomerLogs(customerId, paginationQuery, [UserType.ADMIN]);
-  // }
-
-
-  // async updateCustomer(
-  //   authedAdmin: AuthenticatedUser,
-  //   customerId: string,
-  //   dto: UpdateCustomerDto
-  // ): Promise<CustomerFullResponseDto> {
-  //   checkId([customerId]);
-  //   const customer = await this.customerModel.findById(new Types.ObjectId(customerId)).exec();
-  //   if (!customer) throw new NotFoundException('Клиент не найден');
-
-  //   const changes: string[] = [];
-
-  //   if (dto.verifiedStatus !== undefined) {
-  //     const oldValue = customer.verifiedStatus;
-  //     customer.verifiedStatus = dto.verifiedStatus;
-  //     changes.push(`статус верификации: ${oldValue} -> ${dto.verifiedStatus}`);
-  //   }
-
-  //   if (dto.bonusPoints !== undefined) {
-  //     const oldValue = customer.bonusPoints;
-  //     customer.bonusPoints = dto.bonusPoints;
-  //     changes.push(`бонусные баллы: ${oldValue} -> ${dto.bonusPoints}`);
-  //   }
-
-  //   if (dto.internalNote !== undefined) {
-  //     const oldValue = customer.internalNote;
-  //     customer.internalNote = dto.internalNote;
-  //     changes.push(`примечание админа: ${oldValue} -> ${dto.internalNote}`);
-  //   }
-
-  //   if (changes.length > 0 && customer.isModified()) {
-  //     await customer.save();
-  //     await this.logsService.addCustomerLog(
-  //       customerId,
-  //       `Админ ${authedAdmin.id} изменил данные клиента: ${changes.join('; ')}`,
-  //       { logLevel: LogLevel.LOW, forRoles: [UserType.CUSTOMER] });
-  //   }
-  //   return this.getCustomer(authedAdmin, customerId);
-  // }
+    const query = new CustomerQueries.GetCustomersQuery({
+      verifiedStatuses: queryDto.verifiedStatuses,
+      blockedStatuses: queryDto.blockedStatuses,
+      sexes: queryDto.sexes,
+      fromBirthDate: queryDto.fromBirthDate,
+      toBirthDate: queryDto.toBirthDate,
+    });
+    
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationDto
+    };
+    const result = await this.customerPort.getCustomers(query, queryOptions);
+    
+    return transformPaginatedResult(result, CustomerPreviewResponseDto);
+  }
 
 
-  // async blockCustomer(authedAdmin: AuthenticatedUser, customerId: string, dto: BlockDto): Promise<CustomerFullResponseDto> {
-  //   checkId([customerId]);
-  //   const customer = await this.customerModel.findById(new Types.ObjectId(customerId)).exec();
-  //   if (!customer) throw new NotFoundException('Клиент не найден');
+  async getCustomer(
+    authedAdmin: AuthenticatedUser,
+    customerId: string
+  ): Promise<CustomerFullResponseDto> {
+    checkId([customerId]);
 
-  //   const changes: string[] = [];
+    const query = new CustomerQueries.GetCustomerQuery({ customerId });
+    const customer = await this.customerPort.getCustomer(query);
+    if (!customer) throw new NotFoundException('Клиент не найден');
 
-  //   if (dto.status !== undefined) {
-  //     const oldValue = customer.blocked.status;
-  //     customer.blocked.status = dto.status;
-  //     changes.push(`статус блокировки: ${oldValue} -> ${dto.status}`);
-  //   }
-  //   if (dto.reason !== undefined) {
-  //     const oldValue = customer.blocked.reason;
-  //     customer.blocked.reason = dto.reason;
-  //     changes.push(`причина блокировки: ${oldValue} -> ${dto.reason}`);
-  //   }
-  //   if (dto.code !== undefined) {
-  //     const oldValue = customer.blocked.code;
-  //     customer.blocked.code = dto.code;
-  //     changes.push(`код блокировки: ${oldValue} -> ${dto.code}`);
-  //   }
-  //   if (dto.blockedUntil !== undefined) {
-  //     const oldValue = customer.blocked.blockedUntil;
-  //     customer.blocked.blockedUntil = dto.blockedUntil;
-  //     changes.push(`срок блокировки: ${oldValue} -> ${dto.blockedUntil}`);
-  //   }
+    return plainToInstance(CustomerFullResponseDto, customer, { excludeExtraneousValues: true });
+  }
 
-  //   if (changes.length > 0 && customer.isModified()) {
-  //     await customer.save();
-  //     await this.logsService.addCustomerLog(
-  //       customerId, 
-  //       `Админ ${authedAdmin.id} изменил статус блокировки клиента: ${changes.join(', ')}`, 
-  //       { logLevel: LogLevel.LOW, forRoles: [UserType.CUSTOMER] }
-  //     );
-  //   }
 
-  //   return this.getCustomer(authedAdmin, customerId);
-  // }
+  async getCustomerLogs(
+    authedAdmin: AuthenticatedUser,
+    customerId: string,
+    paginationDto: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
+    checkId([customerId]);
+
+    const query = new LogsQueries.GetEntityLogsQuery(
+      LogsEnums.LogEntityType.CUSTOMER,
+      customerId,
+      [UserType.ADMIN] // Логи доступны админу
+    );
+
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationDto
+    };
+
+    const result = await this.logsPort.getEntityLogs(query, queryOptions);
+
+    return transformPaginatedResult(result, LogResponseDto);
+  }
+
+
+  async updateCustomer(
+    authedAdmin: AuthenticatedUser,
+    customerId: string,
+    dto: UpdateCustomerDto
+  ): Promise<CustomerFullResponseDto> {
+    checkId([customerId]);
+
+    // Проверяем существование клиента
+    const existingCustomer = await this.customerPort.getCustomer(new CustomerQueries.GetCustomerQuery({ customerId }));
+    if (!existingCustomer) throw new NotFoundException('Клиент не найден');
+
+    const command = new CustomerCommands.UpdateCustomerCommand(
+      customerId,
+      {
+        verifiedStatus: dto.verifiedStatus,
+        internalNote: dto.internalNote,
+      }
+    );
+    await this.customerPort.updateCustomer(command);
+
+    // Логируем изменение
+    this.eventEmitter.emit(
+      LogsEvents.LOG_EVENTS.CREATED,
+      new LogsCommands.CreateLogCommand({
+        entityType: LogsEnums.LogEntityType.CUSTOMER,
+        entityId: customerId,
+        text: `Администратор (ID: ${authedAdmin.id}) обновил данные клиента`,
+        logLevel: LogsEnums.LogLevel.MEDIUM,
+        forRoles: [UserType.ADMIN],
+      })
+    );
+    
+    // Получаем обновленного клиента
+    return this.getCustomer(authedAdmin, customerId);
+  }
+
+
+  async blockCustomer(
+    authedAdmin: AuthenticatedUser,
+    customerId: string,
+    dto: BlockDto
+  ): Promise<CustomerFullResponseDto> {
+    checkId([customerId]);
+
+    // Проверяем существование клиента
+    const existingCustomer = await this.customerPort.getCustomer(new CustomerQueries.GetCustomerQuery({ customerId }));
+    if (!existingCustomer) throw new NotFoundException('Клиент не найден');
+
+    const command = new CustomerCommands.BlockCustomerCommand(
+      customerId,
+      {
+        status: dto.status,
+        reason: dto.reason,
+        code: dto.code,
+        blockedUntil: dto.blockedUntil,
+      }
+    );
+    await this.customerPort.blockCustomer(command);
+
+    // Логируем блокировку/разблокировку
+    const actionText = dto.status === 'blocked' 
+      ? `заблокировал клиента${dto.reason ? ` (причина: ${dto.reason})` : ''}` 
+      : 'разблокировал клиента';
+    
+    this.eventEmitter.emit(
+      LogsEvents.LOG_EVENTS.CREATED,
+      new LogsCommands.CreateLogCommand({
+        entityType: LogsEnums.LogEntityType.CUSTOMER,
+        entityId: customerId,
+        text: `Администратор (ID: ${authedAdmin.id}) ${actionText}`,
+        logLevel: dto.status === 'blocked' ? LogsEnums.LogLevel.HIGH : LogsEnums.LogLevel.MEDIUM,
+        forRoles: [UserType.ADMIN],
+      })
+    );
+
+    // Получаем обновленного клиента
+    return this.getCustomer(authedAdmin, customerId);
+  }
 }

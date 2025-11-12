@@ -1,18 +1,17 @@
 // src/shared-kernel/errors/domain-error.ts
-export const DOMAIN_ERROR_CODES = [
-  'NOT_FOUND',
-  'CONFLICT',
-  'FORBIDDEN',
-  'UNAUTHORIZED',
-  'VALIDATION',
-  'INVARIANT',       // нарушение инварианта домена
-  'CONCURRENCY',     // гонка версий/optimistic lock
-  'DEPENDENCY_FAILED',
-  'RATE_LIMITED',
-  'UNAVAILABLE',
-  'BAD_REQUEST',
-] as const;
-export type DomainErrorCode = typeof DOMAIN_ERROR_CODES[number];
+export enum DomainErrorCode {
+  NOT_FOUND = 'NOT_FOUND',
+  CONFLICT = 'CONFLICT',
+  FORBIDDEN = 'FORBIDDEN',
+  UNAUTHORIZED = 'UNAUTHORIZED',
+  VALIDATION = 'VALIDATION',
+  INVARIANT = 'INVARIANT',           // нарушение инварианта домена
+  CONCURRENCY = 'CONCURRENCY',       // гонка версий/optimistic lock
+  DEPENDENCY_FAILED = 'DEPENDENCY_FAILED',
+  RATE_LIMITED = 'RATE_LIMITED',
+  UNAVAILABLE = 'UNAVAILABLE',
+  BAD_REQUEST = 'BAD_REQUEST',
+}
 
 export type DomainErrorMeta = {
   entity?: string;
@@ -47,32 +46,32 @@ export class DomainError extends Error {
   // Фабрики — удобно бросать одной строчкой
   static notFound(entity: string, id: string, details?: unknown) {
     return new DomainError({
-      code: 'NOT_FOUND',
+      code: DomainErrorCode.NOT_FOUND,
       message: `${entity} not found`,
       meta: { entity, id },
       details,
     });
   }
   static conflict(message = 'Conflict', meta?: DomainErrorMeta, details?: unknown) {
-    return new DomainError({ code: 'CONFLICT', message, meta, details });
+    return new DomainError({ code: DomainErrorCode.CONFLICT, message, meta, details });
   }
   static forbidden(message = 'Forbidden', meta?: DomainErrorMeta) {
-    return new DomainError({ code: 'FORBIDDEN', message, meta });
+    return new DomainError({ code: DomainErrorCode.FORBIDDEN, message, meta });
   }
   static unauthorized(message = 'Unauthorized', meta?: DomainErrorMeta) {
-    return new DomainError({ code: 'UNAUTHORIZED', message, meta });
+    return new DomainError({ code: DomainErrorCode.UNAUTHORIZED, message, meta });
   }
   static validation(message = 'Validation failed', details?: unknown, meta?: DomainErrorMeta) {
-    return new DomainError({ code: 'VALIDATION', message, details, meta });
+    return new DomainError({ code: DomainErrorCode.VALIDATION, message, details, meta });
   }
   static invariant(message = 'Invariant violated', details?: unknown, meta?: DomainErrorMeta) {
-    return new DomainError({ code: 'INVARIANT', message, details, meta });
+    return new DomainError({ code: DomainErrorCode.INVARIANT, message, details, meta });
   }
   static concurrency(message = 'Version conflict', meta?: DomainErrorMeta) {
-    return new DomainError({ code: 'CONCURRENCY', message, meta });
+    return new DomainError({ code: DomainErrorCode.CONCURRENCY, message, meta });
   }
   static badRequest(message = 'Bad request', meta?: DomainErrorMeta) {
-    return new DomainError({ code: 'BAD_REQUEST', message, meta });
+    return new DomainError({ code: DomainErrorCode.BAD_REQUEST, message, meta });
   }
 }
 

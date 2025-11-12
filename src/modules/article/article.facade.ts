@@ -8,8 +8,9 @@ import {
 } from './article.commands';
 import { GetArticlesQuery } from './article.queries';
 import { Article } from './article.schema';
-import { CommonQueryOptions } from 'src/common/types/queries';
+import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
+import { PaginateResult } from 'mongoose';
 
 @Injectable()
 export class ArticleFacade implements ArticlePort {
@@ -27,8 +28,8 @@ export class ArticleFacade implements ArticlePort {
 
   async getArticles(
     query: GetArticlesQuery,
-    queryOptions?: CommonQueryOptions
-  ): Promise<Article[]> {
+    queryOptions?: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Article>> {
     return this.articleService.getArticles(query, queryOptions);
   }
 

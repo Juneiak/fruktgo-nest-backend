@@ -1,12 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ImagesPort } from './images.port';
-import { UpdateImageCommand, UploadImageCommand } from './images.commands';
+import { UpdateImageCommand, UploadImageCommand, DeleteImageCommand } from './images.commands';
 import { Image } from './image.schema';
 import { LocalImagesService } from './local-images.service';
 import { CommonCommandOptions } from 'src/common/types/commands';
-import { GetImageBufferQuery } from './images.queries';
+import { GetImageBufferQuery, GetImageUrlQuery } from './images.queries';
 import { CommonQueryOptions } from 'src/common/types/queries';
-import { ImageSize } from './images.enums';
 
 @Injectable()
 export class ImagesFacade implements ImagesPort {
@@ -19,10 +18,9 @@ export class ImagesFacade implements ImagesPort {
     return this.localImagesService.getImageBuffer(query, queryOptions);
   }
 
-  getImageUrl(imageId: string, size: ImageSize): string {
-    return this.localImagesService.getImageUrl(imageId, size);
+  getImageUrl(query: GetImageUrlQuery): string {
+    return this.localImagesService.getImageUrl(query);
   }
-
 
   // ====================================================
   // COMMANDS

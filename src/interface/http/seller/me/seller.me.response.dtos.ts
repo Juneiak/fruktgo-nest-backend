@@ -1,10 +1,11 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/enums/common.enum';
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+import { Types } from 'mongoose';
 
 export class SellerPreviewResponseDto {
   @Expose() sellerId: string;
-  @ExposeObjectId() sellerLogo: string;
+  @ExposeObjectId() sellerLogo?: Types.ObjectId | null;
   @Expose() companyName: string;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
@@ -16,7 +17,7 @@ export class SellerPreviewResponseDto {
 
 export class SellerFullResponseDto {
   @Expose() sellerId: string;
-  @ExposeObjectId() sellerLogo: string;
+  @ExposeObjectId() sellerLogo?: Types.ObjectId | null;
   @Expose() companyName: string;
   @Expose() inn: number;
   @Expose() isBlocked: boolean;

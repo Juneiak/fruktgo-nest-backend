@@ -3,15 +3,13 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { AdminSellersRoleService } from './admin.sellers.role.service';
-import { SellerPreviewResponseDto } from './admin.sellers.response.dtos';
-import { SellerFullResponseDto } from './admin.sellers.response.dtos';
-import { UpdateSellerByAdminDto } from './admin.sellers.request.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
+import { SellerPreviewResponseDto, SellerFullResponseDto } from './admin.sellers.response.dtos';
+import { UpdateSellerByAdminDto, BlockSellerDto } from './admin.sellers.request.dtos';
 
 
 @ApiTags('for admin')
@@ -51,7 +49,7 @@ export class AdminSellersController {
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('sellerId') sellerId: string,
     @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
     return this.adminSellersRoleService.getSellerLogs(authedAdmin, sellerId, paginationQuery);
   }
 
@@ -65,5 +63,15 @@ export class AdminSellersController {
   ): Promise<SellerFullResponseDto> {
     return this.adminSellersRoleService.updateSeller(authedAdmin, sellerId, dto);
   }
+
+
+  @ApiOperation({summary: 'Блокирует/разблокирует продавца'})
+  @Patch(':sellerId/block')
+  blockSeller(
+    @GetUser() authedAdmin: AuthenticatedUser,
+    @Param('sellerId') sellerId: string,
+    @Body() dto: BlockSellerDto
+  ): Promise<SellerFullResponseDto> {
+    return this.adminSellersRoleService.blockSeller(authedAdmin, sellerId, dto);
+  }
 }
-  

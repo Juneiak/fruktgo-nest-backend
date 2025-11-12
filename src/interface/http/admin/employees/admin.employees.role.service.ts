@@ -1,137 +1,165 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   EmployeePreviewResponseDto,
   EmployeeFullResponseDto
 } from './admin.employees.response.dtos';
 import { UpdateEmployeeDto } from './admin.employees.request.dtos';
 import { plainToInstance } from 'class-transformer';
-import { LogsService } from 'src/infra/log/application/log.service';
-import { checkId } from 'src/common/utils';
+import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
+import { CommonListQueryOptions } from 'src/common/types/queries';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import {
+  PaginatedResponseDto,
+  LogResponseDto
+} from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { transformPaginatedResult } from 'src/common/utils';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
-import { EmployeeModel } from 'src/modules/employee/employee.schema';
 import { BlockDto } from 'src/interface/http/common/common.request.dtos';
-import { Types } from 'mongoose';
+import {
+  EmployeePort,
+  EMPLOYEE_PORT,
+  EmployeeCommands,
+  EmployeeQueries
+} from 'src/modules/employee';
+import {
+  LOGS_PORT,
+  LogsPort,
+  LogsQueries,
+  LogsEnums,
+  LogsCommands,
+  LogsEvents
+} from 'src/infra/logs';
 
 @Injectable()
 export class AdminEmployeesRoleService {
   constructor(
-    @InjectModel('Employee') private employeeModel: EmployeeModel,
-    private readonly logsService: LogsService
+    @Inject(EMPLOYEE_PORT) private readonly employeePort: EmployeePort,
+    @Inject(LOGS_PORT) private readonly logsPort: LogsPort,
+    private readonly eventEmitter: EventEmitter2,
   ) { }
 
-  // async getEmployees(
-  //   authedAdmin: AuthenticatedUser,
-  //   paginationQuery: PaginationQueryDto
-  // ): Promise<PaginatedResponseDto<EmployeePreviewResponseDto>> {
-  //   const { page = 1, pageSize = 10 } = paginationQuery;
-
-  //   const result = await this.employeeModel.paginate({}, {
-  //     page,
-  //     limit: pageSize,
-  //     populate: [
-  //       { path: 'pinnedTo', select: 'shopId shopName' },
-  //       { path: 'employer', select: 'sellerId companyName' },
-  //     ],
-  //     sort: { createdAt: -1 },
-  //     lean: true,
-  //     leanWithId: false,
-  //   });
-  //   return transformPaginatedResult(result, EmployeePreviewResponseDto);
-  // }
-
-  // async getEmployee(authedAdmin: AuthenticatedUser, employeeId: string): Promise<EmployeeFullResponseDto> {
-  //   checkId([employeeId]);
-  //   const employee = await this.employeeModel.findOne({ _id: employeeId })
-  //     .populate('pinnedTo', 'shopId shopName')
-  //     .populate('employer', 'sellerId companyName')
-  //     .lean({ virtuals: true })
-  //     .exec();
-  //   return plainToInstance(EmployeeFullResponseDto, employee, { excludeExtraneousValues: true });
-  // }
-
-  // async getEmployeeLogs(authedAdmin: AuthenticatedUser, employeeId: string, paginationQuery: PaginationQueryDto): Promise<PaginatedLogDto> {
-  //   return this.logsService.getAllEmployeeLogs(employeeId, paginationQuery);
-  // }
-
-
-  // async updateEmployee(
-  //   authedAdmin: AuthenticatedUser,
-  //   employeeId: string,
-  //   dto: UpdateEmployeeDto
-  // ): Promise<EmployeeFullResponseDto> {
-  //   checkId([employeeId]);
-  //   const employee = await this.employeeModel.findById(employeeId);
-  //   if (!employee) throw new NotFoundException(`Сотрудник с ID ${employeeId} не найден`);
+  async getEmployees(
+    authedAdmin: AuthenticatedUser,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<EmployeePreviewResponseDto>> {
+    const query = new EmployeeQueries.GetEmployeesQuery();
     
-  //   // Собираем изменения для лога
-  //   const changes: string[] = [];
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+    const result = await this.employeePort.getEmployees(query, queryOptions);
 
-  //   if (dto.verifiedStatus && dto.verifiedStatus !== employee.verifiedStatus) {
-  //     const oldValue = employee.verifiedStatus;
-  //     employee.verifiedStatus = dto.verifiedStatus;
-  //     changes.push(`Статус верификации: "${oldValue}" -> "${dto.verifiedStatus}"`);
-  //   }
+    return transformPaginatedResult(result, EmployeePreviewResponseDto);
+  }
 
-  //   if (dto.internalNote && dto.internalNote !== employee.internalNote) {
-  //     const oldValue = employee.internalNote || 'Нет';
-  //     employee.internalNote = dto.internalNote;
-  //     changes.push(`Заметка администратора: "${oldValue}" -> "${dto.internalNote}"`);
-  //   }
+  async getEmployee(authedAdmin: AuthenticatedUser, employeeId: string): Promise<EmployeeFullResponseDto> {
+    checkId([employeeId]);
 
-  //   // Если были изменения, сохраняем и логируем
-  //   if (changes.length > 0 && employee.isModified()) {
-  //     await employee.save();
-  //     await this.logsService.addEmployeeLog(
-  //       employee._id.toString(), 
-  //       `Администратор обновил данные сотрудника (${employee.employeeName}):\n${changes.join('\n')}`, 
-  //       {
-  //         forRoles: [UserType.ADMIN],
-  //         session: undefined
-  //       }
-  //     );
-  //   } 
-  //   return this.getEmployee(authedAdmin, employeeId);
-  // }
+    const query = new EmployeeQueries.GetEmployeeQuery({ employeeId });
+    const employee = await this.employeePort.getEmployee(query);
+    if (!employee) throw new NotFoundException('Сотрудник не найден');
+
+    return plainToInstance(EmployeeFullResponseDto, employee, { excludeExtraneousValues: true });
+  }
+
+  async getEmployeeLogs(
+    authedAdmin: AuthenticatedUser,
+    employeeId: string,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
+    checkId([employeeId]);
+
+    const query = new LogsQueries.GetEntityLogsQuery(
+      LogsEnums.LogEntityType.EMPLOYEE,
+      employeeId,
+      [UserType.ADMIN]
+    );
+
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+    const result = await this.logsPort.getEntityLogs(query, queryOptions);
+    return transformPaginatedResult(result, LogResponseDto);
+  }
 
 
-  // async blockEmployee(authedAdmin: AuthenticatedUser, employeeId: string, dto: BlockDto): Promise<EmployeeFullResponseDto> {
-  //   checkId([employeeId]);
-  //   const employee = await this.employeeModel.findById(new Types.ObjectId(employeeId)).exec();
-  //   if (!employee) throw new NotFoundException('Сотрудник не найден');
+  async updateEmployee(
+    authedAdmin: AuthenticatedUser,
+    employeeId: string,
+    dto: UpdateEmployeeDto
+  ): Promise<EmployeeFullResponseDto> {
+    checkId([employeeId]);
 
-  //   const changes: string[] = [];
+    // Проверяем существование сотрудника
+    const existingEmployee = await this.employeePort.getEmployee(new EmployeeQueries.GetEmployeeQuery({ employeeId }));
+    if (!existingEmployee) throw new NotFoundException('Сотрудник не найден');
 
-  //   if (dto.status !== undefined) {
-  //     employee.blocked.status = dto.status;
-  //     changes.push(`статус блокировки: ${employee.blocked.status} -> ${dto.status}`);
-  //   }
-  //   if (dto.reason !== undefined) {
-  //     employee.blocked.reason = dto.reason;
-  //     changes.push(`причина блокировки: ${employee.blocked.reason} -> ${dto.reason}`);
-  //   }
-  //   if (dto.code !== undefined) {
-  //     employee.blocked.code = dto.code;
-  //     changes.push(`код блокировки: ${employee.blocked.code} -> ${dto.code}`);
-  //   }
-  //   if (dto.blockedUntil !== undefined) {
-  //     employee.blocked.blockedUntil = dto.blockedUntil;
-  //     changes.push(`срок блокировки: ${employee.blocked.blockedUntil} -> ${dto.blockedUntil}`);
-  //   }
-  //   if (changes.length > 0 && employee.isModified()) {
-  //     await employee.save();
-  //     await this.logsService.addEmployeeLog(
-  //       employeeId,
-  //       `Админ ${authedAdmin.id} изменил статус блокировки сотрудника: ${changes.join(', ')}`,
-  //       { forRoles: [UserType.ADMIN], session: undefined }
-  //     );
-  //   }
+    const command = new EmployeeCommands.UpdateEmployeeCommand(
+      employeeId,
+      {
+        verifiedStatus: dto.verifiedStatus,
+        internalNote: dto.internalNote,
+      }
+    );
 
-  //   return this.getEmployee(authedAdmin, employeeId);
-  // }
+    await this.employeePort.updateEmployee(command);
+
+    // Логируем изменение
+    this.eventEmitter.emit(
+      LogsEvents.LOG_EVENTS.CREATED,
+      new LogsCommands.CreateLogCommand({
+        entityType: LogsEnums.LogEntityType.EMPLOYEE,
+        entityId: employeeId,
+        text: `Администратор (ID: ${authedAdmin.id}) обновил данные сотрудника`,
+        logLevel: LogsEnums.LogLevel.MEDIUM,
+        forRoles: [UserType.ADMIN],
+      })
+    );
+
+    return this.getEmployee(authedAdmin, employeeId);
+  }
+
+
+  async blockEmployee(
+    authedAdmin: AuthenticatedUser,
+    employeeId: string,
+    dto: BlockDto
+  ): Promise<EmployeeFullResponseDto> {
+    checkId([employeeId]);
+
+    // Проверяем существование сотрудника
+    const existingEmployee = await this.employeePort.getEmployee(new EmployeeQueries.GetEmployeeQuery({ employeeId }));
+    if (!existingEmployee) throw new NotFoundException('Сотрудник не найден');
+
+    const command = new EmployeeCommands.BlockEmployeeCommand(
+      employeeId,
+      {
+        status: dto.status,
+        reason: dto.reason,
+        code: dto.code,
+        blockedUntil: dto.blockedUntil,
+      }
+    );
+
+    await this.employeePort.blockEmployee(command);
+
+    // Логируем блокировку/разблокировку
+    const actionText = dto.status === 'blocked'
+      ? `заблокировал сотрудника${dto.reason ? ` (причина: ${dto.reason})` : ''}`
+      : 'разблокировал сотрудника';
+
+    this.eventEmitter.emit(
+      LogsEvents.LOG_EVENTS.CREATED,
+      new LogsCommands.CreateLogCommand({
+        entityType: LogsEnums.LogEntityType.EMPLOYEE,
+        entityId: employeeId,
+        text: `Администратор (ID: ${authedAdmin.id}) ${actionText}`,
+        logLevel: dto.status === 'blocked' ? LogsEnums.LogLevel.HIGH : LogsEnums.LogLevel.MEDIUM,
+        forRoles: [UserType.ADMIN],
+      })
+    );
+
+    return this.getEmployee(authedAdmin, employeeId);
+  }
 }

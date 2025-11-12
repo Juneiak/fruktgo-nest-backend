@@ -1,9 +1,11 @@
 import { Module } from "@nestjs/common";
-import { PublicBlogRoleService } from "./public.blog.role.service";
-import { PublicBlogController } from "./public.blog.controller";
+import { PublicArticlesRoleService } from "./public.aticles.role.service";
+import { PublicArticlesController } from "./public.aticles.controller";
+import { ArticleModule } from "src/modules/article/article.module";
 
 @Module({
-  controllers: [PublicBlogController],
-  providers: [PublicBlogRoleService],
+  imports: [ArticleModule],
+  controllers: [PublicArticlesController],
+  providers: [PublicArticlesRoleService],
 })
-export class PublicBlogApiModule {}
+export class PublicArticlesApiModule {}

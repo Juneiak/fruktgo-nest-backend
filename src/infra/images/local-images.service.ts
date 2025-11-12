@@ -17,8 +17,8 @@ import {
   TARGET_SIZES,
   MIN_SIZES
 } from "./images.constants";
-import { UpdateImageCommand, UploadImageCommand } from "./images.commands";
-import { GetImageBufferQuery } from "./images.queries";
+import { UpdateImageCommand, UploadImageCommand, DeleteImageCommand } from "./images.commands";
+import { GetImageBufferQuery, GetImageUrlQuery } from "./images.queries";
 import { CommonCommandOptions } from "src/common/types/commands";
 import { CommonQueryOptions } from "src/common/types/queries";
 import { DomainError } from "src/common/errors/domain-error";
@@ -285,7 +285,7 @@ export class LocalImagesService {
 
     assignField(image, 'accessLevel', payload.accessLevel, { onNull: 'skip' });
     assignField(image, 'entityType', payload.entityType);
-    assignField(image, 'entityId', payload.entityId ? new Types.ObjectId(payload.entityId) : null);
+    assignField(image, 'entity', payload.entityId ? new Types.ObjectId(payload.entityId) : null);
     assignField(image, 'imageType', payload.imageType);
     
     if (payload.allowedUsers) {
@@ -319,7 +319,8 @@ export class LocalImagesService {
   }
 
 
-  getImageUrl(imageId: string, size: ImageSize): string {
+  getImageUrl(query: GetImageUrlQuery): string {
+    const { imageId, size } = query;
     return `/images/${size}/${imageId}`;
   }
 

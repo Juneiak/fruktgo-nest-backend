@@ -12,7 +12,7 @@ import {
 } from './shift.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { GetShiftsQuery, GetShiftQuery } from './shift.queries';
+import { GetShiftsQuery } from './shift.queries';
 
 export interface ShiftPort {
 
@@ -20,7 +20,8 @@ export interface ShiftPort {
   // QUERIES
   // ==================================================== 
   getShifts(query: GetShiftsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Shift>>;
-  getShift(query: GetShiftQuery, queryOptions?: CommonQueryOptions): Promise<Shift | null>;
+  getShift(shiftId: string, queryOptions?: CommonQueryOptions): Promise<Shift | null>;
+  getCurrentShiftOfShop(shopId: string, queryOptions?: CommonQueryOptions): Promise<Shift | null>;
 
   // ====================================================
   // COMMANDS

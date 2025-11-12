@@ -1,15 +1,14 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { SellerShiftsRoleService } from './seller.shifts.role.service';
-import { PaginatedResponseDto } from "src/interface/http/common/common.response.dtos";
+import { PaginatedResponseDto, LogResponseDto } from "src/interface/http/common/common.response.dtos";
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { ShiftResponseDto } from './seller.shifts.response.dtos';
 import { UserType } from 'src/common/decorators/type.decorator';
-import { ApiBearerAuth, ApiTags, ApiOperation} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ShiftsQueryDto } from './seller.shifts.query.dtos';
 
 @ApiTags('for seller')
@@ -19,17 +18,17 @@ import { ShiftsQueryDto } from './seller.shifts.query.dtos';
 @UserType('seller')
 export class SellerShiftsController {
   constructor(
-    private readonly sellerShiftsRoleService: SellerShiftsRoleService,
+    private readonly sellerShiftsRoleService: SellerShiftsRoleService
   ) {}
 
   @ApiOperation({summary: 'Возвращает список смен с пагинацией'})
   @Get()
-  getShiftsOfShop(
+  getShifts(
     @GetUser() authedSeller: AuthenticatedUser,
     @Query() shiftsQueryDto: ShiftsQueryDto,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
-    return this.sellerShiftsRoleService.getShiftsOfShop(authedSeller, shiftsQueryDto, paginationQuery);
+    return this.sellerShiftsRoleService.getShifts(authedSeller, shiftsQueryDto, paginationQuery);
   }
 
 
@@ -59,7 +58,7 @@ export class SellerShiftsController {
     @GetUser() authedSeller: AuthenticatedUser,
     @Param('shiftId') shiftId: string,
     @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
     return this.sellerShiftsRoleService.getShiftLogs(authedSeller, shiftId, paginationQuery);
   }
 }

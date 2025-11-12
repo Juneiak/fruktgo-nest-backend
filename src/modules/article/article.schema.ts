@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types, Model } from 'mongoose';
-import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
+import { HydratedDocument, PaginateModel, Types } from 'mongoose';
+import mongooseLeanVirtuals from 'mongoose-lean-virtuals';
+import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { ArticleAuthorType, ArticleStatus, ArticleTargetAudience, ArtcilesTag } from './article.enums';
 import { Image } from 'src/infra/images/image.schema';
 
@@ -9,13 +10,13 @@ import { Image } from 'src/infra/images/image.schema';
   toObject: { virtuals: true },
   timestamps: true,
   id: false,
+  versionKey: false,
 })
-export class Article extends Document {
-
+export class Article {
   _id: Types.ObjectId;
   articleId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 
   @Prop({ required: true, type: String, enum: ArticleAuthorType })
   authorType: ArticleAuthorType;
@@ -52,10 +53,14 @@ export class Article extends Document {
 }
 
 export const ArticleSchema = SchemaFactory.createForClass(Article);
-ArticleSchema.plugin(mongooseLeanVirtuals as any);
+ArticleSchema.plugin(mongoosePaginate);
+ArticleSchema.plugin(mongooseLeanVirtuals);
 
-ArticleSchema.virtual('articleId').get(function (this: Article): string {
-  return this._id.toString();
+// Виртуальное поле articleId
+ArticleSchema.virtual('articleId').get(function() {
+  return this._id?.toString() || '';
 });
 
-export type ArticleModel = Model<Article>;
+
+export type ArticleModel = PaginateModel<Article>;
+export type ArticleDocument = HydratedDocument<Article>;

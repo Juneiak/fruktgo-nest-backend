@@ -1,9 +1,6 @@
-import { Controller, Get, Post, Body, Param, Patch, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
-import { SellerShopsRoleService } from './seller.shops.role.service'
-import { 
-  CreateShopDto,
-  UpdateShopDto,
-} from './seller.shops.request.dtos';
+import { Controller, Get, Body, Param, Patch, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { SellerShopsRoleService } from './seller.shops.role.service';
+import { UpdateShopDto } from './seller.shops.request.dtos';
 import { ShopPreviewResponseDto, ShopFullResponseDto } from './seller.shops.response.dtos';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
@@ -21,7 +18,7 @@ import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.int
 @UserType('seller')
 export class SellerShopsController {
   constructor(
-    private readonly sellerShopsRoleService: SellerShopsRoleService,
+    private readonly sellerShopsRoleService: SellerShopsRoleService
   ) {}
 
   @ApiOperation({summary: 'Возвращает список превью информации о магазинах'})
@@ -43,16 +40,18 @@ export class SellerShopsController {
   }
 
 
-  @ApiOperation({summary: 'создание магазина продавцом'})
-  @Post()
-  @UseInterceptors(ImageUploadInterceptor('shopImage'))
-  createShop(
-    @GetUser() authedSeller: AuthenticatedUser,
-    @Body() dto: CreateShopDto,
-    @UploadedFile() shopImage?: Express.Multer.File
-  ): Promise<ShopPreviewResponseDto> {
-    return this.sellerShopsRoleService.createShop(authedSeller, dto, shopImage);
-  }
+  // TODO: Реализовать создание магазина через ShopPort
+  // Требуется создание ShopAccount перед созданием магазина
+  // @ApiOperation({summary: 'создание магазина продавцом'})
+  // @Post()
+  // @UseInterceptors(ImageUploadInterceptor('shopImage'))
+  // createShop(
+  //   @GetUser() authedSeller: AuthenticatedUser,
+  //   @Body() dto: CreateShopDto,
+  //   @UploadedFile() shopImage?: Express.Multer.File
+  // ): Promise<ShopPreviewResponseDto> {
+  //   return this.sellerShopsRoleService.createShop(authedSeller, dto, shopImage);
+  // }
 
 
   @ApiOperation({summary: 'редактирует информацию о магазине'})

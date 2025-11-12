@@ -20,7 +20,7 @@ export class Log {
   entityType: LogEntityType;
 
   @Prop({ type: Types.ObjectId, refPath: 'entityType', required: true })
-  entityId: Types.ObjectId;
+  entity: Types.ObjectId;
 
   @Prop({ type: [String], enum: Object.values(UserType), required: true, default: () => [UserType.ADMIN] })
   forRoles: UserType[];

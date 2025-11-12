@@ -58,10 +58,10 @@ export class EmployeeService {
     else if (filter?.telegramId) dbQueryFilter = { telegramId: filter.telegramId };
     else if (filter?.phone) {
       const phone = parcePhoneNumber(filter.phone);
-      if (!phone) throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверные параметры запроса' });
+      if (!phone) throw DomainError.badRequest('Неверные параметры запроса');
       dbQueryFilter.phone = phone.number;
     }
-    else throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверные параметры запроса' });
+    else throw DomainError.badRequest('Неверные параметры запроса');
 
     const dbQuery = this.employeeModel.findOne(dbQueryFilter)
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
@@ -85,7 +85,7 @@ export class EmployeeService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const employee = await dbQuery.exec();
-    if (!employee) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
+    if (!employee) throw DomainError.notFound('Employee', employeeId);
     
     assignField(employee, 'verifiedStatus', payload.verifiedStatus, {onNull: 'skip'});
     assignField(employee, 'internalNote', payload.internalNote);
@@ -112,7 +112,7 @@ export class EmployeeService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
     const employee = await dbQuery.exec();
-    if (!employee) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
+    if (!employee) throw DomainError.notFound('Employee', employeeId);
     
     assignField(employee.blocked, 'status', payload.status, { onNull: 'skip' });
     assignField(employee.blocked, 'reason', payload.reason );

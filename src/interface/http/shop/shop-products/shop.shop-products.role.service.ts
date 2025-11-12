@@ -1,21 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { checkEntityStatus, transformPaginatedResult } from 'src/common/utils';
-import {checkId} from 'src/common/utils';
-import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
-import { LogsService } from 'src/infra/log/application/log.service';
-import { UploadsService } from 'src/infra/images/images.service';
-import { EntityType, ImageType } from 'src/infra/images/infrastructure/image.schema';
-import {AuthenticatedUser, AuthenticatedEmployee} from 'src/common/types';
+import { transformPaginatedResult, checkId } from 'src/common/utils';
+import { CommonListQueryOptions } from 'src/common/types/queries';
+import { AuthenticatedUser, AuthenticatedEmployee } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { ShopProductsStockQueryDto } from './shop.shop-products.query.dtos';
-import { ShopModel } from 'src/modules/shop/shop.schema';
-import { ShopProductModel, ShopProductStatus } from 'src/modules/shop-product/shop-product.schema';
-import { EmployeeModel } from 'src/modules/employee/employee.schema';
 import {
   ShopProductResponseDto,
   CurrentShopProductStockResponseDto
@@ -24,17 +15,74 @@ import {
    RemoveShopProductImageDto,
    UpdateShopProductByEmployeeDto
 } from './shop.shop-products.request.dtos';
+import {
+  ShopProductPort,
+  SHOP_PRODUCT_PORT,
+  ShopProductQueries,
+  ShopProductCommands
+} from 'src/modules/shop-product';
+import { LogsService } from 'src/infra/logs/logs.service';
+import { LogsQueries, LogsEnums } from 'src/infra/logs';
 
 @Injectable()
 export class ShopShopProductsRoleService {
   constructor(
-    @InjectModel('Shop') private shopModel: ShopModel,
-    @InjectModel('ShopProduct') private shopProductModel: ShopProductModel,
-    @InjectModel('Employee') private employeeModel: EmployeeModel,
-    private logsService: LogsService,
-    private uploadsService: UploadsService,
+    @Inject(SHOP_PRODUCT_PORT) private readonly shopProductPort: ShopProductPort,
+    private readonly logsService: LogsService,
   ) {}
-  
+
+  async getShopProducts(
+    authedShop: AuthenticatedUser,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
+    const query = new ShopProductQueries.GetShopProductsQuery({
+      shopId: authedShop.id,
+    }, {
+      populateProduct: true,
+    });
+
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+
+    const result = await this.shopProductPort.getShopProducts(query, queryOptions);
+    return transformPaginatedResult(result, ShopProductResponseDto);
+  }
+
+  async getShopProduct(
+    authedShop: AuthenticatedUser,
+    shopProductId: string
+  ): Promise<ShopProductResponseDto> {
+    checkId([shopProductId]);
+
+    const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
+      populateProduct: true,
+      populateImages: true,
+    });
+
+    const shopProduct = await this.shopProductPort.getShopProduct(query);
+    if (!shopProduct) throw new NotFoundException('Товар не найден');
+
+    // Проверка что товар принадлежит магазину
+    if (shopProduct.pinnedTo.toString() !== authedShop.id) {
+      throw new NotFoundException('Товар не найден');
+    }
+
+    return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
+  }
+
+  // TODO: Реализовать getShopProductsStock когда будет добавлен метод в ShopProductPort
+  // async getShopProductsStock(
+  //   authedShop: AuthenticatedUser,
+  //   shopProductsStockQuery: ShopProductsStockQueryDto
+  // ): Promise<CurrentShopProductStockResponseDto[]> {
+  //   const query = new ShopProductQueries.GetShopProductsStockQuery({
+  //     shopId: authedShop.id,
+  //     shopProductIds: shopProductsStockQuery.shopProductIds,
+  //   });
+  //   const stocks = await this.shopProductPort.getShopProductsStock(query);
+  //   return plainToInstance(CurrentShopProductStockResponseDto, stocks, { excludeExtraneousValues: true });
+  // }
 
   // async getShopProduct(authedShop: AuthenticatedUser, shopProductId: string): Promise<ShopProductResponseDto> {
   //   checkId([shopProductId]);

@@ -1,20 +1,16 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ProductSchema, Product } from './product.schema';
 import { ProductService } from './product.service';
-import { ProductFacade } from './product.facade';
 import { PRODUCT_PORT } from './product.port';
-import { SellerModule } from '../seller/seller.module';
+import { ProductSchema, Product } from './product.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Product.name, schema: ProductSchema }]),
-    SellerModule,  // Для доступа к SellerPort
   ],
   providers: [
     ProductService,
-    ProductFacade,
-    { provide: PRODUCT_PORT, useExisting: ProductFacade }
+    { provide: PRODUCT_PORT, useExisting: ProductService },
   ],
   exports: [PRODUCT_PORT],
 })

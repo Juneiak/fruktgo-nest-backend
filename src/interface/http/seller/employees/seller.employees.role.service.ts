@@ -1,239 +1,128 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { plainToInstance } from 'class-transformer';
-import {
-  EmployeeResponseDto,
-  RequestToEmployeeResponseDto
-} from './seller.employees.response.dtos';
-import { UpdateEmployeeDto, RequestToEmployeeDto } from './seller.employees.request.dtos';
-import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
-import { checkEntityStatus } from 'src/common/utils';
-import { transformPaginatedResult } from 'src/common/utils';
-import { checkId } from 'src/common/utils';
-import { SellerModel } from 'src/modules/seller/seller.schema';
-import { ShopModel } from 'src/modules/shop/shop.schema';
-import { RequestToEmployeeModel } from 'src/modules/employee/request-to-employee.schema';
-import { EmployeeModel } from 'src/modules/employee/employee.schema';
-import { LogsService } from 'src/infra/log/application/log.service';
+import { EmployeeResponseDto } from './seller.employees.response.dtos';
+import { UpdateEmployeeDto } from './seller.employees.request.dtos';
+import { checkId, transformPaginatedResult } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
-import { RequestToEmployeeStatus } from 'src/modules/employee/request-to-employee.schema';
-import { EmployeeStatus } from 'src/modules/employee/employee.schema';
-import { parsePhoneNumberFromString } from 'libphonenumber-js';
-import { NotificationService } from 'src/infra/notification/notification.service';
+import { CommonListQueryOptions } from 'src/common/types/queries';
+import { UserType } from "src/common/enums/common.enum";
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { EmployeeQueryFilterDto } from './seller.employees.query.dtos';
-import { UserType } from "src/common/enums/common.enum";
+import {
+  EmployeePort,
+  EMPLOYEE_PORT,
+  EmployeeCommands,
+  EmployeeQueries,
+  EmployeeEnums
+} from 'src/modules/employee';
+import {
+  LogsCommands,
+  LogsEvents,
+  LogsEnums
+} from 'src/infra/logs';
 
 
 @Injectable()
 export class SellerEmployeesRoleService {
   constructor(
-    @InjectModel('Employee') private employeeModel: EmployeeModel,
-    @InjectModel('Seller') private sellerModel: SellerModel,
-    @InjectModel('Shop') private shopModel: ShopModel,
-    @InjectModel('RequestToEmployee') private requestToEmployeeModel: RequestToEmployeeModel,
-
-    private readonly logsService: LogsService,
-
-    @Inject(forwardRef(() => NotificationService))
-    private notificationService: NotificationService
+    @Inject(EMPLOYEE_PORT) private readonly employeePort: EmployeePort,
+    private readonly eventEmitter: EventEmitter2,
   ) { }
 
-  // // ====================================================
-  // // REQUESTS TO EMPLOYEE
-  // // ====================================================
-  // async getSellerRequestsToEmployees(authedSeller: AuthenticatedUser): Promise<RequestToEmployeeResponseDto[]> {
-  //   const requests = await this.requestToEmployeeModel.find({ from: new Types.ObjectId(authedSeller.id) })
-  //     .populate('to', '_id telegramUsername phone employeeName')
-  //     .lean({ virtuals: true }).exec();
+  async getSellerEmployee(
+    authedSeller: AuthenticatedUser,
+    employeeId: string
+  ): Promise<EmployeeResponseDto> {
+    checkId([employeeId]);
 
-  //   return plainToInstance(RequestToEmployeeResponseDto, requests, { excludeExtraneousValues: true, exposeDefaultValues: true });
-  // }
+    const query = new EmployeeQueries.GetEmployeeQuery({ employeeId });
+    const employee = await this.employeePort.getEmployee(query);
+    if (!employee) throw new NotFoundException('Сотрудник не найден');
 
+    // Проверяем, что сотрудник принадлежит данному продавцу
+    if (!employee.employer || employee.employer.toString() !== authedSeller.id) {
+      throw new ForbiddenException('Сотрудник не прикреплен к вам');
+    }
 
-  // async sendRequestToEmployeeByPhoneFromSeller(authedSeller: AuthenticatedUser, dto: RequestToEmployeeDto): Promise<RequestToEmployeeResponseDto[]> {
-  //   const okSeller = await checkEntityStatus(
-  //     this.sellerModel,
-  //     { _id: new Types.ObjectId(authedSeller.id) }
-  //   );
-  //   if (!okSeller) throw new NotFoundException('Продавец не найден');
-
-  //   const phoneNumber = parsePhoneNumberFromString(dto.employeePhoneNumber, 'RU');
-  //   if (!phoneNumber || !phoneNumber.isValid()) throw new BadRequestException('Некорректный номер телефона');
-
-  //   const foundEmployee = await this.employeeModel.findOne({ phone: phoneNumber.number }).exec();
-  //   if (!foundEmployee) throw new NotFoundException('Сотрудник не найден');
-  //   if (foundEmployee.employer) throw new ForbiddenException('Сотрудник уже работает у другого продавца');
-
-  //   const requestToEmployee = await this.requestToEmployeeModel
-  //   .findOne({ from: new Types.ObjectId(authedSeller.id), to: new Types.ObjectId(foundEmployee._id),
-  //     requestStatus: RequestToEmployeeStatus.PENDING })
-  //   .exec();
-  //   if (requestToEmployee) throw new ForbiddenException('Запрос на прекрепление уже отправлен');
-
-  //   const createdRequestToEmployee = await this.requestToEmployeeModel.create({
-  //     from: new Types.ObjectId(authedSeller.id),
-  //     to: foundEmployee._id,
-  //     requestStatus: RequestToEmployeeStatus.PENDING
-  //   });
-
-  //   this.notificationService.notifyEmployeeAboutNewRequestFromSeller(foundEmployee.telegramId, createdRequestToEmployee._id.toString());
-
-  //   return this.getSellerRequestsToEmployees(authedSeller);
-  // }
+    return plainToInstance(EmployeeResponseDto, employee, { excludeExtraneousValues: true });
+  }
 
 
-  // async deleteRequestToEmployee(authedSeller: AuthenticatedUser, requestToEmployeeId: string): Promise<RequestToEmployeeResponseDto[]> {
-  //   checkId([requestToEmployeeId]);
-  //   const okSeller = await checkEntityStatus(
-  //     this.sellerModel,
-  //     { _id: new Types.ObjectId(authedSeller.id)}
-  //   );
-  //   if (!okSeller) throw new NotFoundException('Продавец не найден');
+  async getSellerEmployees(
+    authedSeller: AuthenticatedUser,
+    paginationQuery: PaginationQueryDto,
+    filterQuery?: EmployeeQueryFilterDto
+  ): Promise<PaginatedResponseDto<EmployeeResponseDto>> {
+    const query = new EmployeeQueries.GetEmployeesQuery({
+      sellerId: authedSeller.id,
+      shopId: filterQuery?.shopId,
+    });
 
-  //   const request = await this.requestToEmployeeModel.findOneAndDelete({ _id: new Types.ObjectId(requestToEmployeeId), from: new Types.ObjectId(authedSeller.id) }).exec();
-  //   if (!request) throw new NotFoundException('Запрос не найден или он вам не принадлежит');
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+    const result = await this.employeePort.getEmployees(query, queryOptions);
 
-  //   return this.getSellerRequestsToEmployees(authedSeller);
-  // }
-
-
-
-  // // ====================================================
-  // // EMPLOYEES
-  // // ====================================================
-  // async getSellerEmployee(authedSeller: AuthenticatedUser, employeeId: string): Promise<EmployeeResponseDto> {
-  //   checkId([employeeId]);
-  //   const employee = await this.employeeModel.findOne({ _id: new Types.ObjectId(employeeId), employer: new Types.ObjectId(authedSeller.id) }).lean({ virtuals: true }).exec();
-  //   if (!employee) throw new NotFoundException('Сотрудник не найден или он не прикреплен к вам');
-
-  //   return plainToInstance(EmployeeResponseDto, employee, { excludeExtraneousValues: true });
-  // };
+    return transformPaginatedResult(result, EmployeeResponseDto);
+  }
 
 
-  // async getSellerEmployees(
-  //   authedSeller: AuthenticatedUser,
-  //   paginationQuery: PaginationQueryDto,
-  //   filterQuery?: EmployeeQueryFilterDto
-  // ): Promise<PaginatedResponseDto<EmployeeResponseDto>> {
-  //   const { page = 1, pageSize = 10 } = paginationQuery;
+  async updateSellerEmployee(
+    authedSeller: AuthenticatedUser,
+    employeeId: string,
+    dto: UpdateEmployeeDto
+  ): Promise<EmployeeResponseDto> {
+    checkId([employeeId]);
 
-  //   const filter: any = { employer: new Types.ObjectId(authedSeller.id) };
-  //   if (filterQuery?.shopId) filter.pinnedTo = new Types.ObjectId(filterQuery.shopId);
+    // Проверяем существование сотрудника и принадлежность продавцу
+    const existingEmployee = await this.employeePort.getEmployee(new EmployeeQueries.GetEmployeeQuery({ employeeId }));
+    if (!existingEmployee) throw new NotFoundException('Сотрудник не найден');
+    if (!existingEmployee.employer) throw new ForbiddenException('У сотрудника нет привязанного продавца');
+    if (existingEmployee.employer.toString() !== authedSeller.id) {
+      throw new ForbiddenException('У вас нет прав на обновление этого сотрудника');
+    }
+    if (existingEmployee.openedShift) {
+      throw new ForbiddenException('У сотрудника есть открытая смена, нужно её закрыть');
+    }
 
-  //   const result = await this.employeeModel.paginate(filter, {
-  //     page,
-  //     limit: pageSize,
-  //     lean: true,
-  //     leanWithId: false,
-  //     sort: { createdAt: -1 },
-  //   });
+    // TODO: Проверка pinnedTo - требует ShopPort
+    // if (dto.pinnedTo) {
+    //   checkId([dto.pinnedTo]);
+    //   const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId: dto.pinnedTo }));
+    //   if (!shop || shop.owner.toString() !== authedSeller.id) {
+    //     throw new ForbiddenException('Магазин не найден или не принадлежит вам');
+    //   }
+    // }
 
-  //   return transformPaginatedResult(result, EmployeeResponseDto);
-  // };
+    const command = new EmployeeCommands.UpdateEmployeeCommand(
+      employeeId,
+      {
+        position: dto.position,
+        salary: dto.salary?.toString(),
+        sellerNote: dto.sellerNote,
+        // status: dto.pinnedTo ? EmployeeEnums.EmployeeStatus.WORKING : undefined,
+      }
+    );
 
+    await this.employeePort.updateEmployee(command);
 
-  // async updateSellerEmployee(
-  //   authedSeller: AuthenticatedUser,
-  //   employeeId: string,
-  //   dto: UpdateEmployeeDto
-  // ): Promise<EmployeeResponseDto> {
-  //   checkId([employeeId]);
-  //   const employee = await this.employeeModel.findById(new Types.ObjectId(employeeId)).select('+sellerNote').exec();
-  //   if (!employee) throw new NotFoundException('Сотрудник не найден');
-  //   if (!employee.employer) throw new ForbiddenException('У сотрудника нет привязанного продавца');
-  //   if (employee.employer.toString() !== authedSeller.id) throw new ForbiddenException('У вас нет прав на обновление этого сотрудника');
-  //   if (employee.openedShift) throw new ForbiddenException('У сотрудника есть открытая смена, нужно её закрыть');
+    // Логируем изменение
+    this.eventEmitter.emit(
+      LogsEvents.LOG_EVENTS.CREATED,
+      new LogsCommands.CreateLogCommand({
+        entityType: LogsEnums.LogEntityType.EMPLOYEE,
+        entityId: employeeId,
+        text: `Продавец (ID: ${authedSeller.id}) обновил данные сотрудника`,
+        logLevel: LogsEnums.LogLevel.MEDIUM,
+        forRoles: [UserType.ADMIN, UserType.SELLER],
+      })
+    );
 
-  //   const oldData = employee.toObject();
-  //   const changes: string[] = [];
-  //   if (dto.position !== undefined && dto.position !== employee.position) {
-  //     employee.position = dto.position;
-  //     changes.push(`Должность: "${oldData.position}" -> "${dto.position ?? '—'}"`);
-  //   }
+    return this.getSellerEmployee(authedSeller, employeeId);
+  }
 
-  //   if (dto.salary !== undefined && dto.salary?.toString() !== employee.salary) {
-  //     employee.salary = dto.salary?.toString() ?? null;
-  //     changes.push(`Оклад: ${oldData.salary} -> ${dto.salary ?? 0}`);
-  //   }
-
-  //   if (dto.sellerNote !== undefined && dto.sellerNote !== employee.sellerNote) {
-  //     employee.sellerNote = dto.sellerNote;
-  //     changes.push(`Заметка продавца: "${oldData.sellerNote}" -> "${dto.sellerNote ?? '—'}"`);
-  //   }
-
-  //   if (dto.pinnedTo !== undefined) {
-  //     if (dto.pinnedTo === null || dto.pinnedTo === '') {
-  //       employee.pinnedTo = null;
-  //       employee.status = EmployeeStatus.NOT_PINNED;
-  //       changes.push('Откреплён от магазина');
-  //     } else {
-  //       checkId([dto.pinnedTo]);
-  //       const foundShop = await this.shopModel
-  //       .findOne({
-  //         _id: new Types.ObjectId(dto.pinnedTo),
-  //         owner: new Types.ObjectId(authedSeller.id)
-  //       })
-  //       .exec();
-
-  //       if (!foundShop) throw new NotFoundException('Магазин не найден или он не принадлежит вам');
-  //       employee.pinnedTo = new Types.ObjectId(dto.pinnedTo);
-  //       employee.status = EmployeeStatus.RESTING;
-  //       changes.push(`Закреплён за магазином ${foundShop._id.toString()}`);
-  //     }
-  //   }
-
-  //   if (changes.length > 0 && employee.isModified()) {
-  //     await employee.save();
-  //     await this.logsService.addEmployeeLog(
-  //       employee._id.toString(),
-  //       `Продавец обновил сотрудника (${employee._id.toString()}):\n${changes.join('\n')}`,
-  //       { logLevel: LogLevel.LOW, forRoles: [UserType.SELLER] }
-  //     );
-  //   }
-  //   return this.getSellerEmployee(authedSeller, employee._id.toString());
-  // };
-
-
-  // async unpinEmployeeFromSeller(authedSeller: AuthenticatedUser, employeeId: string): Promise<EmployeeResponseDto> {
-  //   checkId([employeeId]);
-  //   const employee = await this.employeeModel.findOne({ _id: new Types.ObjectId(employeeId), employer: new Types.ObjectId(authedSeller.id) }).exec();
-  //   if (!employee) throw new NotFoundException('Сотрудник не найден');
-  //   if (employee.openedShift) throw new ForbiddenException('У сотрудника есть открытая смена, нужно её закрыть');
-
-  //   const oldShopId = employee.pinnedTo?.toString() || null;
-
-  //   employee.employer = null;
-  //   employee.pinnedTo = null;
-  //   employee.status = EmployeeStatus.NOT_PINNED;
-  //   employee.sellerNote = null;
-  //   employee.position = null;
-  //   employee.salary = null;
-
-  //   if (employee.isModified()) {
-  //     await employee.save();
-
-  //     await this.logsService.addEmployeeLog(
-  //       employee._id.toString(),
-  //       `Продавец(${authedSeller.id}) открепил сотрудника ${employee._id.toString()}`,
-  //       { logLevel: LogLevel.MEDIUM, forRoles: [UserType.SELLER] }
-  //     );
-  //     await this.logsService.addSellerLog(authedSeller.id,
-  //       `Продавец открепил сотрудника ${employee._id.toString()}`,
-  //       { logLevel: LogLevel.MEDIUM, forRoles: [UserType.SELLER] }
-  //     );
-  //     await this.logsService.addSellerLog(authedSeller.id,
-  //       `Продавец открепил сотрудника ${employee._id.toString()}`,
-  //       { logLevel: LogLevel.MEDIUM, forRoles: [UserType.SELLER] }
-  //     );
-  //     if (oldShopId) await this.logsService.addShopLog(oldShopId,
-  //       `Сотрудник(${employee._id.toString()}) открепился от магазина, так как продавец(${authedSeller.id}) открепил сотрудника`,
-  //       { logLevel: LogLevel.MEDIUM, forRoles: [UserType.SELLER] }
-  //     );
-  //   }
-  //   return this.getSellerEmployee(authedSeller, employee._id.toString());
-  // };
-
+  // TODO: unpinEmployeeFromSeller требует оркестровой обработки
+  // Необходимо обновить связи между Employee, Seller, Shop и очистить связанные данные
 }

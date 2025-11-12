@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types, PaginateResult } from 'mongoose';
 import { ShiftModel, Shift } from './shift.schema';
+import { ShiftPort } from './shift.port';
 import { checkId, assignField } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
@@ -37,15 +38,14 @@ function canTransition(from: ShiftStatus, to: ShiftStatus): boolean {
 // Валидация перехода
 function validateTransition(currentStatus: ShiftStatus, newStatus: ShiftStatus, action: string): void {
   if (!canTransition(currentStatus, newStatus)) {
-    throw new DomainError({
-      code: 'INVARIANT',
-      message: `Невозможно выполнить "${action}": переход из статуса "${currentStatus}" в "${newStatus}" недопустим`
-    });
+    throw DomainError.invariant(
+      `Невозможно выполнить "${action}": переход из статуса "${currentStatus}" в "${newStatus}" недопустим`
+    );
   }
 }
 
 @Injectable()
-export class ShiftService {
+export class ShiftService implements ShiftPort {
   constructor(
     @InjectModel(Shift.name) private readonly shiftModel: ShiftModel,
   ) { }
@@ -182,7 +182,7 @@ export class ShiftService {
     if (options.session) dbQuery.session(options.session);
 
     const shift = await dbQuery.exec();
-    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+    if (!shift) throw DomainError.notFound('Shift', shiftId);
 
     // Валидация перехода через матрицу
     validateTransition(shift.status, ShiftStatus.CLOSED, 'закрытие смены');
@@ -222,7 +222,7 @@ export class ShiftService {
     if (options.session) dbQuery.session(options.session);
 
     const shift = await dbQuery.exec();
-    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+    if (!shift) throw DomainError.notFound('Shift', shiftId);
 
     // Валидация перехода через матрицу
     validateTransition(shift.status, ShiftStatus.CLOSING, 'начало закрытия');
@@ -260,7 +260,7 @@ export class ShiftService {
     if (options.session) dbQuery.session(options.session);
 
     const shift = await dbQuery.exec();
-    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+    if (!shift) throw DomainError.notFound('Shift', shiftId);
 
     // Валидация перехода через матрицу
     validateTransition(shift.status, ShiftStatus.PAUSED, 'постановка на паузу');
@@ -298,7 +298,7 @@ export class ShiftService {
     if (options.session) dbQuery.session(options.session);
 
     const shift = await dbQuery.exec();
-    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+    if (!shift) throw DomainError.notFound('Shift', shiftId);
 
     // Валидация перехода через матрицу
     validateTransition(shift.status, ShiftStatus.OPEN, 'возобновление смены');
@@ -336,7 +336,7 @@ export class ShiftService {
     if (options.session) dbQuery.session(options.session);
 
     const shift = await dbQuery.exec();
-    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+    if (!shift) throw DomainError.notFound('Shift', shiftId);
 
     // Валидация перехода через матрицу
     validateTransition(shift.status, ShiftStatus.CLOSED, 'принудительное закрытие');
@@ -376,7 +376,7 @@ export class ShiftService {
     if (options.session) dbQuery.session(options.session);
 
     const shift = await dbQuery.exec();
-    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+    if (!shift) throw DomainError.notFound('Shift', shiftId);
 
     // Валидация перехода через матрицу
     validateTransition(shift.status, ShiftStatus.ABANDONED, 'оставление смены');
@@ -414,7 +414,7 @@ export class ShiftService {
     if (options.session) dbQuery.session(options.session);
 
     const shift = await dbQuery.exec();
-    if (!shift) throw new DomainError({ code: 'NOT_FOUND', message: 'Смена не найдена' });
+    if (!shift) throw DomainError.notFound('Shift', shiftId);
 
     // Обновляем статистику через assignField
     assignField(shift.statistics, 'ordersCount', payload.ordersCount);

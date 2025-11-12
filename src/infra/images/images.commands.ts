@@ -29,3 +29,9 @@ export class UpdateImageCommand {
   ) {}
 }
 
+export class DeleteImageCommand {
+  constructor(
+    public readonly imageId: string,
+  ) {}
+}
+

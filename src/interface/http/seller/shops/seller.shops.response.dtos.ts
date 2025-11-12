@@ -1,25 +1,18 @@
 import { Expose, Type } from 'class-transformer';
+import { Types } from 'mongoose';
 import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { ShopStatus } from 'src/modules/shop/shop/shop.schema';
+import { ShopStatus } from 'src/modules/shop/shop.enums';
 import { ShiftResponseDto } from 'src/interface/http/seller/shifts/seller.shifts.response.dtos';
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
-
-class ShopAddressDto {
-  @Expose() city: string;
-  @Expose() street: string;
-  @Expose() house: string;
-  @Expose() latitude: number;
-  @Expose() longitude: number;
-}
 
 export class ShopPreviewResponseDto {
   @Expose() shopId: string;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @ExposeObjectId() shopImage?: string | null;
+  @ExposeObjectId() shopImage?: Types.ObjectId | null;
   @Expose() aboutShop?: string | null;
-  @Expose() @Type(() => ShopAddressDto) address?: ShopAddressDto | null;
+  @ExposeObjectId() address?: Types.ObjectId | null;
   @Expose() status: ShopStatus;
   @Expose() openAt?: string | null;
   @Expose() closeAt?: string | null;
@@ -40,14 +33,14 @@ export class ShopPreviewResponseDto {
 
 export class ShopFullResponseDto {
   @Expose() shopId: string;
-  @ExposeObjectId() owner: any;
+  @ExposeObjectId() owner: Types.ObjectId;
   @Expose() phone: string | null;
   @Expose() isBlocked: boolean;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() shopName: string;
-  @ExposeObjectId() shopImage?: string | null;
+  @ExposeObjectId() shopImage?: Types.ObjectId | null;
   @Expose() aboutShop?: string | null;
-  @Expose() @Type(() => ShopAddressDto) address?: ShopAddressDto | null;
+  @ExposeObjectId() address?: Types.ObjectId | null;
   @Expose() status: ShopStatus;
   @Expose() openAt?: string | null;
   @Expose() closeAt?: string | null;

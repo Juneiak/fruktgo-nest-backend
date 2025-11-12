@@ -1,1 +1,0 @@
-проект написан на стеке nestjs + mongodb + typescript

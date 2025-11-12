@@ -10,9 +10,8 @@ import {
   ProductFullResponseDto,
   ProductOfShopResponseDto,
 } from './seller.products.response.dtos';
-import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginatedResponseDto, MessageResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.interceptor';
 import { CreateProductDto, UpdateProductDto } from './seller.products.request.dtos';
 import { SellerProductsRoleService } from './seller.products.role.service';
@@ -24,18 +23,9 @@ import { SellerProductsRoleService } from './seller.products.role.service';
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('seller')
 export class SellerProductsController {
-  constructor(private readonly sellerProductsRoleService: SellerProductsRoleService) {}
-
-  @ApiOperation({summary: 'создание продукта продавцом'})
-  @Post()
-  @UseInterceptors(ImageUploadInterceptor('cardImage'))
-  createProduct(
-    @GetUser() authedSeller: AuthenticatedUser,
-    @Body() dto: CreateProductDto,
-    @UploadedFile() cardImage?: Express.Multer.File
-  ): Promise<ProductPreviewResponseDto> {
-    return this.sellerProductsRoleService.createProduct(authedSeller, dto, cardImage );
-  }
+  constructor(
+    private readonly sellerProductsRoleService: SellerProductsRoleService
+  ) {}
 
 
   @ApiOperation({summary: 'получение списка продуктов продавцом с пагинацией'})
@@ -48,6 +38,16 @@ export class SellerProductsController {
   }
 
 
+  @ApiOperation({summary: 'получение полного продукта продавца'})
+  @Get(':productId')
+  getSellerProduct(
+    @GetUser() authedSeller: AuthenticatedUser, 
+    @Param('productId') productId: string
+  ): Promise<ProductFullResponseDto> {
+    return this.sellerProductsRoleService.getProduct(authedSeller, productId);
+  }
+
+
   @ApiOperation({summary: 'получение списка продуктов продавцом с пагинацией данного магазина'})
   @Get('controls')
   getProductsOfShops(
@@ -56,6 +56,18 @@ export class SellerProductsController {
     @Query('shopId') shopId: string
   ): Promise< PaginatedResponseDto<ProductOfShopResponseDto> > {
     return this.sellerProductsRoleService.getProductsOfShop(authedSeller, shopId, paginationQuery);
+  }
+
+
+  @ApiOperation({summary: 'создание продукта продавцом'})
+  @Post()
+  @UseInterceptors(ImageUploadInterceptor('cardImage'))
+  createProduct(
+    @GetUser() authedSeller: AuthenticatedUser,
+    @Body() dto: CreateProductDto,
+    @UploadedFile() cardImage?: Express.Multer.File
+  ): Promise<ProductPreviewResponseDto> {
+    return this.sellerProductsRoleService.createProduct(authedSeller, dto, cardImage );
   }
 
 
@@ -79,23 +91,13 @@ export class SellerProductsController {
   }
 
 
-  @ApiOperation({summary: 'получение полного продукта продавца'})
-  @Get(':productId')
-  getSellerProduct(
-    @GetUser() authedSeller: AuthenticatedUser, 
-    @Param('productId') productId: string
-  ): Promise<ProductFullResponseDto> {
-    return this.sellerProductsRoleService.getProduct(authedSeller, productId);
-  }
-
-
   @ApiOperation({summary: 'получение списка логов продукта продавца с пагинацией'})
   @Get(':productId/logs')
   getSellerProductLogs(
     @GetUser() authedSeller: AuthenticatedUser, 
     @Param('productId') productId: string, 
     @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
     return this.sellerProductsRoleService.getSellerProductLogs(authedSeller, productId, paginationQuery);
   }
 }

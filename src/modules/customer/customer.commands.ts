@@ -22,7 +22,6 @@ export class UpdateCustomerCommand {
     public readonly customerId: string,
     public readonly payload: {
       verifiedStatus?: VerifiedStatus,
-      bonusPoints?: number,
       internalNote?: string | null,
       customerName?: string | null,
       sex?: UserSex,

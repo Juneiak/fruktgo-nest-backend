@@ -24,15 +24,15 @@ export class LogsService {
   // ====================================================
   async getEntityLogs(
     query: GetEntityLogsQuery,
-    queryOptions: CommonListQueryOptions<'createdAt'>
+    queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Log>> {
-    const { payload, filters } = query;
-    checkId([payload.entityId]);
+    const { entityType, entityId, forRoles, filters } = query;
+    checkId([entityId]);
 
     const dbQueryFilter: any = {
-      entityType: payload.entityType,
-      entityId: new Types.ObjectId(payload.entityId),
-      forRoles: payload.forRoles?.length ? { $in: payload.forRoles } : undefined,
+      entityType,
+      entity: new Types.ObjectId(entityId),
+      forRoles: forRoles?.length ? { $in: forRoles } : undefined,
     };
   
     if (filters) {
@@ -47,10 +47,10 @@ export class LogsService {
     }
 
     const dbQueryOptions: any = {
-      page: queryOptions.pagination?.page || 1,
-      limit: queryOptions.pagination?.pageSize || 10,
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
       lean: true, leanWithId: true,
-      sort: queryOptions.sort || { createdAt: -1 }
+      sort: queryOptions?.sort || { createdAt: -1 }
     };
     
     const result = await this.logModel.paginate(dbQueryFilter, dbQueryOptions);
@@ -60,12 +60,12 @@ export class LogsService {
 
   async getLog(
     logId: string,
-    queryOptions: CommonQueryOptions
+    queryOptions?: CommonQueryOptions
   ): Promise<Log | null> {
     checkId([logId]);
     
     const dbQuery = this.logModel.findOne({_id: new Types.ObjectId(logId)})
-    if (queryOptions.session) dbQuery.session(queryOptions.session);
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
 
     const log = await dbQuery.lean({ virtuals: true }).exec();
     return log;
@@ -85,7 +85,7 @@ export class LogsService {
     const logData: any = {
       _id: logId ? new Types.ObjectId(logId) : undefined,
       entityType: payload.entityType,
-      entityId: new Types.ObjectId(payload.entityId),
+      entity: new Types.ObjectId(payload.entityId),
       text: payload.text,
       logLevel: payload.logLevel || LogLevel.LOW,
       forRoles: [ 
@@ -124,12 +124,12 @@ export class LogsService {
     command: DeleteAllEntityLogsCommand,
     commandOptions?: CommonCommandOptions
   ): Promise<void> {
-    const { payload } = command;
-    checkId([payload.entityId]);
+    const { entityType, entityId } = command;
+    checkId([entityId]);
     
     const dbQueryFilter: any = {
-      entityType: payload.entityType,
-      entityId: new Types.ObjectId(payload.entityId)
+      entityType,
+      entity: new Types.ObjectId(entityId)
     };
     
     const deleteOptions: any = {};

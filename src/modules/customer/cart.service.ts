@@ -16,7 +16,6 @@ import { Customer, CustomerModel} from './customer.schema';
 import { PaginateResult } from 'mongoose';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { assignField, checkId } from 'src/common/utils';
-import { Address } from 'src/common/schemas/common-schemas';
 
 @Injectable()
 export class CartService {

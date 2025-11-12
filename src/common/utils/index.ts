@@ -4,7 +4,7 @@ import { VerifiedStatus } from 'src/common/enums/common.enum';
 import { BlockStatus } from 'src/common/enums/common.enum';
 import { ClassConstructor, plainToInstance } from 'class-transformer';
 import { Blocked } from 'src/common/schemas/common-schemas';
-import { DomainError } from 'src/common/errors/domain-error';
+import { DomainError, DomainErrorCode } from 'src/common/errors';
 import { PaginatedResponseDto } from 'src/common/dtos';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 
@@ -116,7 +116,7 @@ export function verifyUserStatus<T extends { blocked?: Blocked; verifiedStatus?:
 export function checkId(ids: readonly (string | null | undefined)[]): void {
   for (const id of ids) {
     if (!id) continue;
-    if (!Types.ObjectId.isValid(id)) throw new DomainError({ code: 'VALIDATION', message: `${id} невалидный` })
+    if (!Types.ObjectId.isValid(id)) throw new DomainError({ code: DomainErrorCode.VALIDATION, message: `${id} невалидный` })
   }
 }
 
@@ -159,19 +159,46 @@ export function generateAuthCode(): string {
 }
 
 
+/**
+ * Преобразует результат пагинации mongoose-paginate-v2 в структуру для TanStack Table
+ * @param result - Результат пагинации из mongoose-paginate-v2
+ * @param dtoClass - Класс DTO для трансформации элементов
+ * @returns Полная структура пагинации с навигацией и метаданными для UI
+ */
 export const transformPaginatedResult = <T, D>(
   result: PaginateResult<T>,
   dtoClass: ClassConstructor<D>
 ): PaginatedResponseDto<D> => {
+  const currentPage = result.page || 1;
+  const pageSize = result.limit || 10;
+  const totalItems = result.totalDocs;
+  const itemsOnPage = result.docs.length;
+  
+  // Вычисляем индексы для отображения в UI (например, "Showing 1-10 of 100")
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endIndex = totalItems === 0 ? 0 : startIndex + itemsOnPage - 1;
+
   return {
     items: plainToInstance(dtoClass, result.docs, {
       excludeExtraneousValues: true,
     }),
     pagination: {
-      totalItems: result.totalDocs,
+      // Базовая информация о пагинации
+      currentPage,
+      pageSize,
+      totalItems,
       totalPages: result.totalPages,
-      currentPage: result.page || 1,
-      pageSize: result.limit || 10,
+      
+      // Навигация для TanStack Table
+      hasNextPage: result.hasNextPage,
+      hasPrevPage: result.hasPrevPage,
+      nextPage: result.nextPage ?? null,
+      prevPage: result.prevPage ?? null,
+      
+      // Вычисляемые поля для UI
+      startIndex,
+      endIndex,
+      itemsOnPage,
     }
   }
 };

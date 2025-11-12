@@ -6,24 +6,16 @@ export enum IssueStatus {
   CLOSED = 'closed'
 };
 
-//TODO: привести к общему 
 export enum IssueUserType {
-  CUSTOMER = UserType.CUSTOMER,
-  SELLER = UserType.SELLER
+  CUSTOMER = 'Customer',
+  SELLER = 'Seller',
+  EMPLOYEE = 'Employee'
 };
 
 export enum IssueLevel {
   LOW = 'low',
   MEDIUM = 'medium',
   HIGH = 'high'
-}
-
-export enum IssueStatusFilter {
-  NEW = 'new',
-  IN_PROGRESS = 'inProgress',
-  CLOSED = 'closed',
-  ALL = 'all',
-  ACTIVE = 'active'
 }
 
 export enum IssueCategory {

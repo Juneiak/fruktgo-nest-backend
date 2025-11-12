@@ -15,27 +15,26 @@ export class LogsFacade implements LogsPort {
   // ====================================================
   // QUERIES
   // ====================================================
-  async getEntityLogs(query: GetEntityLogsQuery, queryOptions: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Log>> {
+  async getEntityLogs(query: GetEntityLogsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Log>> {
     return this.logsService.getEntityLogs(query, queryOptions);
   }
 
-  async getLog(logId: string, queryOptions: CommonQueryOptions): Promise<Log | null> {
+  async getLog(logId: string, queryOptions?: CommonQueryOptions): Promise<Log | null> {
     return this.logsService.getLog(logId, queryOptions);
   }
 
-  
   // ====================================================
   // COMMANDS
   // ====================================================
-  async createLog(command: CreateLogCommand, commandOptions: CommonCommandOptions): Promise<Log> {
+  async createLog(command: CreateLogCommand, commandOptions?: CommonCommandOptions): Promise<Log> {
     return this.logsService.createLog(command, commandOptions);
   }
 
-  async deleteLog(logId: string, commandOptions: CommonCommandOptions): Promise<void> {
+  async deleteLog(logId: string, commandOptions?: CommonCommandOptions): Promise<void> {
     return this.logsService.deleteLog(logId, commandOptions);
   }
 
-  async deleteAllEntityLogs(command: DeleteAllEntityLogsCommand, commandOptions: CommonCommandOptions): Promise<void> {
+  async deleteAllEntityLogs(command: DeleteAllEntityLogsCommand, commandOptions?: CommonCommandOptions): Promise<void> {
     return this.logsService.deleteAllEntityLogs(command, commandOptions);
   }
 }

@@ -1,8 +1,11 @@
+import { ShopStatus } from "./shop.enums";
+
 export class GetShopsQuery {
   constructor(
     public readonly filters?: {
       city?: string;
       sellerId?: string;
+      statuses?: ShopStatus[];
     },
   ) {}
 }

@@ -18,12 +18,16 @@ import { AuthenticatedUser } from 'src/common/types';
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
 export class AdminPlatformController {
-  constructor(private readonly adminPlatformRoleService: AdminPlatformRoleService) {}
+  constructor(
+    private readonly adminPlatformRoleService: AdminPlatformRoleService
+  ) { }
 
   @ApiOperation({summary: 'Получить статистику'})
   @UserType('admin')
   @Get('stats')
-  async getStats(@GetUser() authedAdmin: AuthenticatedUser): Promise<SystemStatsResponseDto> {
+  async getStats(
+    @GetUser() authedAdmin: AuthenticatedUser
+  ): Promise<SystemStatsResponseDto> {
     return this.adminPlatformRoleService.getStats(authedAdmin);
   }
   
@@ -31,7 +35,9 @@ export class AdminPlatformController {
   @ApiOperation({summary: 'Получить список пользователей для проверки'})
   @UserType('admin')
   @Get('users-to-verify')
-  async getUsersToVerify(@GetUser() authedAdmin: AuthenticatedUser): Promise<UserToVerifyResponseDto[]> {
+  async getUsersToVerify(
+    @GetUser() authedAdmin: AuthenticatedUser
+  ): Promise<UserToVerifyResponseDto[]> {
     return this.adminPlatformRoleService.getUsersToVerify(authedAdmin);
   }
 };

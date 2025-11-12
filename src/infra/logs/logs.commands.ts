@@ -18,9 +18,7 @@ export class CreateLogCommand {
 
 export class DeleteAllEntityLogsCommand {
   constructor(
-    public readonly payload: {
-      entityType: LogEntityType,
-      entityId: string,
-    }
+    public readonly entityType: LogEntityType,
+    public readonly entityId: string,
   ) {}
-};
+}

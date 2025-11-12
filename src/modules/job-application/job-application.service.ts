@@ -105,17 +105,17 @@ export class JobApplicationService {
       new SellerQueries.GetSellerQuery({ sellerId: payload.sellerId }), 
       commandOptions
     );
-    if (!seller) throw new DomainError({ code: 'NOT_FOUND', message: 'Продавец не найден' });
+    if (!seller) throw DomainError.notFound('Seller', payload.sellerId);
 
     // Получаем сотрудника через Port
     const employee = await this.employeePort.getEmployee(
       new EmployeeQueries.GetEmployeeQuery({ employeeId: payload.employeeId }), 
       commandOptions
     );
-    if (!employee) throw new DomainError({ code: 'NOT_FOUND', message: 'Сотрудник не найден' });
+    if (!employee) throw DomainError.notFound('Employee', payload.employeeId);
 
     // Бизнес-правило: сотрудник не должен быть занят
-    if (employee.employer) throw new DomainError({ code: 'CONFLICT', message: 'Сотрудник уже работает у другого продавца' });
+    if (employee.employer) throw DomainError.conflict('Сотрудник уже работает у другого продавца');
     
     // Проверяем дубликаты
     const existingQuery = this.jobApplicationModel.findOne({
@@ -126,7 +126,7 @@ export class JobApplicationService {
     if (commandOptions?.session) existingQuery.session(commandOptions.session);
     
     const existing = await existingQuery.exec();
-    if (existing) throw new DomainError({ code: 'CONFLICT', message: 'Запрос уже отправлен' });
+    if (existing) throw DomainError.conflict('Запрос уже отправлен');
 
     // Создаем заявку с вложенными объектами
     const jobApplicationData: any = {
@@ -163,7 +163,7 @@ export class JobApplicationService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const jobApplication = await dbQuery.exec();
-    if (!jobApplication) throw new DomainError({ code: 'NOT_FOUND', message: 'Заявка не найдена' });
+    if (!jobApplication) throw DomainError.notFound('JobApplication', jobApplicationId);
     
     assignField(jobApplication, 'status', payload.status, { onNull: 'skip' });
 
@@ -186,7 +186,7 @@ export class JobApplicationService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const jobApplication = await dbQuery.exec();
-    if (!jobApplication) throw new DomainError({ code: 'NOT_FOUND', message: 'Заявка не найдена' });
+    if (!jobApplication) throw DomainError.notFound('JobApplication', jobApplicationId);
     
     const deleteOptions: any = {};
     if (commandOptions?.session) deleteOptions.session = commandOptions.session;

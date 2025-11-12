@@ -5,6 +5,9 @@ export function ExposeObjectId(): PropertyDecorator {
   return function (target: Object, propertyKey: string | symbol) {
     Expose()(target, propertyKey);
     Transform(({ value }) => {
+      if (Array.isArray(value)) {
+        return value.map(v => v instanceof Types.ObjectId ? v.toString() : v);
+      }
       if (value instanceof Types.ObjectId) return value.toString();
       if (typeof value === 'string') return value;
       return value ?? null;

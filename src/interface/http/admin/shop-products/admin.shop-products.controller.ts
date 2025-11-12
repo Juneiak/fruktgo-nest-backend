@@ -13,6 +13,7 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { ShopProductQueryDto } from './admin.shop-products.query.dtos';
+import { LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -20,7 +21,9 @@ import { ShopProductQueryDto } from './admin.shop-products.query.dtos';
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
 export class AdminShopProductsController {
-  constructor(private readonly adminShopProductsRoleService: AdminShopProductsRoleService) {}
+  constructor(
+    private readonly adminShopProductsRoleService: AdminShopProductsRoleService
+  ) {}
 
   @ApiOperation({summary: 'Получает превью продуктов магазина с пагинацией'})
   @Get()
@@ -37,9 +40,18 @@ export class AdminShopProductsController {
   @Get(':shopProductId')
   getShopProduct(
     @GetUser() authedAdmin: AuthenticatedUser,
-    @Param('shopId') shopId: string,
     @Param('shopProductId') shopProductId: string,
   ): Promise<ShopProductFullResponseDto> {
-    return this.adminShopProductsRoleService.getShopProduct(authedAdmin, shopId, shopProductId);
+    return this.adminShopProductsRoleService.getShopProduct(authedAdmin, shopProductId);
+  }
+
+  @ApiOperation({summary: 'Получает логи продукта магазина'})
+  @Get(':shopProductId/logs')
+  getShopProductLogs(
+    @GetUser() authedAdmin: AuthenticatedUser,
+    @Param('shopProductId') shopProductId: string,
+    @Query() paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
+    return this.adminShopProductsRoleService.getShopProductLogs(authedAdmin, shopProductId, paginationQuery);
   }
 }

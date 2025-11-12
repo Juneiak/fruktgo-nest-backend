@@ -1,7 +1,16 @@
-import { IsMongoId, IsNotEmpty } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { Type } from "class-transformer";
 
 export class ShiftsQueryDto {
   @IsNotEmpty()
-  @IsMongoId()
+  @IsString()
   shopId: string;
+
+  @IsOptional()
+  @Type(() => Date)
+  startDate?: Date;
+
+  @IsOptional()
+  @Type(() => Date)
+  endDate?: Date;
 }

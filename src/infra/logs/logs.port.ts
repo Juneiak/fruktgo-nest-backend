@@ -6,13 +6,11 @@ import { GetEntityLogsQuery } from './logs.queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 
 export interface LogsPort {
-
   // ====================================================
   // QUERIES
   // ====================================================
   getEntityLogs(query: GetEntityLogsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Log>>;
   getLog(logId: string, queryOptions?: CommonQueryOptions): Promise<Log | null>;
-
 
   // ====================================================
   // COMMANDS

@@ -17,6 +17,8 @@ import {
   ArticlePreviewResponseDto,
 } from './admin.articles.response.dtos';
 import { ArticleQueryDto } from './admin.articles.query.dtos';
+import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 
 
 // Административный контроллер для блога (требует авторизации)
@@ -28,13 +30,14 @@ import { ArticleQueryDto } from './admin.articles.query.dtos';
 export class AdminArticlesController {
   constructor(private readonly adminArticlesRoleService: AdminArticlesRoleService) {}
 
-  @ApiOperation({ summary: 'Получить список всех статей' })
+  @ApiOperation({ summary: 'Получить список статей' })
   @Get()
   getArticles(
     @GetUser() authedAdmin: AuthenticatedUser,
-    @Query() articlesQuery: ArticleQueryDto
-  ): Promise<ArticlePreviewResponseDto[]> {
-    return this.adminArticlesRoleService.getArticles(authedAdmin, articlesQuery);
+    @Query() articlesQuery: ArticleQueryDto,
+    @Query() paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<ArticlePreviewResponseDto>> {
+    return this.adminArticlesRoleService.getArticles(authedAdmin, articlesQuery, paginationQuery);
   }
 
   
@@ -73,13 +76,23 @@ export class AdminArticlesController {
   }
   
 
-  @ApiOperation({ summary: 'изменить статус статьи' })
-  @Delete(':articleId')
+  @ApiOperation({ summary: 'Изменить статус статьи' })
+  @Patch(':articleId/status')
   changeArticleStatus(
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('articleId') articleId: string,
     @Body() dto: ChangeArticleStatusDto
   ): Promise<ArticleFullResponseDto> {
     return this.adminArticlesRoleService.changeArticleStatus(authedAdmin, articleId, dto);
+  }
+
+
+  @ApiOperation({ summary: 'Удалить статью' })
+  @Delete(':articleId')
+  deleteArticle(
+    @GetUser() authedAdmin: AuthenticatedUser,
+    @Param('articleId') articleId: string,
+  ): Promise<void> {
+    return this.adminArticlesRoleService.deleteArticle(authedAdmin, articleId);
   }
 }

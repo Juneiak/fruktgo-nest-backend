@@ -1,10 +1,6 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray } from 'class-validator';
 import { Transform } from 'class-transformer';
-import { 
-  ArticleStatus,
-  ArticleTargetAudience,
-  ArtcilesTag
- } from 'src/modules/article/article.enums';
+import { ArticleEnums } from 'src/modules/article';
 import { transformDtoToFormDataString } from 'src/common/utils';
 
 export class CreateArticleDto {
@@ -18,10 +14,21 @@ export class CreateArticleDto {
   @Transform(transformDtoToFormDataString)
   content: string;
 
-  @IsEnum(ArticleTargetAudience)
+  @IsEnum(ArticleEnums.ArticleTargetAudience)
   @Transform(transformDtoToFormDataString)
+  @IsNotEmpty()
+  targetAudience: ArticleEnums.ArticleTargetAudience;
+
+  @IsEnum(ArticleEnums.ArtcilesTag, { each: true })
+  @IsArray()
   @IsOptional()
-  targetAudience?: ArticleTargetAudience;
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.split(',').filter(Boolean);
+    }
+    return value || [];
+  })
+  tags?: ArticleEnums.ArtcilesTag[];
 }
 
 
@@ -36,19 +43,30 @@ export class UpdateArticleDto {
   @Transform(transformDtoToFormDataString)
   content?: string;
 
-  @IsEnum(ArticleTargetAudience)
+  @IsEnum(ArticleEnums.ArticleTargetAudience)
   @IsOptional()
   @Transform(transformDtoToFormDataString)
-  targetAudience?: ArticleTargetAudience;
+  targetAudience?: ArticleEnums.ArticleTargetAudience;
 
-  @IsEnum(ArticleStatus)
+  @IsEnum(ArticleEnums.ArticleStatus)
   @IsOptional()
   @Transform(transformDtoToFormDataString)
-  status?: ArticleStatus;
+  status?: ArticleEnums.ArticleStatus;
+
+  @IsEnum(ArticleEnums.ArtcilesTag, { each: true })
+  @IsArray()
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.split(',').filter(Boolean);
+    }
+    return value || [];
+  })
+  tags?: ArticleEnums.ArtcilesTag[];
 }
 
 
 export class ChangeArticleStatusDto {
-  @IsEnum(ArticleStatus)
-  status: ArticleStatus;
+  @IsEnum(ArticleEnums.ArticleStatus)
+  status: ArticleEnums.ArticleStatus;
 }

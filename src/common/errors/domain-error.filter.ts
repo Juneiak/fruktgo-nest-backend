@@ -1,6 +1,6 @@
 import { Catch, ExceptionFilter, ArgumentsHost } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { DomainError } from './domain-error';
+import { DomainError, DomainErrorCode } from './domain-error';
 
 @Catch(DomainError)
 export class DomainErrorFilter implements ExceptionFilter {
@@ -24,17 +24,29 @@ export class DomainErrorFilter implements ExceptionFilter {
 
   private mapStatus(code: DomainError['code']): number {
     switch (code) {
-      case 'NOT_FOUND':        return 404;
-      case 'FORBIDDEN':        return 403;
-      case 'UNAUTHORIZED':     return 401;
-      case 'VALIDATION':       return 400;
-      case 'INVARIANT':        return 400;
-      case 'CONFLICT':         return 409;
-      case 'CONCURRENCY':      return 409;
-      case 'RATE_LIMITED':     return 429;
-      case 'DEPENDENCY_FAILED':return 424;
-      case 'UNAVAILABLE':      return 503;
-      default:                 return 500;
+      case DomainErrorCode.NOT_FOUND:
+        return 404;
+      case DomainErrorCode.FORBIDDEN:
+        return 403;
+      case DomainErrorCode.UNAUTHORIZED:
+        return 401;
+      case DomainErrorCode.VALIDATION:
+      case DomainErrorCode.INVARIANT:
+      case DomainErrorCode.BAD_REQUEST:
+        return 400;
+      case DomainErrorCode.CONFLICT:
+      case DomainErrorCode.CONCURRENCY:
+        return 409;
+      case DomainErrorCode.RATE_LIMITED:
+        return 429;
+      case DomainErrorCode.DEPENDENCY_FAILED:
+        return 424;
+      case DomainErrorCode.UNAVAILABLE:
+        return 503;
+      default:
+        // TypeScript проверит exhaustiveness всех значений enum
+        const exhaustiveCheck: never = code;
+        return 500;
     }
   }
 

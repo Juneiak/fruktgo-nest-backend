@@ -1,20 +1,17 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { IssueUserType, IssueStatusFilter } from 'src/modules/issue/issue.schema';
+import { IsEnum, IsOptional, IsString, IsArray } from 'class-validator';
+import { IssueUserType, IssueStatus } from 'src/modules/issue/issue.enums';
 
 export class IssueQueryDto {  
-  @ApiPropertyOptional({ description: 'Тип пользователя для фильтрации заявок' })
-  @IsString()
   @IsOptional()
+  @IsEnum(IssueUserType)
   userType?: IssueUserType;
 
-  @ApiPropertyOptional({ enum: IssueStatusFilter, description: 'Статус заказа для фильтрации' })
-  @IsEnum(IssueStatusFilter)
   @IsOptional()
-  status?: IssueStatusFilter;
+  @IsArray()
+  @IsEnum(IssueStatus, { each: true })
+  statuses?: IssueStatus[];
 
-  @ApiPropertyOptional({ description: 'ID смены для фильтрации заказов' })
-  @IsString()
   @IsOptional()
+  @IsString()
   userId?: string;
 }

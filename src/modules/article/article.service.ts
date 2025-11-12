@@ -1,14 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Article, ArticleModel } from './article.schema';
-import { Types } from 'mongoose';
+import { Types, PaginateResult } from 'mongoose';
 import {
   CreateArticleCommand,
   UpdateArticleCommand,
   ChangeArticleStatusCommand,
 } from './article.commands';
 import { GetArticlesQuery } from './article.queries';
-import { CommonQueryOptions } from 'src/common/types/queries';
+import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { checkId, assignField } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
@@ -16,7 +16,6 @@ import { ArticleStatus, ArticleAuthorType } from './article.enums';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
-
 
 @Injectable()
 export class ArticleService {
@@ -44,8 +43,8 @@ export class ArticleService {
 
   async getArticles(
     query: GetArticlesQuery,
-    queryOptions?: CommonQueryOptions
-  ): Promise<Article[]> {
+    queryOptions?: CommonListQueryOptions<'createdAt'>
+  ): Promise<PaginateResult<Article>> {
     const { filters } = query;
 
     const dbQueryFilter: any = {};
@@ -61,11 +60,16 @@ export class ArticleService {
       if (filters.toDate) dbQueryFilter.createdAt.$lte = filters.toDate;
     }
 
-    const dbQuery = this.articleModel.find(dbQueryFilter).sort({ createdAt: -1 });
-    if (queryOptions?.session) dbQuery.session(queryOptions.session);
-
-    const articles = await dbQuery.lean({ virtuals: true }).exec();
-    return articles;
+    const dbQueryOptions: any = {
+      page: queryOptions?.pagination?.page || 1,
+      limit: queryOptions?.pagination?.pageSize || 10,
+      lean: true,
+      leanWithId: true,
+      sort: queryOptions?.sort || { createdAt: -1 },
+    };
+    
+    const result = await this.articleModel.paginate(dbQueryFilter, dbQueryOptions);
+    return result;
   }
 
 

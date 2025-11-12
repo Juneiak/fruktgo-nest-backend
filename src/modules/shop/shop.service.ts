@@ -1,28 +1,31 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ShopModel, Shop } from './shop.schema';
 import { Types, PaginateResult } from 'mongoose';
+import { Shop, ShopModel } from './shop.schema';
+import { ShopPort } from './shop.port';
+import { checkId, assignField } from 'src/common/utils';
+import { DomainError } from 'src/common/errors';
 import { CreateShopCommand, UpdateShopCommand, BlockShopCommand } from './shop.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { assignField, checkId } from 'src/common/utils';
-import { DomainError } from 'src/common/errors/domain-error';
+import { GetShopsQuery, GetShopQuery } from './shop.queries';
+import { AddressesPort, ADDRESSES_PORT, AddressesCommands, AddressesEnums } from 'src/infra/addresses';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
-import { GetShopQuery, GetShopsQuery } from './shop.queries';
 
 @Injectable()
-export class ShopService {
+export class ShopService implements ShopPort {
   constructor(
     @InjectModel(Shop.name) private readonly shopModel: ShopModel,
+    @Inject(ADDRESSES_PORT) private readonly addressesPort: AddressesPort,
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
   ) {}
 
   // ====================================================
   // QUERIES
-  // ==================================================== 
-    async getShops(
+  // ====================================================
+  async getShops(
     query: GetShopsQuery,
     options: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Shop>> {
@@ -31,7 +34,8 @@ export class ShopService {
     const dbQueryFilter: any = {};
     if (filters?.city) dbQueryFilter.city = filters.city;
     if (filters?.sellerId) dbQueryFilter.owner = new Types.ObjectId(filters.sellerId);
-
+    if (filters?.statuses) dbQueryFilter.status = { $in: filters.statuses };
+    
     const dbQueryOptions: any = {
       page: options.pagination?.page || 1,
       limit: options.pagination?.pageSize || 10,
@@ -43,8 +47,8 @@ export class ShopService {
     const result = await this.shopModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
-  
-  
+
+
   async getShop(
     query: GetShopQuery,
     options: CommonQueryOptions
@@ -54,7 +58,7 @@ export class ShopService {
     const dbQueryFilter: any = {};
     if (filter?.shopId) dbQueryFilter._id = new Types.ObjectId(filter.shopId);
     else if (filter?.shopAccountId) dbQueryFilter.account = new Types.ObjectId(filter.shopAccountId);
-    else throw new DomainError({ code: 'BAD_REQUEST', message: 'Неверный запрос' });
+    else throw DomainError.badRequest('Неверный запрос');
 
     const dbQuery = this.shopModel.findOne(dbQueryFilter);
     if (options.session) dbQuery.session(options.session);
@@ -66,7 +70,7 @@ export class ShopService {
 
   // ====================================================
   // COMMANDS
-  // ==================================================== 
+  // ====================================================
   async createShop(
     command: CreateShopCommand,
     options: CommonCommandOptions
@@ -83,22 +87,42 @@ export class ShopService {
     if (options?.session) existingQuery.session(options.session);
     
     const existing = await existingQuery.exec();
-    if (existing) throw new DomainError({ code: 'CONFLICT', message: 'Магазин с таким названием уже существует в этом городе' });
+    if (existing) throw DomainError.conflict('Магазин с таким названием уже существует в этом городе');
 
     // Создаем только обязательные поля, остальные заполнятся через defaults в схеме
-    const shopData = {
+    const shopData: any = {
       _id: new Types.ObjectId(shopId),
       account: new Types.ObjectId(payload.shopAccountId),
       owner: new Types.ObjectId(payload.ownerId),
       city: payload.city,
       shopName: payload.shopName,
-      address: payload.address,
     };
 
     const createOptions: any = {};
     if (options?.session) createOptions.session = options.session;
 
     const shop = await this.shopModel.create([shopData], createOptions).then(docs => docs[0]);
+
+    // Создаем адрес через AddressesPort, если предоставлен
+    if (payload.address) {
+      const addressCommand = new AddressesCommands.CreateAddressCommand(
+        AddressesEnums.AddressEntityType.SHOP,
+        shopId,
+        {
+          latitude: payload.address.latitude || 0,
+          longitude: payload.address.longitude || 0,
+          city: payload.address.city || payload.city,
+          street: payload.address.street || '',
+          house: payload.address.house || '',
+        }
+      );
+      const createdAddress = await this.addressesPort.createAddress(addressCommand, options);
+      
+      // Обновляем магазин с ObjectId адреса
+      shop.address = new Types.ObjectId(createdAddress.addressId);
+      await shop.save(options?.session ? { session: options.session } : undefined);
+    }
+
     return shop;
   }
 
@@ -114,7 +138,7 @@ export class ShopService {
     if (options.session) dbQuery.session(options.session);
     
     const shop = await dbQuery.exec();
-    if (!shop) throw new DomainError({ code: 'NOT_FOUND', message: 'Магазин не найден' });
+    if (!shop) throw DomainError.notFound('Shop', shopId);
 
     assignField(shop, 'aboutShop', payload.aboutShop);
     assignField(shop, 'openAt', payload.openAt);
@@ -173,7 +197,7 @@ export class ShopService {
     await shop.save(saveOptions);
   }
 
-  
+
   async blockShop(
     command: BlockShopCommand,
     options: CommonCommandOptions
@@ -185,7 +209,7 @@ export class ShopService {
     if (options.session) dbQuery.session(options.session);
 
     const shop = await dbQuery.exec();
-    if (!shop) throw new DomainError({ code: 'NOT_FOUND', message: 'Магазин не найден' });
+    if (!shop) throw DomainError.notFound('Shop', shopId);
 
     assignField(shop.blocked, 'status', payload.status, { onNull: 'skip' });
     assignField(shop.blocked, 'reason', payload.reason);

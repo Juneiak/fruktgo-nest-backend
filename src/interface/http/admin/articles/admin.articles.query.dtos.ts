@@ -1,8 +1,33 @@
-import { IsEnum, IsOptional } from "class-validator";
-import { ArticleTargetAudience } from "src/modules/article/article.schema";
+import { IsEnum, IsOptional, IsArray, IsDate } from "class-validator";
+import { Type } from "class-transformer";
+import { ArticleEnums } from "src/modules/article";
 
 export class ArticleQueryDto {
-  @IsEnum(ArticleTargetAudience)
+  @IsEnum(ArticleEnums.ArticleStatus, { each: true })
+  @IsArray()
   @IsOptional()
-  targetAudience?: ArticleTargetAudience;
+  statuses?: ArticleEnums.ArticleStatus[];
+
+  @IsEnum(ArticleEnums.ArticleAuthorType)
+  @IsOptional()
+  authorType?: ArticleEnums.ArticleAuthorType;
+
+  @IsEnum(ArticleEnums.ArticleTargetAudience)
+  @IsOptional()
+  targetAudience?: ArticleEnums.ArticleTargetAudience;
+
+  @IsEnum(ArticleEnums.ArtcilesTag, { each: true })
+  @IsArray()
+  @IsOptional()
+  tags?: ArticleEnums.ArtcilesTag[];
+
+  @Type(() => Date)
+  @IsDate()
+  @IsOptional()
+  fromDate?: Date;
+
+  @Type(() => Date)
+  @IsDate()
+  @IsOptional()
+  toDate?: Date;
 }

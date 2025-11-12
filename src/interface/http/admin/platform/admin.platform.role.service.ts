@@ -14,11 +14,7 @@ import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.s
 @Injectable()
 export class AdminPlatformRoleService {
   constructor(
-    @InjectModel('Customer') private customerModel: Model<Customer>,
-    @InjectModel('Employee') private employeeModel: Model<Employee>,
-    @InjectModel('Seller') private sellerModel: Model<Seller>,
-    @InjectModel('Shop') private shopModel: Model<Shop>,
-    @InjectModel('Order') private orderModel: Model<Order>,
+
   ) {}
 
   // async getStats(authedAdmin: AuthenticatedUser): Promise<SystemStatsResponseDto> {

@@ -1,8 +1,8 @@
 import { Expose, Type } from 'class-transformer';
-import { ProductCategory, ProductMeasuringScale, ProductStepRate } from "src/modules/product/product.schema";
-import {ShopProductStatus} from 'src/modules/shop-product/shop-product.schema'
 import { Types } from 'mongoose';
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+import { ProductEnums } from 'src/modules/product';
+import { ShopProductEnums } from 'src/modules/shop-product';
 
 export class ProductPreviewResponseDto {
   @Expose() productId: string;
@@ -10,10 +10,10 @@ export class ProductPreviewResponseDto {
   @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
-  @Expose() category: ProductCategory;
+  @Expose() category: ProductEnums.ProductCategory;
   @Expose() price: number;
-  @Expose() measuringScale: ProductMeasuringScale;
-  @Expose() stepRate: ProductStepRate;
+  @Expose() measuringScale: ProductEnums.ProductMeasuringScale;
+  @Expose() stepRate: ProductEnums.ProductStepRate;
   @Expose() aboutProduct?: string;
   @Expose() totalLast7daysSales: number;
   @Expose() totalLast7daysWriteOff: number;
@@ -32,7 +32,7 @@ class ShopProductDto {
   @Expose() shopProductId: string;
   @Expose() @Type(() => ShopDto) pinnedTo: ShopDto;
   @Expose() stockQuantity: number;
-  @Expose() status: ShopProductStatus;
+  @Expose() status: ShopProductEnums.ShopProductStatus;
   @Expose() last7daysSales: number;
   @Expose() last7daysWriteOff: number;
 }
@@ -43,10 +43,10 @@ export class ProductFullResponseDto {
   @ExposeObjectId() cardImage: Types.ObjectId;
   @Expose() productArticle?: string | null;
   @Expose() productName: string;
-  @Expose() category: ProductCategory;
+  @Expose() category: ProductEnums.ProductCategory;
   @Expose() price: number;
-  @Expose() measuringScale: ProductMeasuringScale;
-  @Expose() stepRate: ProductStepRate;
+  @Expose() measuringScale: ProductEnums.ProductMeasuringScale;
+  @Expose() stepRate: ProductEnums.ProductStepRate;
   @Expose() aboutProduct?: string;
   @Expose() totalLast7daysSales: number;
   @Expose() totalLast7daysWriteOff: number;

@@ -1,21 +1,8 @@
-import { Expose, Type } from 'class-transformer';
-import { BlockStatus } from 'src/common/enums/common.enum';
+import { Expose, Type } from 'class-transformer'
 import { VerifiedStatus } from 'src/common/enums/common.enum';
+import { BlockedResponseDto, AddressResponseDto } from 'src/interface/http/common/common.response.dtos';
 
-export class BlockedDto {
-  @Expose() status: BlockStatus;
-  @Expose() reason?: string | null;
-  @Expose() code?: string | null;
-  @Expose() by?: string | null;
-  @Expose() blockedAt?: Date | null;
-  @Expose() blockedUntil?: Date | null;
-}
-export class AddressDto {
-  @Expose() addressId: string;
-  @Expose() address: string;
-  @Expose() latitude?: number;
-  @Expose() longitude?: number;
-}
+
 export class CustomerPreviewResponseDto {
   @Expose() customerId: string;
   @Expose() internalNote?: string | null;
@@ -27,7 +14,7 @@ export class CustomerPreviewResponseDto {
   @Expose() telegramLastName?: string;
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
-  @Expose() blocked: BlockedDto;
+  @Expose() blocked: BlockedResponseDto;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() customerName: string;
   @Expose() sex?: string | null;
@@ -50,14 +37,14 @@ export class CustomerFullResponseDto {
   @Expose() telegramLastName?: string;
   @Expose() createdAt: Date;
   @Expose() updatedAt: Date;
-  @Expose() blocked: BlockedDto;
+  @Expose() blocked: BlockedResponseDto;
   @Expose() verifiedStatus: VerifiedStatus;
   @Expose() customerName: string;
   @Expose() sex?: string | null;
   @Expose() birthDate?: Date | null;
   @Expose() bonusPoints: number;
-  @Expose() @Type(() => AddressDto) savedAddresses: AddressDto[] | [];
-  @Expose() @Type(() => AddressDto) selectedAddressId: AddressDto | null;
+  @Expose() @Type(() => AddressResponseDto) savedAddresses: AddressResponseDto[] | [];
+  @Expose() @Type(() => AddressResponseDto) selectedAddressId: AddressResponseDto | null;
   @Expose() lastLoginAt?: Date | null;
   @Expose() lastOrderAt?: Date | null;
   @Expose() ordersCount: number;

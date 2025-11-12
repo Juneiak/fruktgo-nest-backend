@@ -11,12 +11,3 @@ export class GetShiftsQuery {
     },
   ) {}
 }
-
-export class GetShiftQuery {
-  constructor(
-    public readonly filter?: {
-      shiftId?: string;
-      shopId?: string;
-    },
-  ) {}
-}

@@ -1,5 +1,6 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { IssueStatus, IssueLevel } from 'src/modules/issue/issue.schema';
+import { IsEnum, IsOptional, IsString, IsDate } from 'class-validator';
+import { IssueStatus, IssueLevel, IssueCategory } from 'src/modules/issue/issue.enums';
+import { Type } from 'class-transformer';
 
 export class UpdateIssueDto {
   @IsEnum(IssueStatus)
@@ -8,9 +9,18 @@ export class UpdateIssueDto {
 
   @IsString()
   @IsOptional()
-  result?: string | null;
+  resolution?: string | null;
+
+  @IsDate()
+  @Type(() => Date)
+  @IsOptional()
+  resolvedAt?: Date | null;
 
   @IsEnum(IssueLevel)
   @IsOptional()
   level?: IssueLevel;
+
+  @IsEnum(IssueCategory)
+  @IsOptional()
+  category?: IssueCategory;
 }

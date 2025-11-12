@@ -1,37 +1,83 @@
-import { Injectable, ForbiddenException, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
-import { UploadsService } from 'src/infra/images/images.service';
-import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
+import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
+import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { UpdateShopProductDto } from './seller.shop-products.request.dtos';
-import { SellerModel } from 'src/modules/seller/seller.schema';
-import { transformPaginatedResult, checkEntityStatus } from 'src/common/utils';
-import { ShopProductModel, ShopProductStatus } from "src/modules/shop-product/shop-product.schema";
+import { transformPaginatedResult, checkId } from 'src/common/utils';
 import { ShopProductResponseDto } from './seller.shop-products.response.dtos';
-import { ProductModel } from 'src/modules/product/product.schema';
-import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
-import {checkId} from 'src/common/utils';
-import { LogsService } from 'src/infra/log/application/log.service';
-import { LogLevel } from "src/infra/logs/infrastructure/log.schema";
 import { AuthenticatedUser } from 'src/common/types';
-import { UserType } from "src/common/enums/common.enum";
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
-import { ShopModel } from 'src/modules/shop/shop.schema';
 import { ShopProductsQueryDto } from './seller.shop-products.query.dtos';
+import { CommonListQueryOptions } from 'src/common/types/queries';
+import {
+  ShopProductPort,
+  SHOP_PRODUCT_PORT,
+  ShopProductQueries,
+} from 'src/modules/shop-product';
+import { ShopPort, SHOP_PORT, ShopQueries } from 'src/modules/shop';
+import { LogsPort, LOGS_PORT } from 'src/infra/logs';
 
 @Injectable()
 export class SellerShopProductsRoleService {
   constructor(
-    @InjectModel('Seller') private sellerModel: SellerModel,
-    @InjectModel('Shop') private shopModel: ShopModel,
-    @InjectModel('ShopProduct') private shopProductModel: ShopProductModel,
-    @InjectModel('Product') private productModel: ProductModel,
-    private readonly logsService: LogsService,
-    private readonly uploadsService: UploadsService
+    @Inject(SHOP_PRODUCT_PORT) private readonly shopProductPort: ShopProductPort,
+    @Inject(SHOP_PORT) private readonly shopPort: ShopPort,
+    @Inject(LOGS_PORT) private readonly logsPort: LogsPort,
   ) {}
 
+  async getShopProducts(
+    authedSeller: AuthenticatedUser,
+    shopProductsQuery: ShopProductsQueryDto,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
+    if (!shopProductsQuery.shopId) throw new BadRequestException('Магазин не указан');
+    checkId([shopProductsQuery.shopId]);
+
+    // Проверяем что магазин принадлежит продавцу
+    const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId: shopProductsQuery.shopId }));
+    
+    if (!shop) throw new NotFoundException('Магазин не найден');
+    if (shop.owner.toString() !== authedSeller.id) {
+      throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
+    }
+
+    const query = new ShopProductQueries.GetShopProductsQuery({
+      shopId: shopProductsQuery.shopId,
+    }, {
+      populateProduct: true,
+    });
+
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+
+    const result = await this.shopProductPort.getShopProducts(query, queryOptions);
+    return transformPaginatedResult(result, ShopProductResponseDto);
+  }
+
+
+  async getShopProduct(
+    authedSeller: AuthenticatedUser,
+    shopProductId: string
+  ): Promise<ShopProductResponseDto> {
+    checkId([shopProductId]);
+
+    const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
+      populateProduct: true,
+      populateImages: true,
+    });
+
+    const shopProduct = await this.shopProductPort.getShopProduct(query);
+    if (!shopProduct) throw new NotFoundException('Товар не найден');
+
+    // Проверяем что магазин принадлежит продавцу
+    const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId: shopProduct.pinnedTo.toString() }));
+    
+    if (!shop || shop.owner.toString() !== authedSeller.id) {
+      throw new NotFoundException('Товар не найден');
+    }
+
+    return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
+  }
 
   // async getShopProducts(
   //   authedSeller: AuthenticatedUser, 

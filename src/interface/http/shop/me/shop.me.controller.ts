@@ -15,15 +15,14 @@ import { AuthenticatedUser } from 'src/common/types';
 @UserType('shop')
 export class ShopMeController {
   constructor(
-    private readonly shopMeRoleService: ShopMeRoleService,
+    private readonly shopMeRoleService: ShopMeRoleService
   ) {}
 
-  @ApiOperation({summary: 'возвращает общую информацию о магазине для магазина'})
+  @ApiOperation({summary: 'Возвращает общую информацию о магазине для магазина'})
   @Get()
   getShopPreviewInfo(
-    @GetUser() authedShop: AuthenticatedUser,
+    @GetUser() authedShop: AuthenticatedUser
   ): Promise<ShopPreviewResponseDto> {
     return this.shopMeRoleService.getShopPreviewInfo(authedShop);
   }
-
 }

@@ -53,8 +53,8 @@ export class Image extends Document {
   @Prop({ type: String, enum: Object.values(ImageEntityType)})
   entityType?: ImageEntityType;
 
-  @Prop({ type: Types.ObjectId})
-  entityId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId })
+  entity?: Types.ObjectId;
 
   @Prop({ type: String, enum: Object.values(ImageType)})
   imageType?: ImageType;

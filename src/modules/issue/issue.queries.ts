@@ -6,6 +6,7 @@ export class GetIssuesQuery {
     public readonly filters?: {
       fromUserType?: IssueUserType;
       fromTelegramId?: number;
+      fromUserId?: string;
       statuses?: IssueStatus[];
       categories?: IssueCategory[];
       levels?: IssueLevel[];

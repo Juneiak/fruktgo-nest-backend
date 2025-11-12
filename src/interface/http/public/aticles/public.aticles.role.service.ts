@@ -1,47 +1,61 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
-import { Article, ArticleStatus, ArticleTargetAudience } from 'src/modules/article/article.schema';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { checkId, transformPaginatedResult } from "src/common/utils";
+import { ArticlePort, ARTICLE_PORT } from "src/modules/article/article.port";
+import { GetArticlesQuery } from 'src/modules/article/article.queries';
+import { ArticleStatus } from 'src/modules/article/article.enums';
 import { 
   ArticleFullResponseDto, 
   ArticlePreviewResponseDto,
 } from './public.aticles.response.dtos';
-import { plainToInstance } from 'class-transformer';
-import { checkId } from "src/common/utils";
+import { PublicArticlesQueryDto } from './public.aticles.query.dtos';
+import { PaginationQueryDto, PaginatedResponseDto } from 'src/common/dtos';
+import { CommonListQueryOptions } from 'src/common/types/queries';
 
 @Injectable()
 export class PublicArticlesRoleService {
   constructor(
-    @InjectModel('Article') private articleModel: Model<Article>,
+    @Inject(ARTICLE_PORT) private readonly articlePort: ArticlePort,
   ) {}
 
-  // // Получение опубликованной статьи (для публики)
-  // async getPublishedArticle(articleId: string): Promise<ArticleFullResponseDto> {
-  //   checkId([articleId]);
+  // Получение опубликованной статьи (для публики)
+  async getPublishedArticle(articleId: string): Promise<ArticleFullResponseDto> {
+    checkId([articleId]);
     
-  //   const article = await this.articleModel.findOne({
-  //     _id: new Types.ObjectId(articleId),
-  //     status: ArticleStatus.PUBLISHED
-  //   }).lean({ virtuals: true }).exec();
+    const article = await this.articlePort.getArticle(articleId);
     
-  //   if (!article) throw new NotFoundException('Статья не найдена');
-  //   // Увеличиваем счетчик просмотров (отдельный запрос, не в транзакции)
-  //   await this.articleModel.findByIdAndUpdate(
-  //     article._id,
-  //     { $inc: { viewCount: 1 } }
-  //   ).exec();
+    // Проверяем что статья существует и опубликована
+    if (!article || article.status !== ArticleStatus.PUBLISHED) {
+      throw new NotFoundException('Статья не найдена');
+    }
+
+    // Увеличиваем счетчик просмотров асинхронно (без ожидания)
+    this.articlePort.incrementView(articleId).catch(() => {
+      // Игнорируем ошибку, чтобы не прерывать выдачу статьи
+    });
     
-  //   return plainToInstance(ArticleFullResponseDto, article, {excludeExtraneousValues: true});
-  // }
+    return plainToInstance(ArticleFullResponseDto, article, { excludeExtraneousValues: true });
+  }
 
 
-  // // Получение списка опубликованных статей (для публики)
-  // async getPublishedArticles(targetAudience?: ArticleTargetAudience): Promise<ArticlePreviewResponseDto[]> {
-  //   const filter: any = { status: ArticleStatus.PUBLISHED };
-  //   if (targetAudience) filter.targetAudience = targetAudience;
+  // Получение списка опубликованных статей (для публики)
+  async getPublishedArticles(
+    queryDto: PublicArticlesQueryDto,
+    paginationDto: PaginationQueryDto,
+  ): Promise<PaginatedResponseDto<ArticlePreviewResponseDto>> {
+    // Формируем запрос только для опубликованных статей
+    const query = new GetArticlesQuery({
+      statuses: [ArticleStatus.PUBLISHED],
+      targetAudience: queryDto.targetAudience,
+    });
+
+    // Формируем опции пагинации
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationDto,
+    };
     
-  //   const articles = await this.articleModel.find(filter).sort({ publishedAt: -1 }).lean({ virtuals: true }).exec();
-      
-  //   return plainToInstance(ArticlePreviewResponseDto, articles, {excludeExtraneousValues: true});
-  // }
+    const result = await this.articlePort.getArticles(query, queryOptions);
+    
+    return transformPaginatedResult(result, ArticlePreviewResponseDto);
+  }
 }

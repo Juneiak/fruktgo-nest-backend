@@ -1,145 +1,124 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import {
   ShopPreviewResponseDto,
   ShopFullResponseDto,
 } from './admin.shops.response.dtos';
-import { UpdateShopDto } from './admin.shops.request.dtos';
+import { UpdateShopDto, BlockShopDto } from './admin.shops.request.dtos';
 import { checkId, transformPaginatedResult } from "src/common/utils";
-import { LogsService } from 'src/infra/log/application/log.service';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
-
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
-import { ShopModel } from 'src/modules/shop/shop.schema';
-import { Types } from 'mongoose';
-import { BlockDto } from 'src/interface/http/common/common.request.dtos';
+import { CommonListQueryOptions } from 'src/common/types/queries';
+import {
+  ShopPort,
+  SHOP_PORT,
+  ShopQueries,
+  ShopCommands
+} from 'src/modules/shop';
+import { LogsQueries, LogsEnums, LOGS_PORT, LogsPort } from 'src/infra/logs';
+import { ShopQueryFilterDto } from './admin.shops.query.dtos';
 
 @Injectable()
 export class AdminShopsRoleService {
   constructor(
-    @InjectModel('Shop') private shopModel: ShopModel,
-    private readonly logsService: LogsService
+    @Inject(SHOP_PORT) private readonly shopPort: ShopPort,
+    @Inject(LOGS_PORT) private readonly logsPort: LogsPort,
   ) { }
 
 
-  // async getShops(
-  //   authedAdmin: AuthenticatedUser,
-  //   paginationQuery: PaginationQueryDto
-  // ): Promise<PaginatedResponseDto<ShopPreviewResponseDto>> {
-  //   const { page = 1, pageSize = 10 } = paginationQuery;
 
-  //   const result = await this.shopModel.paginate(
-  //     {}, 
-  //     { page, limit: pageSize, lean: true, leanWithId: false,
-  //       sort: { createdAt: -1 },
-  //       populate: {
-  //         path: 'owner',
-  //         select: 'sellerId companyName'
-  //       },
-  //   });
-  //   return transformPaginatedResult(result, ShopPreviewResponseDto);
-  // }
+  async getShops(
+    authedAdmin: AuthenticatedUser,
+    shopQueryFilter: ShopQueryFilterDto,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<ShopPreviewResponseDto>> {
+    
+    const query = new ShopQueries.GetShopsQuery({
+      city: shopQueryFilter.city,
+      sellerId: shopQueryFilter.sellerId,
+      statuses: shopQueryFilter.statuses,
+    });
 
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
 
-  // async getShop(authedAdmin: AuthenticatedUser, shopId: string): Promise<ShopFullResponseDto> {
-  //   checkId([shopId]);
-  //   const shop = await this.shopModel.findById(shopId).populate("pinnedEmployees").populate("owner", 'sellerId companyName').lean({ virtuals: true }).exec();
-  //   if (!shop) throw new NotFoundException(`Магазин с ID ${shopId} не найден`);
-
-  //   return plainToInstance(ShopFullResponseDto, shop, { excludeExtraneousValues: true, exposeDefaultValues: true });
-  // }
+    const result = await this.shopPort.getShops(query, queryOptions);
+    return transformPaginatedResult(result, ShopPreviewResponseDto);
+  }
 
 
-  // async getShopLogs(
-  //   authedAdmin: AuthenticatedUser,
-  //   shopId: string,
-  //   paginationQuery: PaginationQueryDto
-  // ): Promise<PaginatedLogDto> {
-  //   return this.logsService.getAllShopLogs(shopId, paginationQuery);
-  // }
+  async getShop(
+    authedAdmin: AuthenticatedUser,
+    shopId: string
+  ): Promise<ShopFullResponseDto> {
+    checkId([shopId]);
+
+    const query = new ShopQueries.GetShopQuery({ shopId });
+    const shop = await this.shopPort.getShop(query);
+    
+    if (!shop) throw new NotFoundException('Магазин не найден');
+
+    return plainToInstance(ShopFullResponseDto, shop, { excludeExtraneousValues: true });
+  }
 
 
-  // async updateShop(
-  //   authedAdmin: AuthenticatedUser,
-  //   shopId: string,
-  //   dto: UpdateShopDto,
-  // ): Promise<ShopFullResponseDto> {
-  //   checkId([shopId]);
+  async getShopLogs(
+    authedAdmin: AuthenticatedUser,
+    shopId: string,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
+    checkId([shopId]);
 
-  //   // Ищем магазин по ID
-  //   const shop = await this.shopModel.findById(shopId);
-  //   if (!shop) throw new NotFoundException(`Магазин с ID ${shopId} не найден`);
-
-  //   // Собираем изменения для лога
-  //   const changes: string[] = [];
-
-  //   if (dto.verifiedStatus !== undefined && dto.verifiedStatus !== shop.verifiedStatus) {
-  //     const oldValue = shop.verifiedStatus;
-  //     shop.verifiedStatus = dto.verifiedStatus;
-  //     changes.push(`Статус верификации: "${oldValue}" -> "${dto.verifiedStatus}"`);
-  //   }
-  //   if (dto.internalNote !== undefined) {
-  //     const oldValue = shop.internalNote;
-  //     shop.internalNote = dto.internalNote;
-  //     changes.push(`Заметка администратора: "${oldValue}" -> "${dto.internalNote}"`);
-  //   }
-
-  //   if (changes.length > 0 && shop.isModified()) {
-  //     await shop.save();
-  //     await this.logsService.addShopLog(
-  //       shop._id.toString(),
-  //       `Администратор обновил данные магазина (${shop.shopName}):\n${changes.join('\n')}`,
-  //       { forRoles: [UserType.ADMIN] }
-  //     );
-  //   }
-  //   return this.getShop(authedAdmin, shopId);
-  // }
+    const query = new LogsQueries.GetEntityLogsQuery(
+      LogsEnums.LogEntityType.SHOP,
+      shopId,
+      [UserType.ADMIN]
+    );
+    
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+    
+    const result = await this.logsPort.getEntityLogs(query, queryOptions);
+    return transformPaginatedResult(result, LogResponseDto);
+  }
 
 
-  // async blockSeller(
-  //   authedAdmin: AuthenticatedUser,
-  //   shopId: string,
-  //   dto: BlockDto,
-  // ): Promise<ShopFullResponseDto> {
-  //   checkId([shopId]);
-  //   const shop = await this.shopModel.findById(new Types.ObjectId(shopId)).exec();
-  //   if (!shop) throw new NotFoundException('Магазин не найден');
+  async updateShop(
+    authedAdmin: AuthenticatedUser,
+    shopId: string,
+    dto: UpdateShopDto
+  ): Promise<ShopFullResponseDto> {
+    checkId([shopId]);
 
-  //   const changedFields: string[] = [];
+    const command = new ShopCommands.UpdateShopCommand(shopId, {
+      verifiedStatus: dto.verifiedStatus,
+      internalNote: dto.internalNote,
+    });
 
-  //   if (dto.status !== undefined) {
-  //     const oldValue = shop.blocked.status;
-  //     shop.blocked.status = dto.status;
-  //     changedFields.push(`статус блокировки: ${oldValue} -> ${dto.status}`);
-  //   }
-  //   if (dto.reason !== undefined) {
-  //     const oldValue = shop.blocked.reason;
-  //     shop.blocked.reason = dto.reason;
-  //     changedFields.push(`причина блокировки: ${oldValue} -> ${dto.reason}`);
-  //   }
-  //   if (dto.code !== undefined) {
-  //     const oldValue = shop.blocked.code;
-  //     shop.blocked.code = dto.code;
-  //     changedFields.push(`код блокировки: ${oldValue} -> ${dto.code}`);
-  //   }
-  //   if (dto.blockedUntil !== undefined) {
-  //     const oldValue = shop.blocked.blockedUntil;
-  //     shop.blocked.blockedUntil = dto.blockedUntil;
-  //     changedFields.push(`срок блокировки: ${oldValue} -> ${dto.blockedUntil}`);
-  //   }
-  //   if (changedFields.length > 0 && shop.isModified()) {
-  //     await shop.save();
-  //     await this.logsService.addShopLog(
-  //       shopId,
-  //       `Админ ${authedAdmin.id} изменил статус блокировки сотрудника: ${changedFields.join(', ')}`,
-  //       { forRoles: [UserType.SHOP] }
-  //     );
-  //   }
-  //   return this.getShop(authedAdmin, shopId);
-  // }
+    await this.shopPort.updateShop(command);
+    return this.getShop(authedAdmin, shopId);
+  }
 
+
+  async blockShop(
+    authedAdmin: AuthenticatedUser,
+    shopId: string,
+    dto: BlockShopDto
+  ): Promise<ShopFullResponseDto> {
+    checkId([shopId]);
+
+    const command = new ShopCommands.BlockShopCommand(shopId, {
+      status: dto.status,
+      reason: dto.reason,
+      code: dto.code,
+      blockedUntil: dto.blockedUntil,
+    });
+
+    await this.shopPort.blockShop(command);
+    return this.getShop(authedAdmin, shopId);
+  }
 }

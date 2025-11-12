@@ -1,5 +1,4 @@
-import { IsString, IsOptional, IsNotEmpty, IsNumber } from 'class-validator';
-import { IsValidPhoneNumber } from 'src/common/validators';
+import { IsString, IsOptional, IsNumber } from 'class-validator';
 
 export class UpdateEmployeeDto {
   @IsString()
@@ -17,12 +16,4 @@ export class UpdateEmployeeDto {
   @IsString()
   @IsOptional()
   sellerNote?: string;
-}
-
-
-export class RequestToEmployeeDto {
-  @IsString()
-  @IsValidPhoneNumber()
-  @IsNotEmpty({ message: 'Телефон обязательно' })
-  employeePhoneNumber: string;
 }

@@ -4,6 +4,7 @@ import {
   CustomerFullResponseDto,
 } from './admin.customers.response.dtos';
 import { UpdateCustomerDto, NotifyCustomerDto } from './admin.customers.request.dtos';
+import { CustomerQueryDto } from './admin.customers.query.dtos';
 import { AdminCustomersRoleService } from './admin.customers.role.service';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
@@ -13,8 +14,8 @@ import { AuthenticatedUser } from 'src/common/types';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { BlockDto } from 'src/interface/http/common/common.request.dtos';
+import { LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 
 
 @ApiTags('for admin')
@@ -38,19 +39,23 @@ export class AdminCustomersController {
   }
 
 
-  @ApiOperation({summary: 'Получение списка всех клиентов с пагинацией'})
+  @ApiOperation({summary: 'Получение списка клиентов'})
   @Get()
-  getAllCustomers(
+  getCustomers(
     @GetUser() authedAdmin: AuthenticatedUser,
+    @Query() queryDto: CustomerQueryDto,
     @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<CustomerPreviewResponseDto>> {
-    return this.customerAdminService.getAllCustomers(authedAdmin, paginationQuery);
+    return this.customerAdminService.getCustomers(authedAdmin, queryDto, paginationQuery);
   }
 
 
   @ApiOperation({summary: 'Получение информации о клиенте'})
   @Get(':customerId')
-  getCustomer( @GetUser() authedAdmin: AuthenticatedUser, @Param('customerId') customerId: string ) {
+  getCustomer(
+    @GetUser() authedAdmin: AuthenticatedUser,
+    @Param('customerId') customerId: string
+  ): Promise<CustomerFullResponseDto> {
     return this.customerAdminService.getCustomer(authedAdmin, customerId);
   }
 
@@ -61,7 +66,7 @@ export class AdminCustomersController {
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('customerId') customerId: string,
     @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
     return this.customerAdminService.getCustomerLogs(authedAdmin, customerId, paginationQuery);
   }
 

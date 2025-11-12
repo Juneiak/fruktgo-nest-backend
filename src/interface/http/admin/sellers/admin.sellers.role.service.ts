@@ -1,136 +1,117 @@
-
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
-import { SellerModel } from 'src/modules/seller/seller.schema';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import {
   SellerFullResponseDto,
   SellerPreviewResponseDto,
 } from './admin.sellers.response.dtos';
-import { UpdateSellerByAdminDto } from './admin.sellers.request.dtos';
-import { checkId } from 'src/common/utils';
-import { LogsService } from 'src/infra/log/application/log.service';
-import { AuthenticatedUser} from 'src/common/types';
+import { UpdateSellerByAdminDto, BlockSellerDto } from './admin.sellers.request.dtos';
+import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto, BlockDto } from 'src/interface/http/common/common.request.dtos';
-import { transformPaginatedResult } from 'src/common/utils';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
-import { LogEntityType } from 'src/infra/logs/infrastructure/log.schema';
+import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { CommonListQueryOptions } from 'src/common/types/queries';
+import {
+  SellerPort,
+  SELLER_PORT,
+  SellerQueries,
+  SellerCommands
+} from 'src/modules/seller';
+import { LogsQueries, LogsEnums, LOGS_PORT, LogsPort } from 'src/infra/logs';
 
 @Injectable()
 export class AdminSellersRoleService {
   constructor(
-    @InjectModel('Seller') private sellerModel: SellerModel,
-    private readonly logsService: LogsService
+    @Inject(SELLER_PORT) private readonly sellerPort: SellerPort,
+    @Inject(LOGS_PORT) private readonly logsPort: LogsPort,
   ) { }
 
 
-  // async getSellers(
-  //   authedAdmin: AuthenticatedUser,
-  //   paginationQuery: PaginationQueryDto
-  // ): Promise<PaginatedResponseDto<SellerPreviewResponseDto>> {
-  //   const { page = 1, pageSize = 10 } = paginationQuery;
 
-  //   const result = await this.sellerModel.paginate({}, {
-  //     page,
-  //     limit: pageSize,
-  //     lean: true,
-  //     leanWithId: false,
-  //     sort: { createdAt: -1 },
-  //   });
-  //   return transformPaginatedResult(result, SellerPreviewResponseDto);
-  // }
+  async getSellers(
+    authedAdmin: AuthenticatedUser,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<SellerPreviewResponseDto>> {
+    const query = new SellerQueries.GetSellersQuery();
 
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
 
-  // async getSeller(authedAdmin: AuthenticatedUser, sellerId: string): Promise<SellerFullResponseDto> {
-  //   checkId([sellerId]);
-
-  //   const seller = await this.sellerModel.findById(new Types.ObjectId(sellerId)).populate(['employees', 'shops']).lean({ virtuals: true }).exec();
-  //   if (!seller) throw new NotFoundException('Продавец не найден');
-
-  //   return plainToInstance(SellerFullResponseDto, seller, { excludeExtraneousValues: true, exposeDefaultValues: true });
-  // }
+    const result = await this.sellerPort.getSellers(query, queryOptions);
+    return transformPaginatedResult(result, SellerPreviewResponseDto);
+  }
 
 
-  // async getSellerLogs(authedAdmin: AuthenticatedUser, sellerId: string, paginationQuery: PaginationQueryDto): Promise<PaginatedLogDto> {
-  //   checkId([sellerId]);
-  //   return this.logsService.getEntityLogs(LogEntityType.SELLER, sellerId, paginationQuery);
-  // }
+  async getSeller(
+    authedAdmin: AuthenticatedUser,
+    sellerId: string
+  ): Promise<SellerFullResponseDto> {
+    checkId([sellerId]);
+
+    const query = new SellerQueries.GetSellerQuery({ sellerId });
+    const seller = await this.sellerPort.getSeller(query);
+    
+    if (!seller) throw new NotFoundException('Продавец не найден');
+
+    return plainToInstance(SellerFullResponseDto, seller, { excludeExtraneousValues: true });
+  }
 
 
-  // async updateSeller(
-  //   authedAdmin: AuthenticatedUser,
-  //   sellerId: string,
-  //   dto: UpdateSellerByAdminDto
-  // ): Promise<SellerFullResponseDto> {
-  //   checkId([sellerId]);
-  //   const seller = await this.sellerModel.findById(sellerId);
-  //   if (!seller) throw new NotFoundException(`Продавец с ID ${sellerId} не найден`);
+  async getSellerLogs(
+    authedAdmin: AuthenticatedUser,
+    sellerId: string,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
+    checkId([sellerId]);
 
-  //   const changes: string[] = [];
-
-  //   if (dto.verifiedStatus !== undefined && dto.verifiedStatus !== seller.verifiedStatus) {
-  //     const oldValue = seller.verifiedStatus;
-  //     seller.verifiedStatus = dto.verifiedStatus;
-  //     changes.push(`Статус верификации: "${oldValue}" -> "${dto.verifiedStatus}"`);
-  //   }
-
-  //   if (dto.internalNote !== undefined) {
-  //     const oldValue = seller.internalNote;
-  //     seller.internalNote = dto.internalNote;
-  //     changes.push(`Заметка администратора: "${oldValue}" -> "${dto.internalNote}"`);
-  //   }
-
-  //   if (changes.length > 0 && seller.isModified()) {
-  //     await seller.save();
-  //     await this.logsService.addSellerLog(
-  //       seller._id.toString(),
-  //       `Администратор обновил данные продавца:\n${changes.join('\n')}`,
-  //       { forRoles: [UserType.ADMIN] }
-  //     );
-  //   }
-  //   return this.getSeller(authedAdmin, sellerId);
-
-  // }
+    const query = new LogsQueries.GetEntityLogsQuery(
+      LogsEnums.LogEntityType.SELLER,
+      sellerId,
+      [UserType.ADMIN]
+    );
+    
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery
+    };
+    
+    const result = await this.logsPort.getEntityLogs(query, queryOptions);
+    return transformPaginatedResult(result, LogResponseDto);
+  }
 
 
-  // async blockSeller(authedAdmin: AuthenticatedUser, sellerId: string, dto: BlockDto): Promise<SellerFullResponseDto> {
-  //   checkId([sellerId]);
-  //   const seller = await this.sellerModel.findById(new Types.ObjectId(sellerId)).exec();
-  //   if (!seller) throw new NotFoundException('Продавец не найден');
+  async updateSeller(
+    authedAdmin: AuthenticatedUser,
+    sellerId: string,
+    dto: UpdateSellerByAdminDto
+  ): Promise<SellerFullResponseDto> {
+    checkId([sellerId]);
 
-  //   const changedFields: string[] = [];
+    const command = new SellerCommands.UpdateSellerCommand(sellerId, {
+      verifiedStatus: dto.verifiedStatus,
+      internalNote: dto.internalNote,
+    });
 
-  //   if (dto.status !== undefined) {
-  //     const oldValue = seller.blocked.status;
-  //     seller.blocked.status = dto.status;
-  //     changedFields.push(`статус блокировки: ${oldValue} -> ${dto.status}`);
-  //   }
-  //   if (dto.reason !== undefined) {
-  //     const oldValue = seller.blocked.reason;
-  //     seller.blocked.reason = dto.reason;
-  //     changedFields.push(`причина блокировки: ${oldValue} -> ${dto.reason}`);
-  //   }
-  //   if (dto.code !== undefined) {
-  //     const oldValue = seller.blocked.code;
-  //     seller.blocked.code = dto.code;
-  //     changedFields.push(`код блокировки: ${oldValue} -> ${dto.code}`);
-  //   }
-  //   if (dto.blockedUntil !== undefined) {
-  //     const oldValue = seller.blocked.blockedUntil;
-  //     seller.blocked.blockedUntil = dto.blockedUntil;
-  //     changedFields.push(`срок блокировки: ${oldValue} -> ${dto.blockedUntil}`);
-  //   }
-  //   if (changedFields.length > 0 && seller.isModified()) {
-  //     await seller.save();
-  //     await this.logsService.addSellerLog(
-  //       sellerId,
-  //       `Админ ${authedAdmin.id} изменил статус блокировки сотрудника: ${changedFields.join(', ')}`,
-  //       { forRoles: [UserType.SELLER] }
-  //     );
-  //   }
-  //   return this.getSeller(authedAdmin, sellerId);
+    await this.sellerPort.updateSeller(command);
+    return this.getSeller(authedAdmin, sellerId);
+  }
+
+
+  async blockSeller(
+    authedAdmin: AuthenticatedUser,
+    sellerId: string,
+    dto: BlockSellerDto
+  ): Promise<SellerFullResponseDto> {
+    checkId([sellerId]);
+
+    const command = new SellerCommands.BlockSellerCommand(sellerId, {
+      status: dto.status,
+      reason: dto.reason,
+      code: dto.code,
+      blockedUntil: dto.blockedUntil,
+    });
+
+    await this.sellerPort.blockSeller(command);
+    return this.getSeller(authedAdmin, sellerId);
   }
 }

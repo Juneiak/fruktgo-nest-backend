@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SellerService } from './seller.service';
-import { SellerSchema } from './seller.schema';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Seller } from './seller.schema';
-import { SellerFacade } from './seller.facade';
+import { SellerSchema, Seller } from './seller.schema';
 import { SELLER_PORT } from './seller.port';
 
 @Module({
@@ -12,8 +10,7 @@ import { SELLER_PORT } from './seller.port';
   ],
   providers: [
     SellerService,
-    SellerFacade,
-    { provide: SELLER_PORT, useExisting: SellerFacade }
+    { provide: SELLER_PORT, useExisting: SellerService },
   ],
   exports: [SELLER_PORT],
 })

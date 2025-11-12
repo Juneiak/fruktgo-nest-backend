@@ -12,8 +12,8 @@ import {
 } from './admin.products.response.dtos';
 import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
 import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 import { ProductQueryFilterDto } from './admin.products.query.dtos';
+import { LogResponseDto } from 'src/interface/http/common/common.response.dtos';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -21,7 +21,9 @@ import { ProductQueryFilterDto } from './admin.products.query.dtos';
 @UseGuards(JwtAuthGuard, TypeGuard)
 @UserType('admin')
 export class AdminProductsController {
-  constructor(private readonly adminProductsRoleService: AdminProductsRoleService) {}
+  constructor(
+    private readonly adminProductsRoleService: AdminProductsRoleService
+  ) {}
 
   @ApiOperation({summary: 'Получение списка продуктов продавца с пагинацией'})
   @Get()
@@ -33,7 +35,7 @@ export class AdminProductsController {
     return this.adminProductsRoleService.getProducts(authedAdmin, productQueryFilter, paginationQuery);
   }
 
-  
+
   @ApiOperation({summary: 'Получение полного продукта продавца'})
   @Get(':productId')
   getSellerProduct(
@@ -50,7 +52,7 @@ export class AdminProductsController {
     @GetUser() authedAdmin: AuthenticatedUser,
     @Param('productId') productId: string,
     @Query() paginationQuery: PaginationQueryDto
-  ): Promise<PaginatedLogDto> {
+  ): Promise<PaginatedResponseDto<LogResponseDto>> {
     return this.adminProductsRoleService.getProductLogs(authedAdmin, productId, paginationQuery);
   }
 }

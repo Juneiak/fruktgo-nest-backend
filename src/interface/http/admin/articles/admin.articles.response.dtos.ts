@@ -1,26 +1,29 @@
 import { Expose, Type } from 'class-transformer';
-import { ArticleStatus, ArticleTargetAudience } from 'src/modules/article/article.schema';
+import { ArticleEnums } from 'src/modules/article';
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
 
 export class ArticleFullResponseDto {
   @Expose() articleId: string;
   @Expose() title: string;
   @Expose() content: string;
-  @ExposeObjectId() articleImage: string | null;
-  @Expose() @Type(() => String) targetAudience: ArticleTargetAudience;
-  @Expose() @Type(() => String) status: ArticleStatus;
+  @ExposeObjectId() articleImage?: string | null;
+  @Expose() @Type(() => String) targetAudience: ArticleEnums.ArticleTargetAudience;
+  @Expose() @Type(() => String) status: ArticleEnums.ArticleStatus;
+  @Expose() tags: ArticleEnums.ArtcilesTag[];
   @Expose() viewCount: number;
   @Expose() createdAt: Date;
   @Expose() @Type(() => Date) publishedAt?: Date;
-  @Expose() @Type(() => String) author: string;
-  @Expose() @Type(() => String) authorType: string;
+  @ExposeObjectId() author: string;
+  @Expose() @Type(() => String) authorType: ArticleEnums.ArticleAuthorType;
 }
 
 
 export class ArticlePreviewResponseDto {
   @Expose() articleId: string;
   @Expose() title: string;
-  @ExposeObjectId() articleImage: string | null;
-  @Expose() contentPreview: string;
+  @ExposeObjectId() articleImage?: string | null;
+  @Expose() contentPreview?: string;
+  @Expose() tags: ArticleEnums.ArtcilesTag[];
   @Expose() createdAt: Date;
+  @Expose() @Type(() => Date) publishedAt?: Date;
 }

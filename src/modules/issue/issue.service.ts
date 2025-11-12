@@ -42,6 +42,7 @@ export class IssueService {
     const dbQueryFilter: any = {};
     if (filters?.fromUserType) dbQueryFilter.fromUserType = filters.fromUserType;
     if (filters?.fromTelegramId) dbQueryFilter.fromTelegramId = filters.fromTelegramId;
+    if (filters?.fromUserId) dbQueryFilter.from = new Types.ObjectId(filters.fromUserId);
     if (filters?.statuses && filters.statuses.length > 0) dbQueryFilter.status = { $in: filters.statuses };
     if (filters?.categories && filters.categories.length > 0) dbQueryFilter.category = { $in: filters.categories };
     if (filters?.levels && filters.levels.length > 0) dbQueryFilter.level = { $in: filters.levels };
@@ -100,7 +101,7 @@ export class IssueService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
 
     const issue = await dbQuery.exec();
-    if (!issue) throw new DomainError({ code: 'NOT_FOUND', message: 'Заявка не найдена' });
+    if (!issue) throw DomainError.notFound('Issue', issueId);
     
     // Обновляем поля через assignField
     assignField(issue, 'status', payload.status);
