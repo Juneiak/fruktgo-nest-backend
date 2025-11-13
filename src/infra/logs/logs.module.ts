@@ -3,7 +3,6 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { LogSchema, Log } from './log.schema';
 import { LogsService } from './logs.service';
-import { LogsFacade } from './logs.facade';
 import { LogsEventsListener } from './logs.events';
 import { LOGS_PORT } from './logs.port';
 
@@ -14,9 +13,8 @@ import { LOGS_PORT } from './logs.port';
   ],
   providers: [
     LogsService,
-    LogsFacade,
     LogsEventsListener,
-    { provide: LOGS_PORT, useExisting: LogsFacade }
+    { provide: LOGS_PORT, useExisting: LogsService }
   ],
   exports: [LOGS_PORT],
 })

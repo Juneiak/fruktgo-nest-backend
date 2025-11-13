@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { IssueResponseDto } from './seller.issues.response.dtos';
 import { CreateIssueDto } from './seller.issues.request.dtos';
@@ -16,6 +14,12 @@ import {
 } from 'src/modules/issue';
 import { SellerPort, SELLER_PORT, SellerQueries } from 'src/modules/seller';
 
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
+
 @Injectable()
 export class SellerIssuesRoleService {
   constructor(
@@ -27,6 +31,7 @@ export class SellerIssuesRoleService {
     authedSeller: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<IssueResponseDto>> {
+    
     const query = new IssueQueries.GetIssuesQuery({
       fromUserType: IssueEnums.IssueUserType.SELLER,
       fromUserId: authedSeller.id,
@@ -38,15 +43,17 @@ export class SellerIssuesRoleService {
 
     const result = await this.issuePort.getPaginatedIssues(query, queryOptions);
     return transformPaginatedResult(result, IssueResponseDto);
+
   }
+
 
   async getIssue(
     authedSeller: AuthenticatedUser,
     issueId: string
   ): Promise<IssueResponseDto> {
-    checkId([issueId]);
 
-    const issue = await this.issuePort.getIssue(issueId);
+    const query = new IssueQueries.GetIssueQuery(issueId);
+    const issue = await this.issuePort.getIssue(query);
     if (!issue) throw new NotFoundException('Обращение не найдено');
 
     // Проверяем, что обращение принадлежит данному продавцу
@@ -56,12 +63,15 @@ export class SellerIssuesRoleService {
     }
 
     return plainToInstance(IssueResponseDto, issue, { excludeExtraneousValues: true });
+
   }
 
+  
   async createIssue(
     authedSeller: AuthenticatedUser,
     dto: CreateIssueDto
   ): Promise<IssueResponseDto> {
+
     // Получаем данные продавца
     const seller = await this.sellerPort.getSeller(
       new SellerQueries.GetSellerQuery({
@@ -81,5 +91,6 @@ export class SellerIssuesRoleService {
     const createdIssue = await this.issuePort.createIssue(command);
 
     return plainToInstance(IssueResponseDto, createdIssue, { excludeExtraneousValues: true });
+  
   }
 }

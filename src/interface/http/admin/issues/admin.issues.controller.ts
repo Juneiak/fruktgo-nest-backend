@@ -5,13 +5,14 @@ import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { AdminSupportRoleService } from './admin.support.role.service';
-import { IssueFullResponseDto, IssuePreviewResponseDto } from './admin.support.response.dtos';
-import { UpdateIssueDto } from './admin.support.request.dtos';
-import { IssueQueryDto } from './admin.support.query';
-
+import { AdminIssuesRoleService } from './admin.issues.role.service';
+import { IssueFullResponseDto, IssuePreviewResponseDto } from './admin.issues.response.dtos';
+import { UpdateIssueDto } from './admin.issues.request.dtos';
+import { IssueQueryDto } from './admin.issues.query.dtos';
+import {
+  PaginatedResponseDto,
+  PaginationQueryDto
+} from 'src/interface/http/common';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')
@@ -33,6 +34,7 @@ export class AdminIssuesController {
     return this.adminIssuesRoleService.updateIssue(authedAdmin, issueId, dto);
   }
 
+
   @ApiOperation({summary: 'Получить полную заявку'})
   @Get('issues/:issueId')
   getFullIssue(
@@ -42,12 +44,13 @@ export class AdminIssuesController {
     return this.adminIssuesRoleService.getIssue(authedAdmin, issueId);
   }
 
+
   @ApiOperation({summary: 'Получить список заявок c фильтром и пагинацией'})
   @Get('issues')
   getIssues(
     @GetUser() authedAdmin: AuthenticatedUser,
     @Query() issueQuery: IssueQueryDto,
-    @Query() paginationQuery?: PaginationQueryDto
+    @Query() paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<IssuePreviewResponseDto>> {
     return this.adminIssuesRoleService.getIssues(authedAdmin, issueQuery, paginationQuery);
   }

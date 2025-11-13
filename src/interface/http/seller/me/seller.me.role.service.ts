@@ -20,7 +20,6 @@ export class SellerMeRoleService {
   async getFullSeller(
     authedSeller: AuthenticatedUser
   ): Promise<SellerFullResponseDto> {
-    checkId([authedSeller.id]);
 
     const query = new SellerQueries.GetSellerQuery({ sellerId: authedSeller.id });
     const seller = await this.sellerPort.getSeller(query);
@@ -31,13 +30,13 @@ export class SellerMeRoleService {
       excludeExtraneousValues: true, 
       exposeDefaultValues: true 
     });
+
   }
 
   
   async getPreviewSeller(
     authedSeller: AuthenticatedUser
   ): Promise<SellerPreviewResponseDto> {
-    checkId([authedSeller.id]);
 
     const query = new SellerQueries.GetSellerQuery({ sellerId: authedSeller.id });
     const seller = await this.sellerPort.getSeller(query);
@@ -48,6 +47,7 @@ export class SellerMeRoleService {
       excludeExtraneousValues: true, 
       exposeDefaultValues: true 
     });
+
   }
 
 
@@ -56,7 +56,6 @@ export class SellerMeRoleService {
     updateSellerDto: UpdateSellerDto,
     sellerLogo?: Express.Multer.File
   ): Promise<SellerFullResponseDto> {
-    checkId([authedSeller.id]);
 
     const command = new SellerCommands.UpdateSellerCommand(authedSeller.id, {
       companyName: updateSellerDto.companyName,
@@ -66,5 +65,6 @@ export class SellerMeRoleService {
 
     await this.sellerPort.updateSeller(command);
     return this.getFullSeller(authedSeller);
+
   }
 }

@@ -1,9 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { ShopProductResponseDto } from './public.shop-products.response.dtos';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { checkId } from 'src/common/utils';
 import { ShopProductQueryDto } from './public.shop-products.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import {
@@ -12,6 +10,13 @@ import {
   ShopProductQueries
 } from 'src/modules/shop-product';
 import { ShopPort, SHOP_PORT, ShopQueries } from 'src/modules/shop';
+
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
+
 
 @Injectable()
 export class PublicShopProductsRoleService {
@@ -24,9 +29,9 @@ export class PublicShopProductsRoleService {
     shopProductQuery: ShopProductQueryDto,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
+
     const { shopId } = shopProductQuery;
     if (!shopId) throw new BadRequestException('Магазин не указан');
-    checkId([shopId]);
 
     // Проверяем что магазин существует и доступен
     const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId }));
@@ -44,12 +49,13 @@ export class PublicShopProductsRoleService {
 
     const result = await this.shopProductPort.getShopProducts(query, queryOptions);
     return transformPaginatedResult(result, ShopProductResponseDto);
+
   }
+
 
   async getPublicShopProduct(
     shopProductId: string
   ): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
 
     const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
       populateProduct: true,
@@ -60,6 +66,7 @@ export class PublicShopProductsRoleService {
     if (!shopProduct) throw new NotFoundException('Товар не найден');
 
     return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
+
   }
 
   // async getPublicShopProducts(

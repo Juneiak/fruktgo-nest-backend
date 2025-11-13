@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { IssueResponseDto } from './customer.issues.response.dtos';
 import { CreateIssueDto } from './customer.issues.request.dtos';
@@ -15,6 +13,12 @@ import {
   IssueEnums
 } from 'src/modules/issue';
 import { CustomerPort, CUSTOMER_PORT, CustomerQueries } from 'src/modules/customer';
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
+
 
 @Injectable()
 export class CustomerIssuesRoleService {
@@ -27,6 +31,7 @@ export class CustomerIssuesRoleService {
     authedCustomer: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<IssueResponseDto>> {
+
     const query = new IssueQueries.GetIssuesQuery({
       fromUserType: IssueEnums.IssueUserType.CUSTOMER,
       fromUserId: authedCustomer.id,
@@ -38,6 +43,7 @@ export class CustomerIssuesRoleService {
 
     const result = await this.issuePort.getPaginatedIssues(query, queryOptions);
     return transformPaginatedResult(result, IssueResponseDto);
+
   }
 
 
@@ -45,9 +51,9 @@ export class CustomerIssuesRoleService {
     authedCustomer: AuthenticatedUser,
     issueId: string
   ): Promise<IssueResponseDto> {
-    checkId([issueId]);
 
-    const issue = await this.issuePort.getIssue(issueId);
+    const query = new IssueQueries.GetIssueQuery(issueId);
+    const issue = await this.issuePort.getIssue(query);
     if (!issue) throw new NotFoundException('Обращение не найдено');
 
     // Проверяем, что обращение принадлежит данному клиенту
@@ -57,6 +63,7 @@ export class CustomerIssuesRoleService {
     }
 
     return plainToInstance(IssueResponseDto, issue, { excludeExtraneousValues: true });
+
   }
 
 
@@ -64,6 +71,7 @@ export class CustomerIssuesRoleService {
     authedCustomer: AuthenticatedUser,
     dto: CreateIssueDto
   ): Promise<IssueResponseDto> {
+    
     // Получаем данные клиента
     const customer = await this.customerPort.getCustomer(
       new CustomerQueries.GetCustomerQuery({
@@ -83,5 +91,6 @@ export class CustomerIssuesRoleService {
     const createdIssue = await this.issuePort.createIssue(command);
 
     return plainToInstance(IssueResponseDto, createdIssue, { excludeExtraneousValues: true });
+  
   }
 }

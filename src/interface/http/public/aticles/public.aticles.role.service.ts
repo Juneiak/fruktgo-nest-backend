@@ -1,16 +1,20 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { checkId, transformPaginatedResult } from "src/common/utils";
-import { ArticlePort, ARTICLE_PORT } from "src/modules/article/article.port";
-import { GetArticlesQuery } from 'src/modules/article/article.queries';
-import { ArticleStatus } from 'src/modules/article/article.enums';
+import { checkId } from "src/common/utils";
+import { ArticlePort, ARTICLE_PORT, ArticleQueries, ArticleEnums } from "src/modules/article";
 import { 
   ArticleFullResponseDto, 
   ArticlePreviewResponseDto,
 } from './public.aticles.response.dtos';
 import { PublicArticlesQueryDto } from './public.aticles.query.dtos';
-import { PaginationQueryDto, PaginatedResponseDto } from 'src/common/dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
+
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
+
 
 @Injectable()
 export class PublicArticlesRoleService {
@@ -20,21 +24,20 @@ export class PublicArticlesRoleService {
 
   // Получение опубликованной статьи (для публики)
   async getPublishedArticle(articleId: string): Promise<ArticleFullResponseDto> {
-    checkId([articleId]);
     
-    const article = await this.articlePort.getArticle(articleId);
+    const query = new ArticleQueries.GetArticleQuery(articleId);
+    const article = await this.articlePort.getArticle(query);
     
     // Проверяем что статья существует и опубликована
-    if (!article || article.status !== ArticleStatus.PUBLISHED) {
+    if (!article || article.status !== ArticleEnums.ArticleStatus.PUBLISHED) {
       throw new NotFoundException('Статья не найдена');
     }
 
-    // Увеличиваем счетчик просмотров асинхронно (без ожидания)
-    this.articlePort.incrementView(articleId).catch(() => {
-      // Игнорируем ошибку, чтобы не прерывать выдачу статьи
-    });
-    
-    return plainToInstance(ArticleFullResponseDto, article, { excludeExtraneousValues: true });
+    // Увеличиваем счетчик просмотров
+    await this.articlePort.incrementView(articleId);
+
+    return plainToInstance(ArticleFullResponseDto, article);
+
   }
 
 
@@ -43,9 +46,10 @@ export class PublicArticlesRoleService {
     queryDto: PublicArticlesQueryDto,
     paginationDto: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<ArticlePreviewResponseDto>> {
+
     // Формируем запрос только для опубликованных статей
-    const query = new GetArticlesQuery({
-      statuses: [ArticleStatus.PUBLISHED],
+    const query = new ArticleQueries.GetArticlesQuery({
+      statuses: [ArticleEnums.ArticleStatus.PUBLISHED],
       targetAudience: queryDto.targetAudience,
     });
 
@@ -57,5 +61,6 @@ export class PublicArticlesRoleService {
     const result = await this.articlePort.getArticles(query, queryOptions);
     
     return transformPaginatedResult(result, ArticlePreviewResponseDto);
+
   }
 }

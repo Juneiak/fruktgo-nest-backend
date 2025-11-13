@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EmployeeSchema, Employee } from './employee.schema';
 import { EmployeeService } from './employee.service';
-import { EmployeeFacade } from './employee.facade';
 import { EMPLOYEE_PORT } from './employee.port';
 
 @Module({
@@ -11,8 +10,7 @@ import { EMPLOYEE_PORT } from './employee.port';
   ],
   providers: [
     EmployeeService,
-    EmployeeFacade,
-    { provide: EMPLOYEE_PORT, useExisting: EmployeeFacade }
+    { provide: EMPLOYEE_PORT, useExisting: EmployeeService }
   ],
   exports: [
     EMPLOYEE_PORT

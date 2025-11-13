@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { IssueResponseDto } from './employee.issues.response.dtos';
 import { CreateIssueDto } from './employee.issues.request.dtos';
@@ -15,6 +13,12 @@ import {
   IssueEnums
 } from 'src/modules/issue';
 import { EmployeePort, EMPLOYEE_PORT, EmployeeQueries } from 'src/modules/employee';
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
+
 
 @Injectable()
 export class EmployeeIssuesRoleService {
@@ -27,6 +31,7 @@ export class EmployeeIssuesRoleService {
     authedEmployee: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<IssueResponseDto>> {
+
     const query = new IssueQueries.GetIssuesQuery({
       fromUserType: IssueEnums.IssueUserType.EMPLOYEE,
       fromUserId: authedEmployee.id,
@@ -38,15 +43,16 @@ export class EmployeeIssuesRoleService {
 
     const result = await this.issuePort.getPaginatedIssues(query, queryOptions);
     return transformPaginatedResult(result, IssueResponseDto);
+
   }
 
   async getIssue(
     authedEmployee: AuthenticatedUser,
     issueId: string
   ): Promise<IssueResponseDto> {
-    checkId([issueId]);
 
-    const issue = await this.issuePort.getIssue(issueId);
+    const query = new IssueQueries.GetIssueQuery(issueId);
+    const issue = await this.issuePort.getIssue(query);
     if (!issue) throw new NotFoundException('Обращение не найдено');
 
     // Проверяем, что обращение принадлежит данному сотруднику
@@ -56,12 +62,14 @@ export class EmployeeIssuesRoleService {
     }
 
     return plainToInstance(IssueResponseDto, issue, { excludeExtraneousValues: true });
+
   }
 
   async createIssue(
     authedEmployee: AuthenticatedUser,
     dto: CreateIssueDto
   ): Promise<IssueResponseDto> {
+
     // Получаем данные сотрудника
     const employee = await this.employeePort.getEmployee(
       new EmployeeQueries.GetEmployeeQuery({
@@ -81,5 +89,6 @@ export class EmployeeIssuesRoleService {
     const createdIssue = await this.issuePort.createIssue(command);
 
     return plainToInstance(IssueResponseDto, createdIssue, { excludeExtraneousValues: true });
+
   }
 }

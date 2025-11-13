@@ -1,11 +1,8 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { transformPaginatedResult, checkId } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { AuthenticatedUser, AuthenticatedEmployee } from 'src/common/types';
-import { UserType } from "src/common/enums/common.enum";
 import { ShopProductsStockQueryDto } from './shop.shop-products.query.dtos';
 import {
   ShopProductResponseDto,
@@ -19,10 +16,15 @@ import {
   ShopProductPort,
   SHOP_PRODUCT_PORT,
   ShopProductQueries,
-  ShopProductCommands
 } from 'src/modules/shop-product';
 import { LogsService } from 'src/infra/logs/logs.service';
-import { LogsQueries, LogsEnums } from 'src/infra/logs';
+
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto,
+} from 'src/interface/http/common';
+
 
 @Injectable()
 export class ShopShopProductsRoleService {

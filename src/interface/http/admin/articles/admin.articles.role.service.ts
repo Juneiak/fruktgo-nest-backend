@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { checkId, transformPaginatedResult } from "src/common/utils";
+import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from "src/common/types";
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import {
@@ -23,8 +23,11 @@ import {
   ArticlePreviewResponseDto,
 } from './admin.articles.response.dtos';
 import { ArticleQueryDto } from './admin.articles.query.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import {
+  PaginationQueryDto,
+  PaginatedResponseDto,
+  transformPaginatedResult
+} from 'src/interface/http/common';
 
 
 @Injectable()
@@ -37,12 +40,13 @@ export class AdminArticlesRoleService {
     authedAdmin: AuthenticatedUser,
     articleId: string,
   ): Promise<ArticleFullResponseDto> {
-    checkId([articleId]);
 
-    const article = await this.articlePort.getArticle(articleId);
+    const query = new ArticleQueries.GetArticleQuery(articleId);
+    const article = await this.articlePort.getArticle(query);
     if (!article) throw new NotFoundException('Статья не найдена');
 
     return plainToInstance(ArticleFullResponseDto, article);
+
   }
 
 
@@ -51,6 +55,7 @@ export class AdminArticlesRoleService {
     queryDto: ArticleQueryDto,
     paginationDto: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ArticlePreviewResponseDto>> {
+
     // Формируем запрос с фильтрами
     const query = new ArticleQueries.GetArticlesQuery({
       statuses: queryDto.statuses,
@@ -69,6 +74,7 @@ export class AdminArticlesRoleService {
     const result = await this.articlePort.getArticles(query, queryOptions);
 
     return transformPaginatedResult(result, ArticlePreviewResponseDto);
+
   }
 
 
@@ -77,6 +83,7 @@ export class AdminArticlesRoleService {
     dto: CreateArticleDto,
     articleImage?: Express.Multer.File,
   ): Promise<ArticleFullResponseDto> {
+
     // Создаем команду для создания артикля
     const command = new ArticleCommands.CreateArticleCommand({
       title: dto.title,
@@ -89,6 +96,7 @@ export class AdminArticlesRoleService {
     const article = await this.articlePort.createArticle(command);
 
     return plainToInstance(ArticleFullResponseDto, article);
+
   }
 
 
@@ -98,10 +106,10 @@ export class AdminArticlesRoleService {
     dto: UpdateArticleDto,
     articleImage?: Express.Multer.File,
   ): Promise<ArticleFullResponseDto> {
-    checkId([articleId]);
 
     // Проверяем существование артикля
-    const existingArticle = await this.articlePort.getArticle(articleId);
+    const query = new ArticleQueries.GetArticleQuery(articleId);
+    const existingArticle = await this.articlePort.getArticle(query);
     if (!existingArticle) throw new NotFoundException('Статья не найдена');
 
     // Формируем команду обновления
@@ -120,9 +128,11 @@ export class AdminArticlesRoleService {
     await this.articlePort.updateArticle(command);
     
     // Получаем обновленную статью
-    const updatedArticle = await this.articlePort.getArticle(articleId);
+    const updatedQuery = new ArticleQueries.GetArticleQuery(articleId);
+    const updatedArticle = await this.articlePort.getArticle(updatedQuery);
 
     return plainToInstance(ArticleFullResponseDto, updatedArticle);
+
   }
 
 
@@ -131,10 +141,10 @@ export class AdminArticlesRoleService {
     articleId: string,
     dto: ChangeArticleStatusDto,
   ): Promise<ArticleFullResponseDto> {
-    checkId([articleId]);
 
     // Проверяем существование артикля
-    const existingArticle = await this.articlePort.getArticle(articleId);
+    const query = new ArticleQueries.GetArticleQuery(articleId);
+    const existingArticle = await this.articlePort.getArticle(query);
     if (!existingArticle) throw new NotFoundException('Статья не найдена');
 
     // Формируем команду изменения статуса
@@ -146,9 +156,11 @@ export class AdminArticlesRoleService {
     await this.articlePort.changeStatus(command);
     
     // Получаем обновленную статью
-    const updatedArticle = await this.articlePort.getArticle(articleId);
+    const updatedQuery = new ArticleQueries.GetArticleQuery(articleId);
+    const updatedArticle = await this.articlePort.getArticle(updatedQuery);
 
     return plainToInstance(ArticleFullResponseDto, updatedArticle);
+
   }
 
 
@@ -156,13 +168,14 @@ export class AdminArticlesRoleService {
     authedAdmin: AuthenticatedUser,
     articleId: string,
   ): Promise<void> {
-    checkId([articleId]);
 
     // Проверяем существование артикля
-    const existingArticle = await this.articlePort.getArticle(articleId);
+    const query = new ArticleQueries.GetArticleQuery(articleId);
+    const existingArticle = await this.articlePort.getArticle(query);
     if (!existingArticle) throw new NotFoundException('Статья не найдена');
 
     await this.articlePort.deleteArticle(articleId);
+
   }
 
 

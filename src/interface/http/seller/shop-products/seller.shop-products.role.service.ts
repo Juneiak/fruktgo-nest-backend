@@ -1,9 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
-import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { UpdateShopProductDto } from './seller.shop-products.request.dtos';
-import { transformPaginatedResult, checkId } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { ShopProductResponseDto } from './seller.shop-products.response.dtos';
 import { AuthenticatedUser } from 'src/common/types';
 import { ShopProductsQueryDto } from './seller.shop-products.query.dtos';
@@ -15,6 +12,11 @@ import {
 } from 'src/modules/shop-product';
 import { ShopPort, SHOP_PORT, ShopQueries } from 'src/modules/shop';
 import { LogsPort, LOGS_PORT } from 'src/infra/logs';
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto,
+} from 'src/interface/http/common';
 
 @Injectable()
 export class SellerShopProductsRoleService {
@@ -30,7 +32,6 @@ export class SellerShopProductsRoleService {
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
     if (!shopProductsQuery.shopId) throw new BadRequestException('Магазин не указан');
-    checkId([shopProductsQuery.shopId]);
 
     // Проверяем что магазин принадлежит продавцу
     const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId: shopProductsQuery.shopId }));
@@ -52,6 +53,7 @@ export class SellerShopProductsRoleService {
 
     const result = await this.shopProductPort.getShopProducts(query, queryOptions);
     return transformPaginatedResult(result, ShopProductResponseDto);
+    
   }
 
 
@@ -59,7 +61,6 @@ export class SellerShopProductsRoleService {
     authedSeller: AuthenticatedUser,
     shopProductId: string
   ): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
 
     const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
       populateProduct: true,
@@ -77,6 +78,7 @@ export class SellerShopProductsRoleService {
     }
 
     return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
+
   }
 
   // async getShopProducts(

@@ -5,10 +5,8 @@ import {
   CloseShiftByEmployeeDto,
 } from './shop.shifts.request.dtos';
 import { ShiftPreviewResponseDto } from './shop.shifts.response.dtos';
-import { transformPaginatedResult, checkId } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser, AuthenticatedEmployee } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import {
   ShiftPort,
@@ -21,6 +19,13 @@ import {
   SHOP_PORT,
   ShopQueries
 } from 'src/modules/shop';
+
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto,
+} from 'src/interface/http/common';
+
 
 
 @Injectable()
@@ -58,10 +63,9 @@ export class ShopShiftsRoleService {
   ): Promise<ShiftPreviewResponseDto> {
     checkId([shiftId, authedShop.id]);
 
-    const query = new ShiftQueries.GetShiftQuery({ shiftId });
-    const shift = await this.shiftPort.getShift(query);
-    
+    const shift = await this.shiftPort.getShift(shiftId);
     if (!shift) throw new NotFoundException('Смена не найдена');
+    
     if (shift.shop.toString() !== authedShop.id) {
       throw new NotFoundException('Смена не принадлежит этому магазину');
     }

@@ -6,16 +6,17 @@ import {
 } from './admin.employees.response.dtos';
 import { UpdateEmployeeDto } from './admin.employees.request.dtos';
 import { plainToInstance } from 'class-transformer';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { UserType } from "src/common/enums/common.enum";
 import {
   PaginatedResponseDto,
-  LogResponseDto
-} from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { BlockDto } from 'src/interface/http/common/common.request.dtos';
+  LogResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto,
+  BlockDto
+} from 'src/interface/http/common';
 import {
   EmployeePort,
   EMPLOYEE_PORT,
@@ -43,6 +44,7 @@ export class AdminEmployeesRoleService {
     authedAdmin: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<EmployeePreviewResponseDto>> {
+
     const query = new EmployeeQueries.GetEmployeesQuery();
     
     const queryOptions: CommonListQueryOptions<'createdAt'> = {
@@ -51,24 +53,26 @@ export class AdminEmployeesRoleService {
     const result = await this.employeePort.getEmployees(query, queryOptions);
 
     return transformPaginatedResult(result, EmployeePreviewResponseDto);
+
   }
 
+
   async getEmployee(authedAdmin: AuthenticatedUser, employeeId: string): Promise<EmployeeFullResponseDto> {
-    checkId([employeeId]);
 
     const query = new EmployeeQueries.GetEmployeeQuery({ employeeId });
     const employee = await this.employeePort.getEmployee(query);
     if (!employee) throw new NotFoundException('Сотрудник не найден');
 
     return plainToInstance(EmployeeFullResponseDto, employee, { excludeExtraneousValues: true });
+
   }
+
 
   async getEmployeeLogs(
     authedAdmin: AuthenticatedUser,
     employeeId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-    checkId([employeeId]);
 
     const query = new LogsQueries.GetEntityLogsQuery(
       LogsEnums.LogEntityType.EMPLOYEE,
@@ -81,6 +85,7 @@ export class AdminEmployeesRoleService {
     };
     const result = await this.logsPort.getEntityLogs(query, queryOptions);
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 
 
@@ -89,7 +94,6 @@ export class AdminEmployeesRoleService {
     employeeId: string,
     dto: UpdateEmployeeDto
   ): Promise<EmployeeFullResponseDto> {
-    checkId([employeeId]);
 
     // Проверяем существование сотрудника
     const existingEmployee = await this.employeePort.getEmployee(new EmployeeQueries.GetEmployeeQuery({ employeeId }));
@@ -118,6 +122,7 @@ export class AdminEmployeesRoleService {
     );
 
     return this.getEmployee(authedAdmin, employeeId);
+
   }
 
 
@@ -126,7 +131,6 @@ export class AdminEmployeesRoleService {
     employeeId: string,
     dto: BlockDto
   ): Promise<EmployeeFullResponseDto> {
-    checkId([employeeId]);
 
     // Проверяем существование сотрудника
     const existingEmployee = await this.employeePort.getEmployee(new EmployeeQueries.GetEmployeeQuery({ employeeId }));
@@ -161,5 +165,6 @@ export class AdminEmployeesRoleService {
     );
 
     return this.getEmployee(authedAdmin, employeeId);
+
   }
 }

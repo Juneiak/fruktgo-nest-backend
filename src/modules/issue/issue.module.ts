@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { IssueSchema, Issue } from './issue.schema';
 import { IssueService } from './issue.service';
-import { IssueFacade } from './issue.facade';
 import { ISSUE_PORT } from './issue.port';
 
 @Module({
@@ -11,8 +10,7 @@ import { ISSUE_PORT } from './issue.port';
   ],
   providers: [
     IssueService,
-    IssueFacade,
-    { provide: ISSUE_PORT, useExisting: IssueFacade }
+    { provide: ISSUE_PORT, useExisting: IssueService }
   ],
   exports: [ISSUE_PORT],
 })

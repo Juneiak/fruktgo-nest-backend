@@ -23,10 +23,11 @@ import { CommonCommandOptions } from "src/common/types/commands";
 import { CommonQueryOptions } from "src/common/types/queries";
 import { DomainError } from "src/common/errors/domain-error";
 import { assignField } from "src/common/utils";
+import { ImagesPort } from "./images.port";
 
 
 @Injectable()
-export class LocalImagesService {
+export class LocalImagesService implements ImagesPort {
   constructor(
     @InjectModel(Image.name) private readonly imageModel: Model<Image>
   ) {
@@ -43,7 +44,7 @@ export class LocalImagesService {
       }
     } catch (error) {
       console.error('Ошибка при создании директорий для загрузки:', error);
-      throw new DomainError({ code: 'UNAVAILABLE', message: 'Не удалось создать директории для загрузки' });
+      throw DomainError.unavailable('Не удалось создать директории для загрузки');
     }
   }
 
@@ -51,21 +52,21 @@ export class LocalImagesService {
   // Валидация изображения
   private validateFile(image: Express.Multer.File): void {
     if (!image) {
-      throw new DomainError({ code: 'VALIDATION', message: 'Файл не был предоставлен' });
+      throw DomainError.validation('Файл не был предоставлен');
     }
 
     if (image.size > MAX_FILE_SIZE) {
-      throw new DomainError({ code: 'VALIDATION', message: `Размер файла превышает ${MAX_FILE_SIZE / 1024 / 1024} MB` });
+      throw DomainError.validation(`Размер файла превышает ${MAX_FILE_SIZE / 1024 / 1024} MB`);
     }
 
     if (!ALLOWED_MIME_TYPES.includes(image.mimetype)) {
-      throw new DomainError({ code: 'VALIDATION', message: `Недопустимый тип файла. Разрешены только: ${ALLOWED_MIME_TYPES.join(", ")}`});
+      throw DomainError.validation(`Недопустимый тип файла. Разрешены только: ${ALLOWED_MIME_TYPES.join(", ")}`);
     }
 
     
     const ext = extname(image.originalname).toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      throw new DomainError({ code: 'VALIDATION', message: `Недопустимое расширение файла. Разрешены только: ${ALLOWED_EXTENSIONS.join(", ")}`});
+      throw DomainError.validation(`Недопустимое расширение файла. Разрешены только: ${ALLOWED_EXTENSIONS.join(", ")}`);
     }
   }
 
@@ -77,12 +78,12 @@ export class LocalImagesService {
     try {
       const metadata = await sharp(buffer).metadata();
       if (!metadata.width || !metadata.height) {
-        throw new DomainError({ code: 'VALIDATION', message: 'Не удалось получить размеры изображения' });
+        throw DomainError.validation('Не удалось получить размеры изображения');
       }
       return { width: metadata.width, height: metadata.height };
     } catch (error) {
       console.error('Ошибка при получении метаданных изображения:', error);
-      throw new DomainError({ code: 'UNAVAILABLE', message: 'Не удалось обработать изображение' });
+      throw DomainError.unavailable('Не удалось обработать изображение');
     }
   }
 
@@ -160,7 +161,7 @@ export class LocalImagesService {
       return result as Record<ImageSize, Buffer>;
     } catch (error) {
       console.error('Ошибка при генерации размеров изображения:', error);
-      throw new DomainError({ code: 'UNAVAILABLE', message: 'Не удалось обработать изображение' });
+      throw DomainError.unavailable('Не удалось обработать изображение');
     }
   }
 
@@ -174,7 +175,7 @@ export class LocalImagesService {
       await fs.writeFile(filePath, buffer);
     } catch (error) {
       console.error(`Ошибка при сохранении файла ${filePath}:`, error);
-      throw new DomainError({ code: 'UNAVAILABLE', message: 'Не удалось сохранить файл' });
+      throw DomainError.unavailable('Не удалось сохранить файл');
     }
   }
 
@@ -184,7 +185,7 @@ export class LocalImagesService {
    */
   private async getImage(imageId: string): Promise<Image> {
     const image = await this.imageModel.findById(imageId).exec();
-    if (!image) throw new DomainError({ code: 'NOT_FOUND', message: 'Изображение не найдено' });
+    if (!image) throw DomainError.notFound('Image', imageId);
     return image;
   }
 
@@ -221,7 +222,7 @@ export class LocalImagesService {
 
       // Проверяем allowed Users для restricted доступа
       if (payload.accessLevel === 'restricted' && (!payload.allowedUsers || payload.allowedUsers.length === 0)) {
-        throw new DomainError({ code: 'VALIDATION', message: 'Для уровня доступа "restricted" необходимо указать пользователей' });
+        throw DomainError.validation('Для уровня доступа "restricted" необходимо указать пользователей');
       }
 
       // Формат allowedUsers
@@ -258,7 +259,7 @@ export class LocalImagesService {
       
       if (error instanceof DomainError) throw error;
       console.error('Ошибка при загрузке изображения:', error);
-      throw new DomainError({ code: 'UNAVAILABLE', message: 'Не удалось загрузить изображение' });
+      throw DomainError.unavailable('Не удалось загрузить изображение');
     }
   }
 
@@ -273,14 +274,11 @@ export class LocalImagesService {
     if (commandOptions?.session) dbQuery.session(commandOptions.session);
     
     const image = await dbQuery.exec();
-    if (!image) throw new DomainError({ code: 'NOT_FOUND', message: 'Изображение не найдено' });
+    if (!image) throw DomainError.notFound('Image', command.imageId);
 
     // Проверяем restricted доступ
     if (payload.accessLevel === 'restricted' && (!payload.allowedUsers || payload.allowedUsers.length === 0)) {
-      throw new DomainError({ 
-        code: 'VALIDATION', 
-        message: 'Для уровня доступа "restricted" необходимо указать пользователей' 
-      });
+      throw DomainError.validation('Для уровня доступа "restricted" необходимо указать пользователей');
     }
 
     assignField(image, 'accessLevel', payload.accessLevel, { onNull: 'skip' });
@@ -314,7 +312,7 @@ export class LocalImagesService {
     try {
       return await fs.readFile(filePath);
     } catch (error) {
-      throw new DomainError({ code: 'NOT_FOUND', message: `Изображение размера ${size} не найдено` });
+      throw DomainError.notFound('ImageFile', `size-${size}`);
     }
   }
 

@@ -13,5 +13,5 @@ export class IssueQueryDto {
 
   @IsOptional()
   @IsString()
-  userId?: string;
+  fromUserId?: string;
 }

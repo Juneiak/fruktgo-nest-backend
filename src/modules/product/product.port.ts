@@ -3,7 +3,7 @@ import { PaginateResult } from 'mongoose';
 import { CreateProductCommand, UpdateProductCommand } from './product.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { GetProductsQuery } from './product.queries';
+import { GetProductsQuery, GetProductQuery } from './product.queries';
 
 export interface ProductPort {
 
@@ -11,7 +11,7 @@ export interface ProductPort {
   // QUERIES
   // ==================================================== 
   getProducts(query: GetProductsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Product>>;
-  getProduct(productId: string, queryOptions?: CommonQueryOptions): Promise<Product | null>;
+  getProduct(query: GetProductQuery, queryOptions?: CommonQueryOptions): Promise<Product | null>;
 
 
   // ====================================================

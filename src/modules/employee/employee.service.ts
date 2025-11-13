@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { GetEmployeeQuery, GetEmployeesQuery } from './employee.queries';
-import { checkId, assignField } from 'src/common/utils';
+import { checkId, assignField, selectFields } from 'src/common/utils';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { PaginateResult, Types } from 'mongoose';
@@ -9,9 +9,10 @@ import { EmployeeModel, Employee } from './employee.schema';
 import { BlockEmployeeCommand, UpdateEmployeeCommand } from './employee.commands';
 import { DomainError } from 'src/common/errors/domain-error';
 import { parcePhoneNumber } from 'src/common/utils';
+import { EmployeePort } from './employee.port';
 
 @Injectable()
-export class EmployeeService {
+export class EmployeeService implements EmployeePort {
   constructor(
     @InjectModel(Employee.name) private employeeModel: EmployeeModel,
   ) {}
@@ -25,7 +26,7 @@ export class EmployeeService {
     queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Employee>> {
 
-    const { filters } = query;
+    const { filters, options } = query;
 
     const dbQueryFilter: any = {};
     if (filters?.shopId) dbQueryFilter.pinnedTo = new Types.ObjectId(filters.shopId);
@@ -41,6 +42,11 @@ export class EmployeeService {
       lean: true, leanWithId: true,
       sort: queryOptions?.sort || { createdAt: -1 }
     };
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Employee>(...options.select);
+    }
     
     const result = await this.employeeModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
@@ -51,7 +57,7 @@ export class EmployeeService {
     query: GetEmployeeQuery,
     queryOptions?: CommonQueryOptions
   ): Promise<Employee | null> {
-    const { filter } = query;
+    const { filter, options } = query;
 
     let dbQueryFilter: any;
     if (filter?.employeeId) dbQueryFilter = { _id: new Types.ObjectId(filter.employeeId) };
@@ -66,6 +72,11 @@ export class EmployeeService {
     const dbQuery = this.employeeModel.findOne(dbQueryFilter)
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
 
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Employee>(...options.select));
+    }
+
     const employee = await dbQuery.lean({ virtuals: true }).exec();
     return employee;
   }
@@ -74,7 +85,7 @@ export class EmployeeService {
   // ====================================================
   // COMMANDS
   // ====================================================
-  async updateSellerEmployee(
+  async updateEmployee(
     command: UpdateEmployeeCommand,
     commandOptions?: CommonCommandOptions
   ): Promise<void> {

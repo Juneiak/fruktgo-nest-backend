@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { GetJobApplicationsQuery } from './job-application.queries';
-import { assignField, checkId } from 'src/common/utils';
+import { GetJobApplicationsQuery, GetJobApplicationQuery } from './job-application.queries';
+import { assignField, checkId, selectFields } from 'src/common/utils';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { PaginateResult, Types } from 'mongoose';
@@ -13,9 +13,10 @@ import { SELLER_PORT, SellerPort } from '../seller/seller.port';
 import { SellerQueries } from '../seller';
 import { JobApplicationStatus } from './job-application.enums';
 import { DomainError } from 'src/common/errors/domain-error';
+import { JobApplicationPort } from './job-application.port';
 
 @Injectable()
-export class JobApplicationService {
+export class JobApplicationService implements JobApplicationPort {
   constructor(
     @InjectModel(JobApplication.name) private jobApplicationModel: JobApplicationModel,
     @Inject(EMPLOYEE_PORT) private employeePort: EmployeePort,
@@ -29,13 +30,12 @@ export class JobApplicationService {
     query: GetJobApplicationsQuery,
     queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<JobApplication>> {
-    const { filters } = query;
+    const { filters, options } = query;
     checkId([filters?.sellerId, filters?.employeeId]);
 
     const dbQueryFilter: any = {};
     if (filters?.sellerId) dbQueryFilter['seller.sellerId'] = new Types.ObjectId(filters.sellerId);
     if (filters?.employeeId) dbQueryFilter['employee.employeeId'] = new Types.ObjectId(filters.employeeId);
-    
     if (filters?.statuses && filters.statuses.length > 0) {
       dbQueryFilter.status = { $in: filters.statuses };
     }
@@ -53,6 +53,11 @@ export class JobApplicationService {
       leanWithId: true,
       sort: queryOptions?.sort || { createdAt: -1 }
     };
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<JobApplication>(...options.select);
+    }
     
     const result = await this.jobApplicationModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
@@ -64,7 +69,7 @@ export class JobApplicationService {
     queryOptions?: CommonQueryOptions
   ): Promise<JobApplication[]> {
     
-    const { filters } = query;
+    const { filters, options } = query;
     checkId([filters?.sellerId, filters?.employeeId]);
 
     const dbQueryFilter: any = {};
@@ -83,9 +88,36 @@ export class JobApplicationService {
 
     const dbQuery = this.jobApplicationModel.find(dbQueryFilter).sort({ createdAt: -1 });
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<JobApplication>(...options.select));
+    }
     
     const jobApplications = await dbQuery.lean({ virtuals: true }).exec();
     return jobApplications;
+  }
+
+
+  async getJobApplication(
+    query: GetJobApplicationQuery,
+    queryOptions?: CommonQueryOptions
+  ): Promise<JobApplication> {
+    const { jobApplicationId, options } = query;
+    checkId([jobApplicationId]);
+
+    const dbQuery = this.jobApplicationModel.findById(new Types.ObjectId(jobApplicationId));
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<JobApplication>(...options.select));
+    }
+
+    const jobApplication = await dbQuery.lean({ virtuals: true }).exec();
+    if (!jobApplication) throw DomainError.notFound('JobApplication', jobApplicationId);
+    
+    return jobApplication;
   }
 
 

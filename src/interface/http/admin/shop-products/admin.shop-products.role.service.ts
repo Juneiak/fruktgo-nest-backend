@@ -4,11 +4,9 @@ import {
   ShopProductPreviewResponseDto,
   ShopProductFullResponseDto,
 } from './admin.shop-products.response.dtos';
-import { checkId, transformPaginatedResult } from "src/common/utils";
+import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from 'src/common/types';
 import { CommonListQueryOptions } from 'src/common/types/queries';
-import { LogResponseDto, PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { ShopProductQueryDto } from './admin.shop-products.query.dtos';
 import {
   ShopProductPort,
@@ -17,6 +15,13 @@ import {
 } from 'src/modules/shop-product';
 import { LogsQueries, LogsEnums, LOGS_PORT, LogsPort } from 'src/infra/logs';
 import { UserType } from 'src/common/enums/common.enum';
+import {
+  PaginatedResponseDto,
+  LogResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
+
 
 @Injectable()
 export class AdminShopProductsRoleService {
@@ -29,7 +34,6 @@ export class AdminShopProductsRoleService {
     authedAdmin: AuthenticatedUser,
     shopProductId: string
   ): Promise<ShopProductFullResponseDto> {
-    checkId([shopProductId]);
 
     const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
       populateImages: true,
@@ -40,6 +44,7 @@ export class AdminShopProductsRoleService {
     if (!shopProduct) throw new NotFoundException('Товар не найден');
 
     return plainToInstance(ShopProductFullResponseDto, shopProduct, { excludeExtraneousValues: true });
+
   }
 
 
@@ -48,6 +53,7 @@ export class AdminShopProductsRoleService {
     shopProductQuery: ShopProductQueryDto,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductPreviewResponseDto>> {
+
     const query = new ShopProductQueries.GetShopProductsQuery({
       shopId: shopProductQuery.shopId,
       productId: shopProductQuery.productId,
@@ -62,6 +68,7 @@ export class AdminShopProductsRoleService {
 
     const result = await this.shopProductPort.getShopProducts(query, queryOptions);
     return transformPaginatedResult(result, ShopProductPreviewResponseDto);
+
   }
 
 
@@ -70,7 +77,6 @@ export class AdminShopProductsRoleService {
     shopProductId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-    checkId([shopProductId]);
 
     const query = new LogsQueries.GetEntityLogsQuery(
       LogsEnums.LogEntityType.SHOP_PRODUCT,
@@ -84,5 +90,6 @@ export class AdminShopProductsRoleService {
     
     const result = await this.logsPort.getEntityLogs(query, queryOptions);
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 }

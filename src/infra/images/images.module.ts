@@ -2,7 +2,6 @@ import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ImageSchema, Image } from './image.schema';
 import { LocalImagesService } from './local-images.service';
-import { ImagesFacade } from './images.facade';
 import { IMAGES_PORT } from './images.port';
 
 @Global()
@@ -12,8 +11,7 @@ import { IMAGES_PORT } from './images.port';
   ],
   providers: [
     LocalImagesService,
-    ImagesFacade,
-    { provide: IMAGES_PORT, useExisting: ImagesFacade }
+    { provide: IMAGES_PORT, useExisting: LocalImagesService }
   ],
   exports: [IMAGES_PORT]
 })

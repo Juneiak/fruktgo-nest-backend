@@ -5,11 +5,9 @@ import {
   ShopFullResponseDto,
 } from './admin.shops.response.dtos';
 import { UpdateShopDto, BlockShopDto } from './admin.shops.request.dtos';
-import { checkId, transformPaginatedResult } from "src/common/utils";
+import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import {
   ShopPort,
@@ -19,6 +17,13 @@ import {
 } from 'src/modules/shop';
 import { LogsQueries, LogsEnums, LOGS_PORT, LogsPort } from 'src/infra/logs';
 import { ShopQueryFilterDto } from './admin.shops.query.dtos';
+import {
+  PaginatedResponseDto,
+  LogResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
+
 
 @Injectable()
 export class AdminShopsRoleService {
@@ -40,13 +45,13 @@ export class AdminShopsRoleService {
       sellerId: shopQueryFilter.sellerId,
       statuses: shopQueryFilter.statuses,
     });
-
     const queryOptions: CommonListQueryOptions<'createdAt'> = {
       pagination: paginationQuery
     };
 
     const result = await this.shopPort.getShops(query, queryOptions);
     return transformPaginatedResult(result, ShopPreviewResponseDto);
+
   }
 
 
@@ -54,7 +59,6 @@ export class AdminShopsRoleService {
     authedAdmin: AuthenticatedUser,
     shopId: string
   ): Promise<ShopFullResponseDto> {
-    checkId([shopId]);
 
     const query = new ShopQueries.GetShopQuery({ shopId });
     const shop = await this.shopPort.getShop(query);
@@ -62,6 +66,7 @@ export class AdminShopsRoleService {
     if (!shop) throw new NotFoundException('Магазин не найден');
 
     return plainToInstance(ShopFullResponseDto, shop, { excludeExtraneousValues: true });
+
   }
 
 
@@ -70,7 +75,6 @@ export class AdminShopsRoleService {
     shopId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-    checkId([shopId]);
 
     const query = new LogsQueries.GetEntityLogsQuery(
       LogsEnums.LogEntityType.SHOP,
@@ -84,6 +88,7 @@ export class AdminShopsRoleService {
     
     const result = await this.logsPort.getEntityLogs(query, queryOptions);
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 
 
@@ -92,7 +97,6 @@ export class AdminShopsRoleService {
     shopId: string,
     dto: UpdateShopDto
   ): Promise<ShopFullResponseDto> {
-    checkId([shopId]);
 
     const command = new ShopCommands.UpdateShopCommand(shopId, {
       verifiedStatus: dto.verifiedStatus,
@@ -101,6 +105,7 @@ export class AdminShopsRoleService {
 
     await this.shopPort.updateShop(command);
     return this.getShop(authedAdmin, shopId);
+
   }
 
 
@@ -109,7 +114,6 @@ export class AdminShopsRoleService {
     shopId: string,
     dto: BlockShopDto
   ): Promise<ShopFullResponseDto> {
-    checkId([shopId]);
 
     const command = new ShopCommands.BlockShopCommand(shopId, {
       status: dto.status,
@@ -120,5 +124,6 @@ export class AdminShopsRoleService {
 
     await this.shopPort.blockShop(command);
     return this.getShop(authedAdmin, shopId);
+
   }
 }

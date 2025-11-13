@@ -11,14 +11,12 @@ import {
   ShopCommands
 } from 'src/modules/shop';
 
+
 @Injectable()
 export class SellerShopsRoleService {
   constructor(
     @Inject(SHOP_PORT) private readonly shopPort: ShopPort
   ) {}
-
-
-
 
   async getShops(
     authedSeller: AuthenticatedUser
@@ -38,8 +36,6 @@ export class SellerShopsRoleService {
     authedSeller: AuthenticatedUser, 
     shopId: string
   ): Promise<ShopFullResponseDto> {
-    checkId([shopId]);
-
     const query = new ShopQueries.GetShopQuery({ shopId });
     const shop = await this.shopPort.getShop(query);
     
@@ -89,8 +85,6 @@ export class SellerShopsRoleService {
     dto: UpdateShopDto,
     shopImage?: Express.Multer.File
   ): Promise<ShopFullResponseDto> {
-    checkId([shopId]);
-
     // Проверяем владение магазином
     const query = new ShopQueries.GetShopQuery({ shopId });
     const shop = await this.shopPort.getShop(query);

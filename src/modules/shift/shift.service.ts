@@ -3,11 +3,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types, PaginateResult } from 'mongoose';
 import { ShiftModel, Shift } from './shift.schema';
 import { ShiftPort } from './shift.port';
-import { checkId, assignField } from 'src/common/utils';
+import { checkId, assignField, selectFields } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
-import { GetShiftsQuery } from './shift.queries';
+import { GetShiftQuery, GetShiftsQuery } from './shift.queries';
 import {
   OpenShiftCommand,
   CloseShiftCommand,
@@ -54,7 +54,7 @@ export class ShiftService implements ShiftPort {
     query: GetShiftsQuery,
     queryOptions: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Shift>> {
-    const { filters } = query;
+    const { filters, options } = query;
 
     const dbQueryFilter: any = {};
     if (filters?.shopId) dbQueryFilter.shop = new Types.ObjectId(filters.shopId);
@@ -67,7 +67,6 @@ export class ShiftService implements ShiftPort {
     if (filters?.startDate) dbQueryFilter.openedAt = { $gte: filters.startDate };
     if (filters?.endDate) dbQueryFilter.openedAt = { $lte: filters.endDate };
 
-
     const dbQueryOptions: any = {
       page: queryOptions.pagination?.page || 1,
       limit: queryOptions.pagination?.pageSize || 10,
@@ -75,6 +74,10 @@ export class ShiftService implements ShiftPort {
       leanWithId: true,
       sort: queryOptions.sort || { createdAt: -1 }
     };
+
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Shift>(...options.select);
+    }
     
     const result = await this.shiftModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
@@ -82,14 +85,19 @@ export class ShiftService implements ShiftPort {
 
 
   async getShift(
-    shiftId: string,
+    query: GetShiftQuery,
     queryOptions: CommonQueryOptions
   ): Promise<Shift | null> {
+    const { shiftId, options } = query;
     checkId([shiftId]);
 
     const dbQuery = this.shiftModel.findById(shiftId);
-    if (queryOptions.session) dbQuery.session(queryOptions.session);
-
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
+    
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Shift>(...options.select));
+    }
+    
     const shift = await dbQuery.lean({ virtuals: true }).exec();
     return shift;
   }
@@ -105,8 +113,8 @@ export class ShiftService implements ShiftPort {
       .findOne({ shop: new Types.ObjectId(shopId) })
       .sort({ createdAt: -1 });
     
-    if (queryOptions.session) dbQuery.session(queryOptions.session);
-
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
+    
     const shift = await dbQuery.lean({ virtuals: true }).exec();
     return shift;
   }

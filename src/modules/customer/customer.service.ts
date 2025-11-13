@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types, PaginateResult } from 'mongoose';
-import { randomUUID } from 'crypto';
 import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import {
@@ -14,12 +13,19 @@ import {
 } from './customer.commands';
 import { DomainError } from 'src/common/errors';
 import { Customer, CustomerModel } from './customer.schema';
-import { assignField, checkId } from 'src/common/utils';
+import { assignField, checkId, selectFields } from 'src/common/utils';
 import { GetCustomersQuery, GetCustomerQuery } from './customer.queries';
-import { AddressesPort, ADDRESSES_PORT, AddressesCommands, AddressesQueries, AddressesEnums } from 'src/infra/addresses';
+import {
+  AddressesPort,
+  ADDRESSES_PORT,
+  AddressesCommands,
+  AddressesQueries,
+  AddressesEnums
+} from 'src/infra/addresses';
+import { CustomerPort } from './customer.port';
 
 @Injectable()
-export class CustomerService {
+export class CustomerService implements CustomerPort {
   constructor(
     @InjectModel(Customer.name) private customerModel: CustomerModel,
     @Inject(ADDRESSES_PORT) private addressesPort: AddressesPort,
@@ -33,8 +39,7 @@ export class CustomerService {
     query: GetCustomersQuery,
     queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Customer>> {
-    
-    const { filters } = query;
+    const { filters, options } = query;
     const dbQueryFilter: any = {};
 
     if (filters?.verifiedStatuses && filters.verifiedStatuses.length > 0) dbQueryFilter.verifiedStatus = { $in: filters.verifiedStatuses };
@@ -52,6 +57,11 @@ export class CustomerService {
       lean: true, leanWithId: true,
       sort: queryOptions?.sort || { createdAt: -1 }
     };
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Customer>(...options.select);
+    }
     
     const result = await this.customerModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
@@ -62,8 +72,7 @@ export class CustomerService {
     query: GetCustomerQuery,
     queryOptions?: CommonQueryOptions
   ): Promise<Customer | null> {
-
-    const { filter } = query;
+    const { filter, options } = query;
 
     let dbQueryFilter: any;
     if (filter?.customerId) dbQueryFilter = { _id: new Types.ObjectId(filter.customerId) };
@@ -74,6 +83,11 @@ export class CustomerService {
     
     const dbQuery = this.customerModel.findOne(dbQueryFilter);
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Customer>(...options.select));
+    }
     
     const customer = await dbQuery.lean({ virtuals: true }).exec();
     return customer;

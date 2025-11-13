@@ -5,7 +5,7 @@ import { Types, PaginateResult } from 'mongoose';
 import { CreateSellerCommand, UpdateSellerCommand, BlockSellerCommand } from './seller.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { assignField, checkId, parcePhoneNumber } from 'src/common/utils';
+import { assignField, checkId, parcePhoneNumber, selectFields } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
@@ -29,9 +29,11 @@ export class SellerService implements SellerPort {
     queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Seller>> {
     
+    const { filters, options } = query;
+    
     let dbQueryFilter: any;
-    if (query.filters?.verifiedStatuses && query.filters.verifiedStatuses.length > 0) dbQueryFilter.verifiedStatus = { $in: query.filters.verifiedStatuses };
-    if (query.filters?.blockedStatuses && query.filters.blockedStatuses.length > 0) dbQueryFilter.blocked.status = { $in: query.filters.blockedStatuses };
+    if (filters?.verifiedStatuses && filters.verifiedStatuses.length > 0) dbQueryFilter.verifiedStatus = { $in: filters.verifiedStatuses };
+    if (filters?.blockedStatuses && filters.blockedStatuses.length > 0) dbQueryFilter.blocked.status = { $in: filters.blockedStatuses };
     
     const dbQueryOptions: any = {
       page: queryOptions?.pagination?.page || 1,
@@ -39,6 +41,10 @@ export class SellerService implements SellerPort {
       lean: true, leanWithId: true,
       sort: queryOptions?.sort || { createdAt: -1 }
     };
+    
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Seller>(...options.select);
+    }
     
     const result = await this.sellerModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
@@ -50,7 +56,8 @@ export class SellerService implements SellerPort {
     queryOptions?: CommonQueryOptions
   ): Promise<Seller | null> {
 
-    const { filter } = query;
+    const { filter, options } = query;
+
     let dbQueryFilter: any;
     if (filter?.sellerId) dbQueryFilter = { _id: new Types.ObjectId(filter.sellerId) };
     else if (filter?.telegramId) dbQueryFilter = { telegramId: filter.telegramId };
@@ -60,7 +67,11 @@ export class SellerService implements SellerPort {
     
     const dbQuery = this.sellerModel.findOne(dbQueryFilter);
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
-
+    
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Seller>(...options.select));
+    }
+    
     const seller = await dbQuery.lean({ virtuals: true }).exec();
     return seller;
   }

@@ -7,11 +7,12 @@ import { PlatformModel, Platform } from './platform.schema';
 import { checkId, assignField } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
+import { PlatformPort } from './platform.port';
 
 
 
 @Injectable()
-export class PlatformService {
+export class PlatformService implements PlatformPort {
   constructor(
     @InjectModel(Platform.name) private readonly platformModel: PlatformModel,
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,

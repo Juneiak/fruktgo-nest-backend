@@ -25,11 +25,13 @@ export class EmployeeMeRoleService {
   ) {}
 
   async getEmployee(authedEmployee: AuthenticatedUser): Promise<EmployeeResponseDto> {
+
     const query = new EmployeeQueries.GetEmployeeQuery({ employeeId: authedEmployee.id });
     const employee = await this.employeePort.getEmployee(query);
     if (!employee) throw new NotFoundException('Сотрудник не найден');
 
     return plainToInstance(EmployeeResponseDto, employee, { excludeExtraneousValues: true });
+
   }
 
   // TODO: Требует расширения доменной команды UpdateEmployeeCommand

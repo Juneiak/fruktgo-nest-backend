@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ShopProductService } from './shop-product.service';
 import { ShopProduct, ShopProductSchema } from './shop-product.schema';
-import { ShopProductFacade } from './shop-product.facade';
 import { SHOP_PRODUCT_PORT } from './shop-product.port';
 import { ImagesModule } from 'src/infra/images/images.module';
 
@@ -13,8 +12,7 @@ import { ImagesModule } from 'src/infra/images/images.module';
   ],
   providers: [
     ShopProductService,
-    ShopProductFacade,
-    { provide: SHOP_PRODUCT_PORT, useExisting: ShopProductFacade }
+    { provide: SHOP_PRODUCT_PORT, useExisting: ShopProductService }
   ],
   exports: [SHOP_PRODUCT_PORT],
 })

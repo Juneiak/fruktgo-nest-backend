@@ -1,7 +1,7 @@
 import { Issue } from './issue.schema';
 import { PaginateResult } from 'mongoose';
 import { CreateIssueCommand, UpdateIssueCommand } from './issue.commands';
-import { GetIssuesQuery } from './issue.queries';
+import { GetIssuesQuery, GetIssueQuery } from './issue.queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
@@ -10,7 +10,7 @@ export interface IssuePort {
   // ====================================================
   // QUERIES
   // ==================================================== 
-  getIssue(issueId: string, queryOptions?: CommonQueryOptions): Promise<Issue | null>;
+  getIssue(query: GetIssueQuery, queryOptions?: CommonQueryOptions): Promise<Issue | null>;
   getPaginatedIssues(query: GetIssuesQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Issue>>;
 
 

@@ -1,6 +1,7 @@
 import { BlockStatus, UserSex, VerifiedStatus } from "src/common/enums/common.enum";
 import { EmployeeStatus } from "./employee.enums";
-
+import { Employee } from "./employee.schema";
+import { AtLeastOne } from "src/common/types/utility.types";
 
 export class GetEmployeesQuery {
   constructor(
@@ -12,17 +13,26 @@ export class GetEmployeesQuery {
       sellerId?: string,
       shopId?: string,
     },
-
+    public readonly options?: {
+      select?: (keyof Employee)[]
+    }
   ) {}
 }
 
 export class GetEmployeeQuery {
   constructor(
-    public readonly filter?: {
-      employeeId?: string,
-      telegramId?: number,
-      phone?: string,
-    },
+    /**
+     * Фильтр для поиска сотрудника
+     * Требуется хотя бы одно поле: employeeId, telegramId или phone
+     */
+    public readonly filter: AtLeastOne<{
+      employeeId: string;
+      telegramId: number;
+      phone: string;
+    }>,
+    public readonly options?: {
+      select?: (keyof Employee)[]
+    }
   ) {}
 }
   

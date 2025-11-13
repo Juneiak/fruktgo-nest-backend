@@ -15,9 +15,10 @@ import {
 } from './addresses.queries';
 import { DomainError } from 'src/common/errors/domain-error';
 import { checkId, assignField } from 'src/common/utils';
+import { AddressesPort } from './addresses.port';
 
 @Injectable()
-export class AddressesService {
+export class AddressesService implements AddressesPort {
   constructor(
     @InjectModel(Address.name) private readonly addressModel: AddressModel,
   ) {}

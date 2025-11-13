@@ -4,7 +4,7 @@ import { Types, PaginateResult } from 'mongoose';
 import { ShopProductModel, ShopProduct } from './shop-product.schema';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
-import { checkId, assignField } from 'src/common/utils';
+import { checkId, assignField, selectFields } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
@@ -17,13 +17,15 @@ import {
   CreateShopProductCommand,
   UpdateShopProductCommand, 
   AddShopProductImageCommand,
-  RemoveShopProductImageCommand 
+  RemoveShopProductImageCommand, 
+  ArchiveShopProductCommand
 } from './shop-product.commands';
 import { ShopProductStatus } from './shop-product.enums';
+import { ShopProductPort } from './shop-product.port';
 
 
 @Injectable()
-export class ShopProductService {
+export class ShopProductService implements ShopProductPort {
   constructor(
     @InjectModel(ShopProduct.name) private readonly shopProductModel: ShopProductModel,
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
@@ -48,10 +50,12 @@ export class ShopProductService {
       });
     }
 
-    if (options?.populateProduct) {
-      dbQuery.populate('product');
-    }
+    if (options?.populateProduct) dbQuery.populate('product');
 
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<ShopProduct>(...options.select));
+    }
+    
     const shopProduct = await dbQuery.lean({ virtuals: true }).exec();
     return shopProduct;
   }
@@ -81,7 +85,10 @@ export class ShopProductService {
     if (options?.populateImages) dbPopulateArray.push({ path: 'images', options: { sort: { createdAt: -1 } } });
     if (options?.populateProduct) dbPopulateArray.push({ path: 'product'});
     if (dbPopulateArray.length > 0) dbQueryOptions.populate = dbPopulateArray;
-    
+
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<ShopProduct>(...options.select);
+    }
     const result = await this.shopProductModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
@@ -180,9 +187,10 @@ export class ShopProductService {
 
 
   async archiveShopProduct(
-    shopProductId: string,
+    command: ArchiveShopProductCommand,
     commandOptions: CommonCommandOptions
   ): Promise<void> {
+    const { shopProductId } = command;
     checkId([shopProductId]);
 
     const dbQuery = this.shopProductModel.findById(new Types.ObjectId(shopProductId));

@@ -1,10 +1,8 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
-import { checkId, transformPaginatedResult } from "src/common/utils";
+import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { ShiftResponseDto } from './admin.shifts.response.dtos';
 import { ShiftsQueryDto } from './admin.shifts.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
@@ -17,7 +15,12 @@ import {
   ShiftEnums
 } from 'src/modules/shift';
 import { LogsQueries, LogsEnums, LOGS_PORT, LogsPort } from 'src/infra/logs';
-
+import {
+  PaginatedResponseDto,
+  LogResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
 
 @Injectable()
 export class AdminShiftsRoleService {
@@ -33,6 +36,7 @@ export class AdminShiftsRoleService {
     shiftsQueryDto: ShiftsQueryDto,
     paginationQuery: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
+
     const query = new ShiftQueries.GetShiftsQuery({
       shopId: shiftsQueryDto.shopId,
       actorId: shiftsQueryDto.employeeId,
@@ -47,6 +51,7 @@ export class AdminShiftsRoleService {
 
     const result = await this.shiftPort.getShifts(query, queryOptions);
     return transformPaginatedResult(result, ShiftResponseDto);
+
   }
 
 
@@ -54,14 +59,13 @@ export class AdminShiftsRoleService {
     authedAdmin: AuthenticatedUser,
     shiftId: string
   ): Promise<ShiftResponseDto> {
-    checkId([shiftId]);
 
-    const query = new ShiftQueries.GetShiftQuery({ shiftId });
+    const query = new ShiftQueries.GetShiftQuery(shiftId);
     const shift = await this.shiftPort.getShift(query);
-    
     if (!shift) throw new NotFoundException('Смена не найдена');
 
     return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+
   }
 
 
@@ -69,7 +73,6 @@ export class AdminShiftsRoleService {
     authedAdmin: AuthenticatedUser,
     shiftId: string
   ): Promise<ShiftResponseDto> {
-    checkId([shiftId]);
 
     const command = new ShiftCommands.ForceCloseShiftCommand(shiftId, {
       actor: {
@@ -82,6 +85,7 @@ export class AdminShiftsRoleService {
 
     await this.shiftPort.forceCloseShift(command);
     return this.getShift(authedAdmin, shiftId);
+
   }
 
 
@@ -90,7 +94,6 @@ export class AdminShiftsRoleService {
     shiftId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-    checkId([shiftId]);
 
     const query = new LogsQueries.GetEntityLogsQuery(
       LogsEnums.LogEntityType.SHIFT,
@@ -104,5 +107,6 @@ export class AdminShiftsRoleService {
     
     const result = await this.logsPort.getEntityLogs(query, queryOptions);
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 }

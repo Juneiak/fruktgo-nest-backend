@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { plainToInstance } from 'class-transformer';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from 'src/common/enums/common.enum';
@@ -32,9 +32,10 @@ import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos'
 import {
   PaginatedResponseDto,
   MessageResponseDto,
-  LogResponseDto
-} from 'src/interface/http/common/common.response.dtos';
-import { BlockDto } from 'src/interface/http/common/common.request.dtos';
+  LogResponseDto,
+  BlockDto,
+  transformPaginatedResult
+} from 'src/interface/http/common';
 
 
 @Injectable()
@@ -49,12 +50,14 @@ export class AdminCustomersRoleService {
     authedAdmin: AuthenticatedUser,
     dto: NotifyCustomerDto
   ): Promise<MessageResponseDto> {
+
     // TODO: Процесс отправки уведомления клиенту (требует оркестратора)
     // Должен включать:
     // 1. Проверку существования клиента
     // 2. Отправку через NotificationService
     // 3. Логирование действия
     throw new Error('Not implemented: notification orchestrator required');
+
   }
 
 
@@ -78,6 +81,7 @@ export class AdminCustomersRoleService {
     const result = await this.customerPort.getCustomers(query, queryOptions);
     
     return transformPaginatedResult(result, CustomerPreviewResponseDto);
+
   }
 
 
@@ -85,13 +89,13 @@ export class AdminCustomersRoleService {
     authedAdmin: AuthenticatedUser,
     customerId: string
   ): Promise<CustomerFullResponseDto> {
-    checkId([customerId]);
 
     const query = new CustomerQueries.GetCustomerQuery({ customerId });
     const customer = await this.customerPort.getCustomer(query);
     if (!customer) throw new NotFoundException('Клиент не найден');
 
     return plainToInstance(CustomerFullResponseDto, customer, { excludeExtraneousValues: true });
+
   }
 
 
@@ -100,7 +104,6 @@ export class AdminCustomersRoleService {
     customerId: string,
     paginationDto: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-    checkId([customerId]);
 
     const query = new LogsQueries.GetEntityLogsQuery(
       LogsEnums.LogEntityType.CUSTOMER,
@@ -115,6 +118,7 @@ export class AdminCustomersRoleService {
     const result = await this.logsPort.getEntityLogs(query, queryOptions);
 
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 
 
@@ -123,7 +127,6 @@ export class AdminCustomersRoleService {
     customerId: string,
     dto: UpdateCustomerDto
   ): Promise<CustomerFullResponseDto> {
-    checkId([customerId]);
 
     // Проверяем существование клиента
     const existingCustomer = await this.customerPort.getCustomer(new CustomerQueries.GetCustomerQuery({ customerId }));
@@ -152,6 +155,7 @@ export class AdminCustomersRoleService {
     
     // Получаем обновленного клиента
     return this.getCustomer(authedAdmin, customerId);
+
   }
 
 
@@ -160,7 +164,6 @@ export class AdminCustomersRoleService {
     customerId: string,
     dto: BlockDto
   ): Promise<CustomerFullResponseDto> {
-    checkId([customerId]);
 
     // Проверяем существование клиента
     const existingCustomer = await this.customerPort.getCustomer(new CustomerQueries.GetCustomerQuery({ customerId }));
@@ -195,5 +198,6 @@ export class AdminCustomersRoleService {
 
     // Получаем обновленного клиента
     return this.getCustomer(authedAdmin, customerId);
+
   }
 }

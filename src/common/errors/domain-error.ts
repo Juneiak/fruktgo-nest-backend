@@ -73,6 +73,15 @@ export class DomainError extends Error {
   static badRequest(message = 'Bad request', meta?: DomainErrorMeta) {
     return new DomainError({ code: DomainErrorCode.BAD_REQUEST, message, meta });
   }
+  static unavailable(message = 'Service unavailable', meta?: DomainErrorMeta) {
+    return new DomainError({ code: DomainErrorCode.UNAVAILABLE, message, meta });
+  }
+  static rateLimited(message = 'Rate limit exceeded', meta?: DomainErrorMeta) {
+    return new DomainError({ code: DomainErrorCode.RATE_LIMITED, message, meta });
+  }
+  static dependencyFailed(message = 'Dependency failed', meta?: DomainErrorMeta) {
+    return new DomainError({ code: DomainErrorCode.DEPENDENCY_FAILED, message, meta });
+  }
 }
 
 export const isDomainError = (e: unknown): e is DomainError => e instanceof DomainError;

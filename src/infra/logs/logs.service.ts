@@ -11,10 +11,11 @@ import { GetEntityLogsQuery } from './logs.queries';
 import { DomainError } from 'src/common/errors/domain-error';
 import { checkId } from 'src/common/utils';
 import { LogLevel } from './logs.enums';
+import { LogsPort } from './logs.port';
 
 
 @Injectable()
-export class LogsService {
+export class LogsService implements LogsPort {
   constructor(
     @InjectModel(Log.name) private logModel: LogModel,
   ) {}

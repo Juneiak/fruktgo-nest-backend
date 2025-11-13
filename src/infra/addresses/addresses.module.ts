@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Address, AddressSchema } from './address.schema';
 import { AddressesService } from './addresses.service';
-import { AddressesFacade } from './addresses.facade';
 import { ADDRESSES_PORT } from './addresses.port';
 
 @Module({
@@ -11,8 +10,7 @@ import { ADDRESSES_PORT } from './addresses.port';
   ],
   providers: [
     AddressesService,
-    AddressesFacade,
-    { provide: ADDRESSES_PORT, useExisting: AddressesFacade }
+    { provide: ADDRESSES_PORT, useExisting: AddressesService }
   ],
   exports: [ADDRESSES_PORT],
 })

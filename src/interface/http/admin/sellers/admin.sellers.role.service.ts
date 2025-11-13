@@ -5,11 +5,9 @@ import {
   SellerPreviewResponseDto,
 } from './admin.sellers.response.dtos';
 import { UpdateSellerByAdminDto, BlockSellerDto } from './admin.sellers.request.dtos';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import {
   SellerPort,
@@ -18,6 +16,13 @@ import {
   SellerCommands
 } from 'src/modules/seller';
 import { LogsQueries, LogsEnums, LOGS_PORT, LogsPort } from 'src/infra/logs';
+
+import {
+  PaginatedResponseDto,
+  LogResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
 
 @Injectable()
 export class AdminSellersRoleService {
@@ -32,8 +37,8 @@ export class AdminSellersRoleService {
     authedAdmin: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<SellerPreviewResponseDto>> {
-    const query = new SellerQueries.GetSellersQuery();
 
+    const query = new SellerQueries.GetSellersQuery();
     const queryOptions: CommonListQueryOptions<'createdAt'> = {
       pagination: paginationQuery
     };
@@ -47,7 +52,6 @@ export class AdminSellersRoleService {
     authedAdmin: AuthenticatedUser,
     sellerId: string
   ): Promise<SellerFullResponseDto> {
-    checkId([sellerId]);
 
     const query = new SellerQueries.GetSellerQuery({ sellerId });
     const seller = await this.sellerPort.getSeller(query);
@@ -55,6 +59,7 @@ export class AdminSellersRoleService {
     if (!seller) throw new NotFoundException('Продавец не найден');
 
     return plainToInstance(SellerFullResponseDto, seller, { excludeExtraneousValues: true });
+
   }
 
 
@@ -63,7 +68,6 @@ export class AdminSellersRoleService {
     sellerId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-    checkId([sellerId]);
 
     const query = new LogsQueries.GetEntityLogsQuery(
       LogsEnums.LogEntityType.SELLER,
@@ -77,6 +81,7 @@ export class AdminSellersRoleService {
     
     const result = await this.logsPort.getEntityLogs(query, queryOptions);
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 
 
@@ -85,7 +90,6 @@ export class AdminSellersRoleService {
     sellerId: string,
     dto: UpdateSellerByAdminDto
   ): Promise<SellerFullResponseDto> {
-    checkId([sellerId]);
 
     const command = new SellerCommands.UpdateSellerCommand(sellerId, {
       verifiedStatus: dto.verifiedStatus,
@@ -94,6 +98,7 @@ export class AdminSellersRoleService {
 
     await this.sellerPort.updateSeller(command);
     return this.getSeller(authedAdmin, sellerId);
+
   }
 
 
@@ -102,7 +107,6 @@ export class AdminSellersRoleService {
     sellerId: string,
     dto: BlockSellerDto
   ): Promise<SellerFullResponseDto> {
-    checkId([sellerId]);
 
     const command = new SellerCommands.BlockSellerCommand(sellerId, {
       status: dto.status,
@@ -113,5 +117,6 @@ export class AdminSellersRoleService {
 
     await this.sellerPort.blockSeller(command);
     return this.getSeller(authedAdmin, sellerId);
+
   }
 }

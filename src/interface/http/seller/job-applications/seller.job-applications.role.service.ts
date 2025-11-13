@@ -5,12 +5,10 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { JobApplicationResponseDto } from './seller.job-applications.response.dtos';
 import { CreateJobApplicationDto } from './seller.job-applications.request.dtos';
 import { JobApplicationQueryFilterDto } from './seller.job-applications.query.dtos';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import {
   JobApplicationPort,
   JOB_APPLICATION_PORT,
@@ -29,6 +27,11 @@ import {
   LogsEnums
 } from 'src/infra/logs';
 
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
 
 @Injectable()
 export class SellerJobApplicationsRoleService {
@@ -43,6 +46,7 @@ export class SellerJobApplicationsRoleService {
     paginationQuery: PaginationQueryDto,
     filterQuery?: JobApplicationQueryFilterDto
   ): Promise<PaginatedResponseDto<JobApplicationResponseDto>> {
+
     const query = new JobApplicationQueries.GetJobApplicationsQuery({
       sellerId: authedSeller.id,
       statuses: filterQuery?.statuses,
@@ -56,12 +60,14 @@ export class SellerJobApplicationsRoleService {
     const result = await this.jobApplicationPort.getPaginatedJobApplications(query, queryOptions);
 
     return transformPaginatedResult(result, JobApplicationResponseDto);
+
   }
 
   async createJobApplication(
     authedSeller: AuthenticatedUser,
     dto: CreateJobApplicationDto
   ): Promise<JobApplicationResponseDto> {
+
     // Парсим и валидируем номер телефона
     const phoneNumber = parsePhoneNumberFromString(dto.employeePhone, 'RU');
     if (!phoneNumber || !phoneNumber.isValid()) {
@@ -95,6 +101,7 @@ export class SellerJobApplicationsRoleService {
     );
 
     return plainToInstance(JobApplicationResponseDto, createdApplication, { excludeExtraneousValues: true });
+
   }
 
 
@@ -102,16 +109,15 @@ export class SellerJobApplicationsRoleService {
     authedSeller: AuthenticatedUser,
     jobApplicationId: string
   ): Promise<void> {
-    checkId([jobApplicationId]);
 
-    // Проверяем существование заявки и принадлежность продавцу
-    const query = new JobApplicationQueries.GetJobApplicationsQuery({
-      sellerId: authedSeller.id,
-    });
-    const applications = await this.jobApplicationPort.getJobApplications(query);
-    const application = applications.find(app => app.jobApplicationId === jobApplicationId);
+    // Проверяем существование заявки
+    const query = new JobApplicationQueries.GetJobApplicationQuery(jobApplicationId);
+    const application = await this.jobApplicationPort.getJobApplication(query);
 
-    if (!application) throw new NotFoundException('Заявка не найдена или она вам не принадлежит');
+    // Проверяем принадлежность продавцу
+    if (application.seller.sellerId.toString() !== authedSeller.id) {
+      throw new NotFoundException('Заявка не найдена или она вам не принадлежит');
+    }
 
     await this.jobApplicationPort.deleteJobApplication(jobApplicationId);
 
@@ -126,5 +132,6 @@ export class SellerJobApplicationsRoleService {
         forRoles: [UserType.ADMIN, UserType.SELLER],
       })
     );
+    
   }
 }

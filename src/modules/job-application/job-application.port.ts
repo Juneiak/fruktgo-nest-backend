@@ -6,7 +6,7 @@ import {
   CreateJobApplicationCommand,
   UpdateJobApplicationCommand
 } from './job-application.commands';
-import { GetJobApplicationsQuery } from './job-application.queries';
+import { GetJobApplicationsQuery, GetJobApplicationQuery } from './job-application.queries';
 
 export interface JobApplicationPort {
 
@@ -15,7 +15,7 @@ export interface JobApplicationPort {
   // ==================================================== 
   getPaginatedJobApplications(query: GetJobApplicationsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<JobApplication>>;
   getJobApplications(query: GetJobApplicationsQuery, queryOptions?: CommonQueryOptions): Promise<JobApplication[]>;
-
+  getJobApplication(query: GetJobApplicationQuery, queryOptions?: CommonQueryOptions): Promise<JobApplication>;
 
   // ====================================================
   // COMMANDS

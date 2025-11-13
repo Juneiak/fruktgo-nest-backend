@@ -5,11 +5,9 @@ import {
   UpdateProductDto,
 } from "./seller.products.request.dtos";
 import { ProductPreviewResponseDto, ProductFullResponseDto, ProductOfShopResponseDto } from "./seller.products.response.dtos";
-import { checkId, transformPaginatedResult } from "src/common/utils";
+import { checkId } from "src/common/utils";
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto, MessageResponseDto, LogResponseDto } from "src/interface/http/common/common.response.dtos";
-import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
 import { AuthenticatedUser } from 'src/common/types';
 import {
   ProductPort,
@@ -18,6 +16,14 @@ import {
   ProductCommands
 } from 'src/modules/product';
 import { LogsQueries, LogsEnums, LOGS_PORT, LogsPort } from 'src/infra/logs';
+
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto,
+  MessageResponseDto,
+  LogResponseDto
+} from 'src/interface/http/common';
 
 @Injectable()
 export class SellerProductsRoleService {
@@ -30,33 +36,34 @@ export class SellerProductsRoleService {
     authedSeller: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ProductPreviewResponseDto>> {
+
     const query = new ProductQueries.GetProductsQuery({
       sellerId: authedSeller.id,
     });
-
     const queryOptions: CommonListQueryOptions<'createdAt'> = {
       pagination: paginationQuery
     };
 
     const result = await this.productPort.getProducts(query, queryOptions);
     return transformPaginatedResult(result, ProductPreviewResponseDto);
+
   }
+
 
   async getProduct(
     authedSeller: AuthenticatedUser,
     productId: string
   ): Promise<ProductFullResponseDto> {
-    checkId([productId]);
 
-    const product = await this.productPort.getProduct(productId);
+    const query = new ProductQueries.GetProductQuery(productId);
+    const product = await this.productPort.getProduct(query);
     if (!product) throw new NotFoundException('Продукт не найден');
 
     // Проверка что продукт принадлежит продавцу
-    if (product.owner.toString() !== authedSeller.id) {
-      throw new NotFoundException('Продукт не найден');
-    }
+    if (product.owner.toString() !== authedSeller.id) throw new NotFoundException('Продукт не найден');
 
     return plainToInstance(ProductFullResponseDto, product, { excludeExtraneousValues: true });
+
   }
 
 
@@ -65,10 +72,10 @@ export class SellerProductsRoleService {
     productId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-    checkId([productId]);
 
     // Проверяем что продукт принадлежит продавцу
-    const product = await this.productPort.getProduct(productId);
+    const productQuery = new ProductQueries.GetProductQuery(productId);
+    const product = await this.productPort.getProduct(productQuery);
     if (!product) throw new NotFoundException('Продукт не найден');
     
     if (product.owner.toString() !== authedSeller.id) {
@@ -87,6 +94,7 @@ export class SellerProductsRoleService {
     
     const result = await this.logsPort.getEntityLogs(query, queryOptions);
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 
 
@@ -95,6 +103,7 @@ export class SellerProductsRoleService {
     dto: CreateProductDto,
     cardImage?: Express.Multer.File
   ): Promise<ProductPreviewResponseDto> {
+
     const command = new ProductCommands.CreateProductCommand({
       sellerId: authedSeller.id,
       productName: dto.productName,
@@ -119,10 +128,10 @@ export class SellerProductsRoleService {
     dto: UpdateProductDto,
     cardImage?: Express.Multer.File
   ): Promise<ProductFullResponseDto> {
-    checkId([productId]);
 
     // Проверка владения продуктом
-    const existingProduct = await this.productPort.getProduct(productId);
+    const existingProductQuery = new ProductQueries.GetProductQuery(productId);
+    const existingProduct = await this.productPort.getProduct(existingProductQuery);
     if (!existingProduct) throw new NotFoundException('Продукт не найден');
     
     if (existingProduct.owner.toString() !== authedSeller.id) {
@@ -141,6 +150,7 @@ export class SellerProductsRoleService {
 
     const product = await this.productPort.updateProduct(command);
     return plainToInstance(ProductFullResponseDto, product, { excludeExtraneousValues: true });
+
   }
 
 
@@ -148,10 +158,10 @@ export class SellerProductsRoleService {
     authedSeller: AuthenticatedUser,
     productId: string
   ): Promise<MessageResponseDto> {
-    checkId([productId]);
 
     // Проверка владения продуктом
-    const existingProduct = await this.productPort.getProduct(productId);
+    const existingProductQuery = new ProductQueries.GetProductQuery(productId);
+    const existingProduct = await this.productPort.getProduct(existingProductQuery);
     if (!existingProduct) throw new NotFoundException('Продукт не найден');
     
     if (existingProduct.owner.toString() !== authedSeller.id) {
@@ -160,6 +170,7 @@ export class SellerProductsRoleService {
 
     await this.productPort.deleteProduct(productId);
     return plainToInstance(MessageResponseDto, { message: 'Продукт успешно удален' });
+
   }
 
 
@@ -170,8 +181,7 @@ export class SellerProductsRoleService {
     shopId: string,
     paginationQuery: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<ProductOfShopResponseDto>> {
-    checkId([shopId]);
-    
+
     // Временная заглушка - возвращаем все продукты без shopProducts
     const query = new ProductQueries.GetProductsQuery({
       sellerId: authedSeller.id,
@@ -183,5 +193,6 @@ export class SellerProductsRoleService {
 
     const result = await this.productPort.getProducts(query, queryOptions);
     return transformPaginatedResult(result, ProductOfShopResponseDto);
+
   }
 }

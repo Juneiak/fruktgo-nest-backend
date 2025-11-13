@@ -1,4 +1,5 @@
 import { ShopStatus } from "./shop.enums";
+import { Shop } from "./shop.schema";
 
 export class GetShopsQuery {
   constructor(
@@ -6,6 +7,9 @@ export class GetShopsQuery {
       city?: string;
       sellerId?: string;
       statuses?: ShopStatus[];
+    },
+    public readonly options?: {
+      select?: (keyof Shop)[];
     },
   ) {}
 }
@@ -16,5 +20,9 @@ export class GetShopQuery {
       shopId?: string;
       shopAccountId?: string;
     },
+    public readonly options?: {
+      select?: (keyof Shop)[];
+    },
+    
   ) {}
 }

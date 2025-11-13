@@ -3,12 +3,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types, PaginateResult } from 'mongoose';
 import { Product, ProductModel } from './product.schema';
 import { ProductPort } from './product.port';
-import { checkId, assignField } from 'src/common/utils';
+import { checkId, assignField, selectFields } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { CreateProductCommand, UpdateProductCommand } from './product.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
-import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { GetProductsQuery } from './product.queries';
+import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries'
+import { GetProductsQuery, GetProductQuery } from './product.queries';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand, UpdateImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType, ImageSize } from 'src/infra/images/images.enums';
@@ -28,7 +28,7 @@ export class ProductService implements ProductPort {
     query: GetProductsQuery,
     queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Product>> {
-    const { filters } = query;
+    const { filters, options } = query;
 
     const dbQueryFilter: any = {};
     if (filters?.sellerId) dbQueryFilter.owner = new Types.ObjectId(filters.sellerId);
@@ -41,6 +41,11 @@ export class ProductService implements ProductPort {
       leanWithId: true,
       sort: queryOptions?.sort || { createdAt: -1 }
     };
+
+    // Handle select options
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Product>(...options.select);
+    }
     
     const result = await this.productModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
@@ -48,13 +53,19 @@ export class ProductService implements ProductPort {
   
   
   async getProduct(
-    productId: string,
+    query: GetProductQuery,
     queryOptions?: CommonQueryOptions
   ): Promise<Product | null> {
+    const { productId, options } = query;
     checkId([productId]);
 
     const dbQuery = this.productModel.findOne({ _id: new Types.ObjectId(productId) });
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
+    // Handle select options
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Product>(...options.select));
+    }
 
     const product = await dbQuery.lean({ virtuals: true }).exec();
     return product;

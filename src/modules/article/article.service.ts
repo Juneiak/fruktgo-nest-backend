@@ -2,23 +2,20 @@ import { Injectable, Inject } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Article, ArticleModel } from './article.schema';
 import { Types, PaginateResult } from 'mongoose';
-import {
-  CreateArticleCommand,
-  UpdateArticleCommand,
-  ChangeArticleStatusCommand,
-} from './article.commands';
-import { GetArticlesQuery } from './article.queries';
 import { CommonQueryOptions, CommonListQueryOptions } from 'src/common/types/queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
-import { checkId, assignField } from 'src/common/utils';
+import { checkId, assignField, selectFields } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
 import { ArticleStatus, ArticleAuthorType } from './article.enums';
 import { IMAGES_PORT, ImagesPort } from 'src/infra/images/images.port';
 import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
+import { ArticlePort } from './article.port';
+import { GetArticleQuery, GetArticlesQuery } from './article.queries';
+import { CreateArticleCommand, UpdateArticleCommand, ChangeArticleStatusCommand } from './article.commands';
 
 @Injectable()
-export class ArticleService {
+export class ArticleService implements ArticlePort {
   constructor(
     @InjectModel(Article.name) private readonly articleModel: ArticleModel,
     @Inject(IMAGES_PORT) private readonly imagesPort: ImagesPort,
@@ -28,13 +25,19 @@ export class ArticleService {
   // QUERIES
   // ====================================================
   async getArticle(
-    articleId: string,
+    query: GetArticleQuery,
     queryOptions?: CommonQueryOptions
   ): Promise<Article | null> {
+    const { articleId, options } = query;
     checkId([articleId]);
 
     const dbQuery = this.articleModel.findById(new Types.ObjectId(articleId));
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Article>(...options.select));
+    }
 
     const article = await dbQuery.lean({ virtuals: true }).exec();
     return article;
@@ -45,7 +48,7 @@ export class ArticleService {
     query: GetArticlesQuery,
     queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Article>> {
-    const { filters } = query;
+    const { filters, options } = query;
 
     const dbQueryFilter: any = {};
     if (filters?.statuses && filters.statuses.length > 0) dbQueryFilter.status = { $in: filters.statuses };
@@ -67,6 +70,11 @@ export class ArticleService {
       leanWithId: true,
       sort: queryOptions?.sort || { createdAt: -1 },
     };
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Article>(...options.select);
+    }
     
     const result = await this.articleModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;

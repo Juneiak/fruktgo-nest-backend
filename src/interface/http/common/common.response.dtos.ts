@@ -8,6 +8,15 @@ export class PaginationMetaDto {
   @Expose() pageSize: number;
   @Expose() totalItems: number;
   @Expose() totalPages: number;
+
+  @Expose() hasNextPage: boolean;
+  @Expose() hasPrevPage: boolean;
+  @Expose() nextPage: number | null;
+  @Expose() prevPage: number | null;
+
+  @Expose() startIndex: number;
+  @Expose() endIndex: number;
+  @Expose() itemsOnPage: number;
 }
 
 

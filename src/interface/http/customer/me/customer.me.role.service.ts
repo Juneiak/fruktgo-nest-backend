@@ -21,6 +21,7 @@ import {
 } from 'src/infra/logs';
 import { UserType } from 'src/common/enums/common.enum';
 
+
 @Injectable()
 export class CustomerMeRoleService {
   constructor(
@@ -35,6 +36,7 @@ export class CustomerMeRoleService {
     authedCustomer: AuthenticatedUser,
     dto: CreateAddressDto
   ): Promise<CustomerResponseDto> {
+
     const command = new CustomerCommands.AddAddressCommand(
       authedCustomer.id,
       {
@@ -52,6 +54,7 @@ export class CustomerMeRoleService {
 
     await this.customerPort.addAddress(command);
     return this.getCustomer(authedCustomer);
+
   }
 
 
@@ -59,7 +62,6 @@ export class CustomerMeRoleService {
     authedCustomer: AuthenticatedUser,
     addressId: string
   ): Promise<CustomerResponseDto> {
-    checkId([addressId]);
 
     const command = new CustomerCommands.DeleteAddressCommand(
       authedCustomer.id,
@@ -68,6 +70,7 @@ export class CustomerMeRoleService {
 
     await this.customerPort.deleteAddress(command);
     return this.getCustomer(authedCustomer);
+
   }
 
 
@@ -75,7 +78,6 @@ export class CustomerMeRoleService {
     authedCustomer: AuthenticatedUser,
     addressId: string
   ): Promise<CustomerResponseDto> {
-    checkId([addressId]);
 
     const command = new CustomerCommands.SelectAddressCommand(
       authedCustomer.id,
@@ -84,6 +86,7 @@ export class CustomerMeRoleService {
 
     await this.customerPort.selectAddress(command);
     return this.getCustomer(authedCustomer);
+
   }
 
 
@@ -97,6 +100,7 @@ export class CustomerMeRoleService {
     if (!customer) throw new NotFoundException('Клиент не найден');
 
     return plainToInstance(CustomerResponseDto, customer, { excludeExtraneousValues: true });
+
   }
 
 
@@ -130,5 +134,6 @@ export class CustomerMeRoleService {
     );
 
     return this.getCustomer(authedCustomer);
+
   }
 }

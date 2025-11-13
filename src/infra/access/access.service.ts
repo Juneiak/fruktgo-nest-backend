@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { checkId } from 'src/common/utils';
-import { AccessPort } from './access.port';
-import { Shop } from 'src/modules/shop';
-import { Product } from 'src/modules/product';
-import { Shift } from 'src/modules/shift';
-import { Order } from 'src/modules/order';
+import { Seller } from 'src/modules/seller/seller.schema';
+import { Shop } from 'src/modules/shop/shop.schema';
+import { Product } from 'src/modules/product/product.schema';
+import { Shift } from 'src/modules/shift/shift.schema';
+import { checkId, selectFields } from 'src/common/utils';
+import { Order } from 'src/modules/order/order.schema';
 import { Address } from 'src/infra/addresses';
+import { AccessPort } from './access.port';
 
 @Injectable()
 export class AccessService implements AccessPort {
@@ -55,13 +56,17 @@ export class AccessService implements AccessPort {
     try {
       checkId([sellerId, shiftId]);
 
+      const shift = await this.shiftModel
+        .findById(shiftId)
+        .select(selectFields<Shift>('shop'))
+        .lean()
+        .exec();
       
+      if (!shift) return false;
 
-      if (!shopId) return false;
-
-      const exists = await this.shiftModel.exists({
-        _id: new Types.ObjectId(shiftId),
-        shop: new Types.ObjectId(shopId),
+      const exists = await this.shopModel.exists({
+        _id: shift.shop,
+        owner: new Types.ObjectId(sellerId),
       });
 
       return !!exists;

@@ -7,14 +7,14 @@ import {
   UpdateArticleCommand,
   ChangeArticleStatusCommand,
 } from './article.commands';
-import { GetArticlesQuery } from './article.queries';
+import { GetArticleQuery, GetArticlesQuery } from './article.queries';
 
 export interface ArticlePort {
 
   // ====================================================
   // QUERIES
   // ==================================================== 
-  getArticle(articleId: string, queryOptions?: CommonQueryOptions): Promise<Article | null>;
+  getArticle(query: GetArticleQuery, queryOptions?: CommonQueryOptions): Promise<Article | null>;
   getArticles(query: GetArticlesQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<Article>>;
 
 

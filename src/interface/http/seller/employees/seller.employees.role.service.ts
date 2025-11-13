@@ -3,12 +3,10 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { plainToInstance } from 'class-transformer';
 import { EmployeeResponseDto } from './seller.employees.response.dtos';
 import { UpdateEmployeeDto } from './seller.employees.request.dtos';
-import { checkId, transformPaginatedResult } from 'src/common/utils';
+import { checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { CommonListQueryOptions } from 'src/common/types/queries';
 import { UserType } from "src/common/enums/common.enum";
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { EmployeeQueryFilterDto } from './seller.employees.query.dtos';
 import {
   EmployeePort,
@@ -22,6 +20,11 @@ import {
   LogsEvents,
   LogsEnums
 } from 'src/infra/logs';
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto
+} from 'src/interface/http/common';
 
 
 @Injectable()
@@ -35,7 +38,6 @@ export class SellerEmployeesRoleService {
     authedSeller: AuthenticatedUser,
     employeeId: string
   ): Promise<EmployeeResponseDto> {
-    checkId([employeeId]);
 
     const query = new EmployeeQueries.GetEmployeeQuery({ employeeId });
     const employee = await this.employeePort.getEmployee(query);
@@ -47,6 +49,7 @@ export class SellerEmployeesRoleService {
     }
 
     return plainToInstance(EmployeeResponseDto, employee, { excludeExtraneousValues: true });
+
   }
 
 
@@ -55,6 +58,7 @@ export class SellerEmployeesRoleService {
     paginationQuery: PaginationQueryDto,
     filterQuery?: EmployeeQueryFilterDto
   ): Promise<PaginatedResponseDto<EmployeeResponseDto>> {
+
     const query = new EmployeeQueries.GetEmployeesQuery({
       sellerId: authedSeller.id,
       shopId: filterQuery?.shopId,
@@ -74,7 +78,6 @@ export class SellerEmployeesRoleService {
     employeeId: string,
     dto: UpdateEmployeeDto
   ): Promise<EmployeeResponseDto> {
-    checkId([employeeId]);
 
     // Проверяем существование сотрудника и принадлежность продавцу
     const existingEmployee = await this.employeePort.getEmployee(new EmployeeQueries.GetEmployeeQuery({ employeeId }));

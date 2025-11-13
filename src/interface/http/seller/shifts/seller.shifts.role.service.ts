@@ -1,9 +1,6 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
-import { PaginatedResponseDto, LogResponseDto } from "src/interface/http/common/common.response.dtos";
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
 import { plainToInstance } from 'class-transformer';
 import { ShiftResponseDto } from './seller.shifts.response.dtos';
-import { transformPaginatedResult, checkId } from 'src/common/utils';
 import { AuthenticatedUser } from 'src/common/types';
 import { ShiftsQueryDto } from './seller.shifts.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
@@ -23,6 +20,12 @@ import {
   AccessPort,
   ACCESS_PORT
 } from 'src/infra/access';
+import {
+  PaginatedResponseDto,
+  transformPaginatedResult,
+  PaginationQueryDto,
+  LogResponseDto
+} from 'src/interface/http/common';
 
 @Injectable()
 export class SellerShiftsRoleService {
@@ -37,6 +40,7 @@ export class SellerShiftsRoleService {
     shiftsQueryDto: ShiftsQueryDto, 
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
+    
     // ✅ Централизованная проверка доступа продавца к магазину
     const hasAccess = await this.accessPort.canSellerAccessShop(
       authedSeller.id,
@@ -58,6 +62,7 @@ export class SellerShiftsRoleService {
 
     const result = await this.shiftPort.getShifts(query, queryOptions);
     return transformPaginatedResult(result, ShiftResponseDto);
+
   }
 
 
@@ -65,20 +70,19 @@ export class SellerShiftsRoleService {
     authedSeller: AuthenticatedUser,
     shiftsQueryDto: ShiftsQueryDto
   ): Promise<ShiftResponseDto> {
+
     // ✅ Централизованная проверка доступа продавца к магазину
     const hasAccess = await this.accessPort.canSellerAccessShop(
       authedSeller.id,
       shiftsQueryDto.shopId
     );
-    if (!hasAccess) {
-      throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
-    }
+    if (!hasAccess) throw new NotFoundException('Магазин не найден или не принадлежит данному продавцу');
     
     const shift = await this.shiftPort.getCurrentShiftOfShop(shiftsQueryDto.shopId);
-    
     if (!shift) throw new NotFoundException('Смена не найдена');
 
     return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+
   }
 
 
@@ -86,21 +90,20 @@ export class SellerShiftsRoleService {
     authedSeller: AuthenticatedUser,
     shiftId: string
   ): Promise<ShiftResponseDto> {
+
     // ✅ Централизованная проверка доступа продавца к смене через магазин
     const hasAccess = await this.accessPort.canSellerAccessShift(
       authedSeller.id,
       shiftId
     );
-    if (!hasAccess) {
-      throw new NotFoundException('Смена не найдена или не принадлежит данному продавцу');
-    }
+    if (!hasAccess) throw new NotFoundException('Смена не найдена или не принадлежит данному продавцу');
 
-    const query = new ShiftQueries.GetShiftQuery({ shiftId });
-    const shift = await this.shiftPort.getShift(query);
-    
+    const shiftQuery = new ShiftQueries.GetShiftQuery(shiftId);
+    const shift = await this.shiftPort.getShift(shiftQuery);
     if (!shift) throw new NotFoundException('Смена не найдена');
 
     return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+
   }
 
 
@@ -109,14 +112,13 @@ export class SellerShiftsRoleService {
     shiftId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
+
     // ✅ Централизованная проверка доступа продавца к смене через магазин
     const hasAccess = await this.accessPort.canSellerAccessShift(
       authedSeller.id,
       shiftId
     );
-    if (!hasAccess) {
-      throw new NotFoundException('Смена не найдена или не принадлежит данному продавцу');
-    }
+    if (!hasAccess) throw new NotFoundException('Смена не найдена или не принадлежит данному продавцу');
 
     const logsQuery = new LogsQueries.GetEntityLogsQuery(
       LogsEnums.LogEntityType.SHIFT,
@@ -130,5 +132,6 @@ export class SellerShiftsRoleService {
     
     const result = await this.logsPort.getEntityLogs(logsQuery, queryOptions);
     return transformPaginatedResult(result, LogResponseDto);
+
   }
 }

@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { OrderSchema, Order } from './order.schema';
 import { OrderService } from './order.service';
-import { OrderFacade } from './order.facade';
 import { ORDER_PORT } from './order.port';
 
 @Module({
@@ -11,8 +10,7 @@ import { ORDER_PORT } from './order.port';
   ],
   providers: [
     OrderService,
-    OrderFacade,
-    { provide: ORDER_PORT, useExisting: OrderFacade }
+    { provide: ORDER_PORT, useExisting: OrderService }
   ],
   exports: [ORDER_PORT],
 })

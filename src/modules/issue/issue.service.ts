@@ -3,15 +3,16 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types, PaginateResult } from 'mongoose';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
-import { checkId, assignField } from 'src/common/utils';
+import { checkId, assignField, selectFields } from 'src/common/utils';
 import { DomainError } from 'src/common/errors/domain-error';
-import { GetIssuesQuery } from './issue.queries';
+import { GetIssueQuery, GetIssuesQuery } from './issue.queries';
 import { Issue, IssueModel } from './issue.schema';
 import { CreateIssueCommand, UpdateIssueCommand } from './issue.commands';
 import { IssueStatus, IssueLevel } from './issue.enums';
+import { IssuePort } from './issue.port';
 
 @Injectable()
-export class IssueService {
+export class IssueService implements IssuePort {
   constructor(
     @InjectModel(Issue.name) private readonly issueModel: IssueModel,
   ) {}
@@ -20,13 +21,19 @@ export class IssueService {
   // QUERIES
   // ====================================================
   async getIssue(
-    issueId: string,
+    getIssueQuery: GetIssueQuery,
     queryOptions?: CommonQueryOptions,
   ): Promise<Issue | null> {
-    checkId([issueId]);
+    checkId([getIssueQuery.issueId]);
+    const { options } = getIssueQuery;
 
-    const dbQuery = this.issueModel.findById(new Types.ObjectId(issueId));
+    const dbQuery = this.issueModel.findById(new Types.ObjectId(getIssueQuery.issueId));
     if (queryOptions?.session) dbQuery.session(queryOptions.session);
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Issue>(...options.select));
+    }
 
     const issue = await dbQuery.lean({ virtuals: true }).exec();
     return issue;
@@ -37,7 +44,7 @@ export class IssueService {
     query: GetIssuesQuery,
     queryOptions?: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Issue>> {
-    const { filters } = query;
+    const { filters, options } = query;
 
     const dbQueryFilter: any = {};
     if (filters?.fromUserType) dbQueryFilter.fromUserType = filters.fromUserType;
@@ -54,6 +61,11 @@ export class IssueService {
       leanWithId: true,
       sort: queryOptions?.sort || { createdAt: -1 }
     };
+
+    // Типобезопасный select - проверяется на этапе компиляции
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Issue>(...options.select);
+    }
 
     const result = await this.issueModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;

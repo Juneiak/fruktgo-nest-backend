@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Types, PaginateResult } from 'mongoose';
 import { Shop, ShopModel } from './shop.schema';
 import { ShopPort } from './shop.port';
-import { checkId, assignField } from 'src/common/utils';
+import { checkId, assignField, selectFields } from 'src/common/utils';
 import { DomainError } from 'src/common/errors';
 import { CreateShopCommand, UpdateShopCommand, BlockShopCommand } from './shop.commands';
 import { CommonCommandOptions } from 'src/common/types/commands';
@@ -27,9 +27,9 @@ export class ShopService implements ShopPort {
   // ====================================================
   async getShops(
     query: GetShopsQuery,
-    options: CommonListQueryOptions<'createdAt'>
+    queryOptions: CommonListQueryOptions<'createdAt'>
   ): Promise<PaginateResult<Shop>> {
-    const { filters } = query;
+    const { filters, options } = query;
 
     const dbQueryFilter: any = {};
     if (filters?.city) dbQueryFilter.city = filters.city;
@@ -37,13 +37,17 @@ export class ShopService implements ShopPort {
     if (filters?.statuses) dbQueryFilter.status = { $in: filters.statuses };
     
     const dbQueryOptions: any = {
-      page: options.pagination?.page || 1,
-      limit: options.pagination?.pageSize || 10,
+      page: queryOptions.pagination?.page || 1,
+      limit: queryOptions.pagination?.pageSize || 10,
       lean: true, 
       leanWithId: true,
-      sort: options.sort || { createdAt: -1 }
+      sort: queryOptions.sort || { createdAt: -1 }
     };
-    
+
+    if (options?.select && options.select.length > 0) {
+      dbQueryOptions.select = selectFields<Shop>(...options.select);
+    }
+
     const result = await this.shopModel.paginate(dbQueryFilter, dbQueryOptions);
     return result;
   }
@@ -51,9 +55,9 @@ export class ShopService implements ShopPort {
 
   async getShop(
     query: GetShopQuery,
-    options: CommonQueryOptions
+    queryOptions: CommonQueryOptions
   ): Promise<Shop | null> {
-    const { filter } = query;
+    const { filter, options } = query;
 
     const dbQueryFilter: any = {};
     if (filter?.shopId) dbQueryFilter._id = new Types.ObjectId(filter.shopId);
@@ -61,7 +65,11 @@ export class ShopService implements ShopPort {
     else throw DomainError.badRequest('Неверный запрос');
 
     const dbQuery = this.shopModel.findOne(dbQueryFilter);
-    if (options.session) dbQuery.session(options.session);
+    if (queryOptions.session) dbQuery.session(queryOptions.session);
+
+    if (options?.select && options.select.length > 0) {
+      dbQuery.select(selectFields<Shop>(...options.select));
+    }
 
     const shop = await dbQuery.lean({ virtuals: true }).exec();
     return shop;
@@ -73,7 +81,7 @@ export class ShopService implements ShopPort {
   // ====================================================
   async createShop(
     command: CreateShopCommand,
-    options: CommonCommandOptions
+    commandOptions: CommonCommandOptions
   ): Promise<Shop> {
     const { shopId, payload } = command;
     checkId([shopId, payload.shopAccountId, payload.ownerId]);
@@ -84,7 +92,7 @@ export class ShopService implements ShopPort {
       city: payload.city,
       owner: new Types.ObjectId(payload.ownerId)
     });
-    if (options?.session) existingQuery.session(options.session);
+    if (commandOptions?.session) existingQuery.session(commandOptions.session);
     
     const existing = await existingQuery.exec();
     if (existing) throw DomainError.conflict('Магазин с таким названием уже существует в этом городе');
@@ -99,7 +107,7 @@ export class ShopService implements ShopPort {
     };
 
     const createOptions: any = {};
-    if (options?.session) createOptions.session = options.session;
+    if (commandOptions?.session) createOptions.session = commandOptions.session;
 
     const shop = await this.shopModel.create([shopData], createOptions).then(docs => docs[0]);
 
@@ -116,11 +124,11 @@ export class ShopService implements ShopPort {
           house: payload.address.house || '',
         }
       );
-      const createdAddress = await this.addressesPort.createAddress(addressCommand, options);
+      const createdAddress = await this.addressesPort.createAddress(addressCommand, commandOptions);
       
       // Обновляем магазин с ObjectId адреса
       shop.address = new Types.ObjectId(createdAddress.addressId);
-      await shop.save(options?.session ? { session: options.session } : undefined);
+      await shop.save(commandOptions?.session ? { session: commandOptions.session } : undefined);
     }
 
     return shop;
@@ -129,13 +137,13 @@ export class ShopService implements ShopPort {
 
   async updateShop(
     command: UpdateShopCommand,
-    options: CommonCommandOptions
+    commandOptions: CommonCommandOptions
   ): Promise<void> {
     const { shopId, payload } = command;
     checkId([shopId]);
 
     const dbQuery = this.shopModel.findOne({ _id: new Types.ObjectId(shopId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions.session) dbQuery.session(commandOptions.session);
     
     const shop = await dbQuery.exec();
     if (!shop) throw DomainError.notFound('Shop', shopId);
@@ -154,7 +162,7 @@ export class ShopService implements ShopPort {
       const oldImage = shop.shopImage;
       if (oldImage) {
         const deleteImageOptions: any = {};
-        if (options.session) deleteImageOptions.session = options.session;
+        if (commandOptions.session) deleteImageOptions.session = commandOptions.session;
         await this.imagesPort.deleteImage(oldImage.toString(), deleteImageOptions);
       }
       shop.shopImage = null;
@@ -177,7 +185,7 @@ export class ShopService implements ShopPort {
       );
       
       const uploadImageOptions: any = {};
-      if (options.session) uploadImageOptions.session = options.session;
+      if (commandOptions.session) uploadImageOptions.session = commandOptions.session;
       await this.imagesPort.uploadImage(uploadImageCommand, uploadImageOptions);
       
       // Обновляем ссылку на изображение
@@ -186,13 +194,13 @@ export class ShopService implements ShopPort {
       // Удаляем старое изображение если было
       if (oldImage) {
         const deleteImageOptions: any = {};
-        if (options.session) deleteImageOptions.session = options.session;
+        if (commandOptions.session) deleteImageOptions.session = commandOptions.session;
         await this.imagesPort.deleteImage(oldImage.toString(), deleteImageOptions);
       }
     }
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions.session) saveOptions.session = commandOptions.session;
     
     await shop.save(saveOptions);
   }
@@ -200,13 +208,13 @@ export class ShopService implements ShopPort {
 
   async blockShop(
     command: BlockShopCommand,
-    options: CommonCommandOptions
+    commandOptions: CommonCommandOptions
   ): Promise<void> {
     const { shopId, payload } = command;
     checkId([shopId]);
 
     const dbQuery = this.shopModel.findOne({ _id: new Types.ObjectId(shopId) });
-    if (options.session) dbQuery.session(options.session);
+    if (commandOptions.session) dbQuery.session(commandOptions.session);
 
     const shop = await dbQuery.exec();
     if (!shop) throw DomainError.notFound('Shop', shopId);
@@ -217,7 +225,7 @@ export class ShopService implements ShopPort {
     assignField(shop.blocked, 'blockedUntil', payload.blockedUntil);
 
     const saveOptions: any = {};
-    if (options.session) saveOptions.session = options.session;
+    if (commandOptions.session) saveOptions.session = commandOptions.session;
     
     await shop.save(saveOptions);
   }
