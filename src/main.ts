@@ -49,7 +49,7 @@ async function bootstrap() {
   
   // Глобальные фильтры для обработки ошибок
   app.useGlobalFilters(
-    new DomainErrorFilter(),        // Обработка доменных ошибок
+    // new DomainErrorFilter(),        // Обработка доменных ошибок
     new MongooseExceptionFilter(),  // Обработка ошибок Mongoose
   );
 

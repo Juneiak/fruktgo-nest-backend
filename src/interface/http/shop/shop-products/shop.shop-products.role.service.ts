@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { checkId } from 'src/common/utils';
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import { AuthenticatedUser, AuthenticatedEmployee } from 'src/common/types';
 import { ShopProductsStockQueryDto } from './shop.shop-products.query.dtos';
 import {
@@ -37,40 +38,55 @@ export class ShopShopProductsRoleService {
     authedShop: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
-    const query = new ShopProductQueries.GetShopProductsQuery({
-      shopId: authedShop.id,
-    }, {
-      populateProduct: true,
-    });
+    try {
+      const query = new ShopProductQueries.GetShopProductsQuery({
+        shopId: authedShop.id,
+      }, {
+        populateProduct: true,
+      });
 
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
 
-    const result = await this.shopProductPort.getShopProducts(query, queryOptions);
-    return transformPaginatedResult(result, ShopProductResponseDto);
+      const result = await this.shopProductPort.getShopProducts(query, queryOptions);
+      return transformPaginatedResult(result, ShopProductResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректные параметры фильтрации'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
   async getShopProduct(
     authedShop: AuthenticatedUser,
     shopProductId: string
   ): Promise<ShopProductResponseDto> {
-    checkId([shopProductId]);
+    try {
+      checkId([shopProductId]);
 
-    const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
-      populateProduct: true,
-      populateImages: true,
-    });
+      const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
+        populateProduct: true,
+        populateImages: true,
+      });
 
-    const shopProduct = await this.shopProductPort.getShopProduct(query);
-    if (!shopProduct) throw new NotFoundException('Товар не найден');
+      const shopProduct = await this.shopProductPort.getShopProduct(query);
+      if (!shopProduct) throw new NotFoundException('Товар не найден');
 
-    // Проверка что товар принадлежит магазину
-    if (shopProduct.pinnedTo.toString() !== authedShop.id) {
-      throw new NotFoundException('Товар не найден');
+      // Проверка что товар принадлежит магазину
+      if (shopProduct.pinnedTo.toString() !== authedShop.id) {
+        throw new NotFoundException('Товар не найден');
+      }
+
+      return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Товар не найден'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID товара'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
     }
-
-    return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
   }
 
   // TODO: Реализовать getShopProductsStock когда будет добавлен метод в ShopProductPort

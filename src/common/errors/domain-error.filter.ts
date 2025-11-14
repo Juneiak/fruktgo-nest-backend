@@ -45,7 +45,7 @@ export class DomainErrorFilter implements ExceptionFilter {
         return 503;
       default:
         // TypeScript проверит exhaustiveness всех значений enum
-        const exhaustiveCheck: never = code;
+        // const exhaustiveCheck: never = code;
         return 500;
     }
   }

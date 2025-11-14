@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Inject, InternalServerErrorException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { ShopProductResponseDto } from './public.shop-products.response.dtos';
 import { checkId } from 'src/common/utils';
 import { ShopProductQueryDto } from './public.shop-products.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import {
   ShopProductPort,
   SHOP_PRODUCT_PORT,
@@ -29,44 +30,57 @@ export class PublicShopProductsRoleService {
     shopProductQuery: ShopProductQueryDto,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductResponseDto>> {
+    try {
+      const { shopId } = shopProductQuery;
+      if (!shopId) throw new BadRequestException('Магазин не указан');
 
-    const { shopId } = shopProductQuery;
-    if (!shopId) throw new BadRequestException('Магазин не указан');
+      // Проверяем что магазин существует и доступен
+      const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId }));
+      if (!shop) throw new NotFoundException('Магазин не найден или недоступен');
 
-    // Проверяем что магазин существует и доступен
-    const shop = await this.shopPort.getShop(new ShopQueries.GetShopQuery({ shopId }));
-    if (!shop) throw new NotFoundException('Магазин не найден или недоступен');
+      const query = new ShopProductQueries.GetShopProductsQuery({
+        shopId,
+      }, {
+        populateProduct: true,
+      });
 
-    const query = new ShopProductQueries.GetShopProductsQuery({
-      shopId,
-    }, {
-      populateProduct: true,
-    });
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
 
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
-
-    const result = await this.shopProductPort.getShopProducts(query, queryOptions);
-    return transformPaginatedResult(result, ShopProductResponseDto);
-
+      const result = await this.shopProductPort.getShopProducts(query, queryOptions);
+      return transformPaginatedResult(result, ShopProductResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Магазин не найден'),
+        [DomainErrorCode.BAD_REQUEST]: new BadRequestException('Неверные параметры запроса'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
   async getPublicShopProduct(
     shopProductId: string
   ): Promise<ShopProductResponseDto> {
+    try {
+      const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
+        populateProduct: true,
+        populateImages: true,
+      });
 
-    const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
-      populateProduct: true,
-      populateImages: true,
-    });
+      const shopProduct = await this.shopProductPort.getShopProduct(query);
+      if (!shopProduct) throw new NotFoundException('Товар не найден');
 
-    const shopProduct = await this.shopProductPort.getShopProduct(query);
-    if (!shopProduct) throw new NotFoundException('Товар не найден');
-
-    return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
-
+      return plainToInstance(ShopProductResponseDto, shopProduct, { excludeExtraneousValues: true });
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Товар не найден'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID товара'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
   // async getPublicShopProducts(

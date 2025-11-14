@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import {
   ShopProductPreviewResponseDto,
@@ -7,6 +7,7 @@ import {
 import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from 'src/common/types';
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import { ShopProductQueryDto } from './admin.shop-products.query.dtos';
 import {
   ShopProductPort,
@@ -34,17 +35,23 @@ export class AdminShopProductsRoleService {
     authedAdmin: AuthenticatedUser,
     shopProductId: string
   ): Promise<ShopProductFullResponseDto> {
+    try {
+      const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
+        populateImages: true,
+        populateProduct: true,
+      });
+      const shopProduct = await this.shopProductPort.getShopProduct(query);
 
-    const query = new ShopProductQueries.GetShopProductQuery(shopProductId, {
-      populateImages: true,
-      populateProduct: true,
-    });
+      if (!shopProduct) throw new NotFoundException('Товар не найден');
 
-    const shopProduct = await this.shopProductPort.getShopProduct(query);
-    if (!shopProduct) throw new NotFoundException('Товар не найден');
-
-    return plainToInstance(ShopProductFullResponseDto, shopProduct, { excludeExtraneousValues: true });
-
+      return plainToInstance(ShopProductFullResponseDto, shopProduct, { excludeExtraneousValues: true });
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Товар не найден'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID товара'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -53,22 +60,26 @@ export class AdminShopProductsRoleService {
     shopProductQuery: ShopProductQueryDto,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopProductPreviewResponseDto>> {
+    try {
+      const query = new ShopProductQueries.GetShopProductsQuery({
+        shopId: shopProductQuery.shopId,
+        productId: shopProductQuery.productId,
+        statuses: shopProductQuery.statuses,
+      }, {
+        populateProduct: true,
+      });
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
+      const result = await this.shopProductPort.getShopProducts(query, queryOptions);
 
-    const query = new ShopProductQueries.GetShopProductsQuery({
-      shopId: shopProductQuery.shopId,
-      productId: shopProductQuery.productId,
-      statuses: shopProductQuery.statuses,
-    }, {
-      populateProduct: true,
-    });
-
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
-
-    const result = await this.shopProductPort.getShopProducts(query, queryOptions);
-    return transformPaginatedResult(result, ShopProductPreviewResponseDto);
-
+      return transformPaginatedResult(result, ShopProductPreviewResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректные параметры фильтрации'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -77,19 +88,24 @@ export class AdminShopProductsRoleService {
     shopProductId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
-
-    const query = new LogsQueries.GetEntityLogsQuery(
-      LogsEnums.LogEntityType.SHOP_PRODUCT,
-      shopProductId,
-      [UserType.ADMIN]
-    );
-    
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
-    
-    const result = await this.logsPort.getEntityLogs(query, queryOptions);
-    return transformPaginatedResult(result, LogResponseDto);
-
+    try {
+      const query = new LogsQueries.GetEntityLogsQuery(
+        LogsEnums.LogEntityType.SHOP_PRODUCT,
+        shopProductId,
+        [UserType.ADMIN]
+      );
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
+      const result = await this.logsPort.getEntityLogs(query, queryOptions);
+      
+      return transformPaginatedResult(result, LogResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID товара'),
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Товар не найден'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { plainToInstance } from 'class-transformer';
 import { checkId } from "src/common/utils";
@@ -6,6 +6,7 @@ import { AuthenticatedUser } from 'src/common/types';
 import { ShiftResponseDto } from './admin.shifts.response.dtos';
 import { ShiftsQueryDto } from './admin.shifts.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import { UserType } from 'src/common/enums/common.enum';
 import {
   ShiftPort,
@@ -36,22 +37,26 @@ export class AdminShiftsRoleService {
     shiftsQueryDto: ShiftsQueryDto,
     paginationQuery: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<ShiftResponseDto>> {
+    try {
+      const query = new ShiftQueries.GetShiftsQuery({
+        shopId: shiftsQueryDto.shopId,
+        actorId: shiftsQueryDto.employeeId,
+        actorType: shiftsQueryDto.employeeId ? ShiftEnums.ActorType.EMPLOYEE : undefined,
+        startDate: shiftsQueryDto.startDate,
+        endDate: shiftsQueryDto.endDate,
+      });
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
+      const result = await this.shiftPort.getShifts(query, queryOptions);
 
-    const query = new ShiftQueries.GetShiftsQuery({
-      shopId: shiftsQueryDto.shopId,
-      actorId: shiftsQueryDto.employeeId,
-      actorType: shiftsQueryDto.employeeId ? ShiftEnums.ActorType.EMPLOYEE : undefined,
-      startDate: shiftsQueryDto.startDate,
-      endDate: shiftsQueryDto.endDate,
-    });
-
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
-
-    const result = await this.shiftPort.getShifts(query, queryOptions);
-    return transformPaginatedResult(result, ShiftResponseDto);
-
+      return transformPaginatedResult(result, ShiftResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректные параметры фильтрации'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -59,13 +64,19 @@ export class AdminShiftsRoleService {
     authedAdmin: AuthenticatedUser,
     shiftId: string
   ): Promise<ShiftResponseDto> {
+    try {
+      const query = new ShiftQueries.GetShiftQuery(shiftId);
+      const shift = await this.shiftPort.getShift(query);
+      if (!shift) throw new NotFoundException('Смена не найдена');
 
-    const query = new ShiftQueries.GetShiftQuery(shiftId);
-    const shift = await this.shiftPort.getShift(query);
-    if (!shift) throw new NotFoundException('Смена не найдена');
-
-    return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
-
+      return plainToInstance(ShiftResponseDto, shift, { excludeExtraneousValues: true });
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Смена не найдена'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID смены'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -73,19 +84,26 @@ export class AdminShiftsRoleService {
     authedAdmin: AuthenticatedUser,
     shiftId: string
   ): Promise<ShiftResponseDto> {
+    try {
+      const command = new ShiftCommands.ForceCloseShiftCommand(shiftId, {
+        actor: {
+          actorType: ShiftEnums.ActorType.ADMIN,
+          actorId: new Types.ObjectId(authedAdmin.id),
+          actorName: authedAdmin.id
+        },
+        comment: 'force close by admin'
+      });
+      await this.shiftPort.forceCloseShift(command);
 
-    const command = new ShiftCommands.ForceCloseShiftCommand(shiftId, {
-      actor: {
-        actorType: ShiftEnums.ActorType.ADMIN,
-        actorId: new Types.ObjectId(authedAdmin.id),
-        actorName: authedAdmin.id
-      },
-      comment: 'force close by admin'
-    });
-
-    await this.shiftPort.forceCloseShift(command);
-    return this.getShift(authedAdmin, shiftId);
-
+      return this.getShift(authedAdmin, shiftId);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Смена не найдена'),
+        [DomainErrorCode.INVARIANT]: new BadRequestException('Невозможно закрыть смену с текущим статусом'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID смены'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -94,19 +112,24 @@ export class AdminShiftsRoleService {
     shiftId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
+    try {
+      const query = new LogsQueries.GetEntityLogsQuery(
+        LogsEnums.LogEntityType.SHIFT,
+        shiftId,
+        [UserType.ADMIN]
+      );
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
+      const result = await this.logsPort.getEntityLogs(query, queryOptions);
 
-    const query = new LogsQueries.GetEntityLogsQuery(
-      LogsEnums.LogEntityType.SHIFT,
-      shiftId,
-      [UserType.ADMIN]
-    );
-    
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
-    
-    const result = await this.logsPort.getEntityLogs(query, queryOptions);
-    return transformPaginatedResult(result, LogResponseDto);
-
+      return transformPaginatedResult(result, LogResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID смены'),
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Смена не найдена'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import {
   OpenShiftByEmployeeDto,
@@ -8,6 +8,7 @@ import { ShiftPreviewResponseDto } from './shop.shifts.response.dtos';
 import { checkId } from 'src/common/utils';
 import { AuthenticatedUser, AuthenticatedEmployee } from 'src/common/types';
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import {
   ShiftPort,
   SHIFT_PORT,
@@ -42,18 +43,25 @@ export class ShopShiftsRoleService {
     authedShop: AuthenticatedUser,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShiftPreviewResponseDto>> {
-    checkId([authedShop.id]);
+    try {
+      checkId([authedShop.id]);
 
-    const query = new ShiftQueries.GetShiftsQuery({
-      shopId: authedShop.id,
-    });
+      const query = new ShiftQueries.GetShiftsQuery({
+        shopId: authedShop.id,
+      });
 
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
 
-    const result = await this.shiftPort.getShifts(query, queryOptions);
-    return transformPaginatedResult(result, ShiftPreviewResponseDto);
+      const result = await this.shiftPort.getShifts(query, queryOptions);
+      return transformPaginatedResult(result, ShiftPreviewResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректные параметры фильтрации'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -61,18 +69,28 @@ export class ShopShiftsRoleService {
     authedShop: AuthenticatedUser,
     shiftId: string
   ): Promise<ShiftPreviewResponseDto> {
-    checkId([shiftId, authedShop.id]);
+    try {
+      checkId([shiftId, authedShop.id]);
 
-    const shift = await this.shiftPort.getShift(shiftId);
-    if (!shift) throw new NotFoundException('Смена не найдена');
-    
-    if (shift.shop.toString() !== authedShop.id) {
-      throw new NotFoundException('Смена не принадлежит этому магазину');
+      const shift = await this.shiftPort.getShift(
+        new ShiftQueries.GetShiftQuery(shiftId)
+      );
+      if (!shift) throw new NotFoundException('Смена не найдена');
+      
+      if (shift.shop.toString() !== authedShop.id) {
+        throw new NotFoundException('Смена не принадлежит этому магазину');
+      }
+      
+      return plainToInstance(ShiftPreviewResponseDto, shift, { 
+        excludeExtraneousValues: true 
+      });
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Смена не найдена'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID смены'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
     }
-    
-    return plainToInstance(ShiftPreviewResponseDto, shift, { 
-      excludeExtraneousValues: true 
-    });
   }
 
 

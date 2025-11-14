@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, BadRequestException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import {
   ShopPreviewResponseDto,
@@ -9,6 +9,7 @@ import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType } from "src/common/enums/common.enum";
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import {
   ShopPort,
   SHOP_PORT,
@@ -39,19 +40,24 @@ export class AdminShopsRoleService {
     shopQueryFilter: ShopQueryFilterDto,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ShopPreviewResponseDto>> {
-    
-    const query = new ShopQueries.GetShopsQuery({
-      city: shopQueryFilter.city,
-      sellerId: shopQueryFilter.sellerId,
-      statuses: shopQueryFilter.statuses,
-    });
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
+    try {
+      const query = new ShopQueries.GetShopsQuery({
+        city: shopQueryFilter.city,
+        sellerId: shopQueryFilter.sellerId,
+        statuses: shopQueryFilter.statuses,
+      });
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
+      const result = await this.shopPort.getShops(query, queryOptions);
 
-    const result = await this.shopPort.getShops(query, queryOptions);
-    return transformPaginatedResult(result, ShopPreviewResponseDto);
-
+      return transformPaginatedResult(result, ShopPreviewResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректные параметры фильтрации'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -59,14 +65,21 @@ export class AdminShopsRoleService {
     authedAdmin: AuthenticatedUser,
     shopId: string
   ): Promise<ShopFullResponseDto> {
+    try {
+      const query = new ShopQueries.GetShopQuery({ shopId });
+      const shop = await this.shopPort.getShop(query);
+      
+      if (!shop) throw new NotFoundException('Магазин не найден');
 
-    const query = new ShopQueries.GetShopQuery({ shopId });
-    const shop = await this.shopPort.getShop(query);
-    
-    if (!shop) throw new NotFoundException('Магазин не найден');
-
-    return plainToInstance(ShopFullResponseDto, shop, { excludeExtraneousValues: true });
-
+      return plainToInstance(ShopFullResponseDto, shop, { excludeExtraneousValues: true });
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Магазин не найден'),
+        [DomainErrorCode.BAD_REQUEST]: new BadRequestException('Неверные параметры запроса'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID магазина'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -75,20 +88,25 @@ export class AdminShopsRoleService {
     shopId: string,
     paginationQuery: PaginationQueryDto
   ): Promise<PaginatedResponseDto<LogResponseDto>> {
+    try {
+      const query = new LogsQueries.GetEntityLogsQuery(
+        LogsEnums.LogEntityType.SHOP,
+        shopId,
+        [UserType.ADMIN]
+      );
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationQuery
+      };
+      const result = await this.logsPort.getEntityLogs(query, queryOptions);
 
-    const query = new LogsQueries.GetEntityLogsQuery(
-      LogsEnums.LogEntityType.SHOP,
-      shopId,
-      [UserType.ADMIN]
-    );
-    
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationQuery
-    };
-    
-    const result = await this.logsPort.getEntityLogs(query, queryOptions);
-    return transformPaginatedResult(result, LogResponseDto);
-
+      return transformPaginatedResult(result, LogResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID магазина'),
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Магазин не найден'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -97,15 +115,23 @@ export class AdminShopsRoleService {
     shopId: string,
     dto: UpdateShopDto
   ): Promise<ShopFullResponseDto> {
+    try {
+      const command = new ShopCommands.UpdateShopCommand(shopId, {
+        verifiedStatus: dto.verifiedStatus,
+        internalNote: dto.internalNote,
+      });
+      await this.shopPort.updateShop(command);
 
-    const command = new ShopCommands.UpdateShopCommand(shopId, {
-      verifiedStatus: dto.verifiedStatus,
-      internalNote: dto.internalNote,
-    });
-
-    await this.shopPort.updateShop(command);
-    return this.getShop(authedAdmin, shopId);
-
+      return this.getShop(authedAdmin, shopId);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Магазин не найден'),
+        [DomainErrorCode.CONFLICT]: new ConflictException('Магазин с таким названием уже существует'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID магазина'),
+        [DomainErrorCode.DB_VALIDATION_ERROR]: new BadRequestException('Ошибка валидации данных магазина'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -114,16 +140,23 @@ export class AdminShopsRoleService {
     shopId: string,
     dto: BlockShopDto
   ): Promise<ShopFullResponseDto> {
+    try {
+      const command = new ShopCommands.BlockShopCommand(shopId, {
+        status: dto.status,
+        reason: dto.reason,
+        code: dto.code,
+        blockedUntil: dto.blockedUntil,
+      });
+      await this.shopPort.blockShop(command);
 
-    const command = new ShopCommands.BlockShopCommand(shopId, {
-      status: dto.status,
-      reason: dto.reason,
-      code: dto.code,
-      blockedUntil: dto.blockedUntil,
-    });
-
-    await this.shopPort.blockShop(command);
-    return this.getShop(authedAdmin, shopId);
-
+      return this.getShop(authedAdmin, shopId);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Магазин не найден'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID магазина'),
+        [DomainErrorCode.DB_VALIDATION_ERROR]: new BadRequestException('Ошибка валидации данных блокировки'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 }

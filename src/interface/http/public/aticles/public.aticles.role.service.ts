@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { checkId } from "src/common/utils";
 import { ArticlePort, ARTICLE_PORT, ArticleQueries, ArticleEnums } from "src/modules/article";
@@ -8,6 +8,7 @@ import {
 } from './public.aticles.response.dtos';
 import { PublicArticlesQueryDto } from './public.aticles.query.dtos';
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 
 import {
   PaginatedResponseDto,
@@ -24,20 +25,26 @@ export class PublicArticlesRoleService {
 
   // Получение опубликованной статьи (для публики)
   async getPublishedArticle(articleId: string): Promise<ArticleFullResponseDto> {
-    
-    const query = new ArticleQueries.GetArticleQuery(articleId);
-    const article = await this.articlePort.getArticle(query);
-    
-    // Проверяем что статья существует и опубликована
-    if (!article || article.status !== ArticleEnums.ArticleStatus.PUBLISHED) {
-      throw new NotFoundException('Статья не найдена');
+    try {
+      const query = new ArticleQueries.GetArticleQuery(articleId);
+      const article = await this.articlePort.getArticle(query);
+      
+      // Проверяем что статья существует и опубликована
+      if (!article || article.status !== ArticleEnums.ArticleStatus.PUBLISHED) {
+        throw new NotFoundException('Статья не найдена');
+      }
+
+      // Увеличиваем счетчик просмотров
+      await this.articlePort.incrementView(articleId);
+
+      return plainToInstance(ArticleFullResponseDto, article);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Статья не найдена'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID статьи'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
     }
-
-    // Увеличиваем счетчик просмотров
-    await this.articlePort.incrementView(articleId);
-
-    return plainToInstance(ArticleFullResponseDto, article);
-
   }
 
 
@@ -46,21 +53,26 @@ export class PublicArticlesRoleService {
     queryDto: PublicArticlesQueryDto,
     paginationDto: PaginationQueryDto,
   ): Promise<PaginatedResponseDto<ArticlePreviewResponseDto>> {
+    try {
+      // Формируем запрос только для опубликованных статей
+      const query = new ArticleQueries.GetArticlesQuery({
+        statuses: [ArticleEnums.ArticleStatus.PUBLISHED],
+        targetAudience: queryDto.targetAudience,
+      });
 
-    // Формируем запрос только для опубликованных статей
-    const query = new ArticleQueries.GetArticlesQuery({
-      statuses: [ArticleEnums.ArticleStatus.PUBLISHED],
-      targetAudience: queryDto.targetAudience,
-    });
-
-    // Формируем опции пагинации
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationDto,
-    };
-    
-    const result = await this.articlePort.getArticles(query, queryOptions);
-    
-    return transformPaginatedResult(result, ArticlePreviewResponseDto);
-
+      // Формируем опции пагинации
+      const queryOptions: CommonListQueryOptions<'createdAt'> = {
+        pagination: paginationDto,
+      };
+      
+      const result = await this.articlePort.getArticles(query, queryOptions);
+      
+      return transformPaginatedResult(result, ArticlePreviewResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректные параметры фильтрации'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 }

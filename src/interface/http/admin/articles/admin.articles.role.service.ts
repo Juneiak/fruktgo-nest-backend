@@ -2,11 +2,15 @@ import {
   Injectable,
   Inject,
   NotFoundException,
+  ConflictException,
+  BadRequestException,
+  InternalServerErrorException
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from "src/common/types";
 import { CommonListQueryOptions } from 'src/common/types/queries';
+import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import {
   ArticlePort,
   ARTICLE_PORT,
@@ -40,13 +44,18 @@ export class AdminArticlesRoleService {
     authedAdmin: AuthenticatedUser,
     articleId: string,
   ): Promise<ArticleFullResponseDto> {
-
-    const query = new ArticleQueries.GetArticleQuery(articleId);
-    const article = await this.articlePort.getArticle(query);
-    if (!article) throw new NotFoundException('Статья не найдена');
-
-    return plainToInstance(ArticleFullResponseDto, article);
-
+    try {
+      const article = await this.articlePort.getArticle(
+        new ArticleQueries.GetArticleQuery(articleId)
+      );
+      return plainToInstance(ArticleFullResponseDto, article);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Статья не найдена'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID статьи'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -55,26 +64,26 @@ export class AdminArticlesRoleService {
     queryDto: ArticleQueryDto,
     paginationDto: PaginationQueryDto
   ): Promise<PaginatedResponseDto<ArticlePreviewResponseDto>> {
+    try {
+      const result = await this.articlePort.getArticles(
+        new ArticleQueries.GetArticlesQuery({
+          statuses: queryDto.statuses,
+          authorType: queryDto.authorType,
+          targetAudience: queryDto.targetAudience,
+          tags: queryDto.tags,
+          fromDate: queryDto.fromDate,
+          toDate: queryDto.toDate,
+        }),
+        { pagination: paginationDto }
+      );
 
-    // Формируем запрос с фильтрами
-    const query = new ArticleQueries.GetArticlesQuery({
-      statuses: queryDto.statuses,
-      authorType: queryDto.authorType,
-      targetAudience: queryDto.targetAudience,
-      tags: queryDto.tags,
-      fromDate: queryDto.fromDate,
-      toDate: queryDto.toDate,
-    });
-
-    // Формируем опции пагинации
-    const queryOptions: CommonListQueryOptions<'createdAt'> = {
-      pagination: paginationDto
-    };
-
-    const result = await this.articlePort.getArticles(query, queryOptions);
-
-    return transformPaginatedResult(result, ArticlePreviewResponseDto);
-
+      return transformPaginatedResult(result, ArticlePreviewResponseDto);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректные параметры фильтрации'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -83,20 +92,25 @@ export class AdminArticlesRoleService {
     dto: CreateArticleDto,
     articleImage?: Express.Multer.File,
   ): Promise<ArticleFullResponseDto> {
+    try {
+      const article = await this.articlePort.createArticle(
+        new ArticleCommands.CreateArticleCommand({
+          title: dto.title,
+          content: dto.content,
+          targetAudience: dto.targetAudience,
+          tags: dto.tags || [],
+          articleImageFile: articleImage,
+        })
+      );
 
-    // Создаем команду для создания артикля
-    const command = new ArticleCommands.CreateArticleCommand({
-      title: dto.title,
-      content: dto.content,
-      targetAudience: dto.targetAudience,
-      tags: dto.tags || [],
-      articleImageFile: articleImage,
-    });
-
-    const article = await this.articlePort.createArticle(command);
-
-    return plainToInstance(ArticleFullResponseDto, article);
-
+      return this.getArticle(authedAdmin, article._id.toString());
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.DB_DUPLICATE_KEY]: new ConflictException('Статья с таким названием уже существует'),
+        [DomainErrorCode.DB_VALIDATION_ERROR]: new BadRequestException('Ошибка валидации данных статьи'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -106,33 +120,29 @@ export class AdminArticlesRoleService {
     dto: UpdateArticleDto,
     articleImage?: Express.Multer.File,
   ): Promise<ArticleFullResponseDto> {
-
-    // Проверяем существование артикля
-    const query = new ArticleQueries.GetArticleQuery(articleId);
-    const existingArticle = await this.articlePort.getArticle(query);
-    if (!existingArticle) throw new NotFoundException('Статья не найдена');
-
-    // Формируем команду обновления
-    const command = new ArticleCommands.UpdateArticleCommand(
-      articleId,
-      {
-        title: dto.title,
-        content: dto.content,
-        targetAudience: dto.targetAudience,
-        tags: dto.tags,
-        status: dto.status,
-        articleImageFile: articleImage,
-      }
-    );
-
-    await this.articlePort.updateArticle(command);
-    
-    // Получаем обновленную статью
-    const updatedQuery = new ArticleQueries.GetArticleQuery(articleId);
-    const updatedArticle = await this.articlePort.getArticle(updatedQuery);
-
-    return plainToInstance(ArticleFullResponseDto, updatedArticle);
-
+    try {
+      await this.articlePort.updateArticle(
+        new ArticleCommands.UpdateArticleCommand(
+          articleId,
+          {
+            title: dto.title,
+            content: dto.content,
+            targetAudience: dto.targetAudience,
+            tags: dto.tags,
+            status: dto.status,
+            articleImageFile: articleImage,
+          }
+        )
+      );
+      return this.getArticle(authedAdmin, articleId);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Статья не найдена'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID статьи'),
+        [DomainErrorCode.DB_VALIDATION_ERROR]: new BadRequestException('Ошибка валидации данных статьи'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -141,26 +151,22 @@ export class AdminArticlesRoleService {
     articleId: string,
     dto: ChangeArticleStatusDto,
   ): Promise<ArticleFullResponseDto> {
-
-    // Проверяем существование артикля
-    const query = new ArticleQueries.GetArticleQuery(articleId);
-    const existingArticle = await this.articlePort.getArticle(query);
-    if (!existingArticle) throw new NotFoundException('Статья не найдена');
-
-    // Формируем команду изменения статуса
-    const command = new ArticleCommands.ChangeArticleStatusCommand(
-      articleId,
-      { status: dto.status }
-    );
-
-    await this.articlePort.changeStatus(command);
-    
-    // Получаем обновленную статью
-    const updatedQuery = new ArticleQueries.GetArticleQuery(articleId);
-    const updatedArticle = await this.articlePort.getArticle(updatedQuery);
-
-    return plainToInstance(ArticleFullResponseDto, updatedArticle);
-
+    try {
+      await this.articlePort.changeStatus(
+        new ArticleCommands.ChangeArticleStatusCommand(
+          articleId,
+          { status: dto.status }
+        )
+      );
+      return this.getArticle(authedAdmin, articleId);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Статья не найдена'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID статьи'),
+        [DomainErrorCode.DB_VALIDATION_ERROR]: new BadRequestException('Ошибка валидации статуса статьи'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
@@ -168,14 +174,15 @@ export class AdminArticlesRoleService {
     authedAdmin: AuthenticatedUser,
     articleId: string,
   ): Promise<void> {
-
-    // Проверяем существование артикля
-    const query = new ArticleQueries.GetArticleQuery(articleId);
-    const existingArticle = await this.articlePort.getArticle(query);
-    if (!existingArticle) throw new NotFoundException('Статья не найдена');
-
-    await this.articlePort.deleteArticle(articleId);
-
+    try {
+      await this.articlePort.deleteArticle(articleId);
+    } catch (error) {
+      handleServiceError(error, {
+        [DomainErrorCode.NOT_FOUND]: new NotFoundException('Статья не найдена'),
+        [DomainErrorCode.DB_CAST_ERROR]: new BadRequestException('Некорректный ID статьи'),
+        [DomainErrorCode.OTHER]: new InternalServerErrorException('Внутренняя ошибка сервера'),
+      });
+    }
   }
 
 
