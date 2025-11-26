@@ -17,8 +17,8 @@ import {
   ArticlePreviewResponseDto,
 } from './admin.articles.response.dtos';
 import { ArticleQueryDto } from './admin.articles.query.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
 
 
 // Административный контроллер для блога (требует авторизации)

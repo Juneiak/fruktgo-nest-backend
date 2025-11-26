@@ -11,14 +11,17 @@ import { UploadImageCommand } from 'src/infra/images/images.commands';
 import { ImageAccessLevel, ImageEntityType, ImageType } from 'src/infra/images/images.enums';
 import {
   GetShopProductQuery,
-  GetShopProductsQuery
+  GetShopProductsQuery,
+  GetShopProductsByIdsQuery,
 } from './shop-product.queries';
 import { 
   CreateShopProductCommand,
   UpdateShopProductCommand, 
   AddShopProductImageCommand,
   RemoveShopProductImageCommand, 
-  ArchiveShopProductCommand
+  ArchiveShopProductCommand,
+  AdjustStockQuantityCommand,
+  BulkAdjustStockQuantityCommand,
 } from './shop-product.commands';
 import { ShopProductStatus } from './shop-product.enums';
 import { ShopProductPort } from './shop-product.port';
@@ -293,4 +296,61 @@ export class ShopProductService implements ShopProductPort {
     await shopProduct.save(saveOptions);
   }
 
+
+  async getShopProductsByIds(
+    query: GetShopProductsByIdsQuery,
+    queryOptions?: CommonQueryOptions
+  ): Promise<ShopProduct[]> {
+    const { shopProductIds, options } = query;
+    checkId(shopProductIds);
+
+    const objectIds = shopProductIds.map(id => new Types.ObjectId(id));
+    const dbQuery = this.shopProductModel.find({ _id: { $in: objectIds } });
+    
+    if (queryOptions?.session) dbQuery.session(queryOptions.session);
+    if (options?.populateProduct) dbQuery.populate('product');
+
+    const shopProducts = await dbQuery.lean({ virtuals: true }).exec();
+    return shopProducts;
+  }
+
+
+  async adjustStockQuantity(
+    command: AdjustStockQuantityCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    const { shopProductId, payload } = command;
+    checkId([shopProductId]);
+
+    const updateOptions: any = {};
+    if (commandOptions?.session) updateOptions.session = commandOptions.session;
+
+    await this.shopProductModel.updateOne(
+      { _id: new Types.ObjectId(shopProductId) },
+      { $inc: { stockQuantity: payload.adjustment } },
+      updateOptions
+    );
+  }
+
+
+  async bulkAdjustStockQuantity(
+    command: BulkAdjustStockQuantityCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    const { items } = command;
+    const ids = items.map(i => i.shopProductId);
+    checkId(ids);
+
+    const bulkOps = items.map(item => ({
+      updateOne: {
+        filter: { _id: new Types.ObjectId(item.shopProductId) },
+        update: { $inc: { stockQuantity: item.adjustment } }
+      }
+    }));
+
+    const bulkOptions: any = {};
+    if (commandOptions?.session) bulkOptions.session = commandOptions.session;
+
+    await this.shopProductModel.bulkWrite(bulkOps, bulkOptions);
+  }
 }

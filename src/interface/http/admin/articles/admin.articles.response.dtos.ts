@@ -1,29 +1,40 @@
-import { Expose, Type } from 'class-transformer';
-import { ArticleEnums } from 'src/modules/article';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+/**
+ * Admin Article Response DTOs
+ *
+ * Используем PickType от BaseArticleResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/article.base-response
+ */
 
-export class ArticleFullResponseDto {
-  @Expose() articleId: string;
-  @Expose() title: string;
-  @Expose() content: string;
-  @ExposeObjectId() articleImage?: string | null;
-  @Expose() @Type(() => String) targetAudience: ArticleEnums.ArticleTargetAudience;
-  @Expose() @Type(() => String) status: ArticleEnums.ArticleStatus;
-  @Expose() tags: ArticleEnums.ArtcilesTag[];
-  @Expose() viewCount: number;
-  @Expose() createdAt: Date;
-  @Expose() @Type(() => Date) publishedAt?: Date;
-  @ExposeObjectId() author: string;
-  @Expose() @Type(() => String) authorType: ArticleEnums.ArticleAuthorType;
-}
+import { PickType } from '@nestjs/swagger';
+import { BaseArticleResponseDto } from 'src/interface/http/shared/base-responses';
 
+/**
+ * Full — все поля (admin видит всё)
+ */
+export class ArticleFullResponseDto extends PickType(BaseArticleResponseDto, [
+  'articleId',
+  'title',
+  'content',
+  'articleImage',
+  'targetAudience',
+  'status',
+  'tags',
+  'viewCount',
+  'createdAt',
+  'publishedAt',
+  'author',
+  'authorType',
+] as const) {}
 
-export class ArticlePreviewResponseDto {
-  @Expose() articleId: string;
-  @Expose() title: string;
-  @ExposeObjectId() articleImage?: string | null;
-  @Expose() contentPreview?: string;
-  @Expose() tags: ArticleEnums.ArtcilesTag[];
-  @Expose() createdAt: Date;
-  @Expose() @Type(() => Date) publishedAt?: Date;
-}
+/**
+ * Preview — для списков
+ */
+export class ArticlePreviewResponseDto extends PickType(BaseArticleResponseDto, [
+  'articleId',
+  'title',
+  'articleImage',
+  'contentPreview',
+  'tags',
+  'createdAt',
+  'publishedAt',
+] as const) {}

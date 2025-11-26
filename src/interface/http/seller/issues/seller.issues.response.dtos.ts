@@ -1,13 +1,20 @@
-import { IssueStatus, IssueLevel, IssueCategory } from 'src/modules/issue/issue.enums';
-import { Expose } from 'class-transformer';
+/**
+ * Seller Issue Response DTOs
+ *
+ * Продавец видит только свои обращения (без from, fromUserType, fromTelegramId).
+ * @see src/interface/http/shared/base-responses/issue.base-response
+ */
 
-export class IssueResponseDto {
-  @Expose() issueId: string;
-  @Expose() createdAt: Date;
-  @Expose() issueText: string;
-  @Expose() status: IssueStatus;
-  @Expose() level: IssueLevel;
-  @Expose() category?: IssueCategory;
-  @Expose() resolution?: string | null;
-  @Expose() resolvedAt?: Date | null;
-}
+import { PickType } from '@nestjs/swagger';
+import { BaseIssueResponseDto } from 'src/interface/http/shared/base-responses';
+
+export class IssueResponseDto extends PickType(BaseIssueResponseDto, [
+  'issueId',
+  'issueText',
+  'status',
+  'level',
+  'category',
+  'resolution',
+  'resolvedAt',
+  'createdAt',
+] as const) {}

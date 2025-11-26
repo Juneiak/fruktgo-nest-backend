@@ -4,7 +4,7 @@ import { VerifiedStatus } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { Shift } from 'src/modules/shift/shift.schema';
-import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
+import { BlockedSchema, Blocked, initBlocked } from 'src/common/schemas/common-schemas';
 import {
   DEFAULT_MIN_WEIGHT_DIFFERENCE_PERCENTAGE,
   DEFAULT_ACCEPTANCE_LIMIT,
@@ -15,27 +15,33 @@ import { Order } from 'src/modules/order/order.schema';
 import { ShopAccount } from 'src/modules/finance/shop-account/schemas/shop-account.schema';
 import { Image } from 'src/infra/images/image.schema';
 import { Seller } from 'src/modules/seller/seller.schema';
-import { initBlocked } from 'src/common/schemas/common-schemas';
 import { Address } from 'src/infra/addresses/address.schema';
 
+// ═══════════════════════════════════════════════════════════════
+// NESTED SCHEMAS
+// ═══════════════════════════════════════════════════════════════
 
-const shopStatisticsSchema = {
-  avgRating: { type: Number, min: 0, max: 5, default: 0, required: true },
-  totalSales: { type: Number, min: 0, default: 0, required: true },
-  ratingsCount: { type: Number, min: 0, default: 0, required: true },
-  ordersCount: { type: Number, min: 0, default: 0, required: true },
-  productsCount: { type: Number, min: 0, default: 0, required: true },
-  employeesCount: { type: Number, min: 0, default: 0, required: true },
-};
-
-interface ShopStatistics {
+@Schema({ _id: false })
+export class ShopStatistics {
+  @Prop({ type: Number, min: 0, max: 5, default: 0, required: true })
   avgRating: number;
+
+  @Prop({ type: Number, min: 0, default: 0, required: true })
   totalSales: number;
+
+  @Prop({ type: Number, min: 0, default: 0, required: true })
   ratingsCount: number;
+
+  @Prop({ type: Number, min: 0, default: 0, required: true })
   ordersCount: number;
+
+  @Prop({ type: Number, min: 0, default: 0, required: true })
   productsCount: number;
+
+  @Prop({ type: Number, min: 0, default: 0, required: true })
   employeesCount: number;
-};
+}
+export const ShopStatisticsSchema = SchemaFactory.createForClass(ShopStatistics);
 
 
 @Schema({
@@ -86,7 +92,7 @@ export class Shop {
   @Prop({ type: String })
   closeAt?: string;
 
-  @Prop({ type: shopStatisticsSchema, required: true, default: () => ({}) })
+  @Prop({ type: ShopStatisticsSchema, required: true, default: () => ({}) })
   statistics: ShopStatistics;
 
   @Prop({ type: Number, min: 1, default: 1, required: true })

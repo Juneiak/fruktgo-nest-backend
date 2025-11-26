@@ -7,8 +7,8 @@ import { Order } from 'src/modules/order/order.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 import { Shop } from 'src/modules/shop/shop.schema';
-import { PaginationMetaDto, PaginatedResponseDto } from "src/interface/http/common/common.response.dtos";
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginationMetaDto, PaginatedResponseDto } from "src/interface/http/responses";
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 
 @Injectable()
 export class SellerOrdersRoleService {

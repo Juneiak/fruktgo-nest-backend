@@ -1,32 +1,40 @@
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { Expose } from 'class-transformer';
-import {
-  BlockedResponseDto,
-  AddressResponseDto
-} from 'src/interface/http/common/common.response.dtos';
+/**
+ * Customer Me Response DTOs
+ *
+ * Используем PickType от BaseCustomerResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/customer.base-response
+ */
 
+import { PickType } from '@nestjs/swagger';
+import { BaseCustomerResponseDto } from 'src/interface/http/shared/base-responses';
 
-export class CustomerResponseDto {
-  @Expose() customerId: string;
-  @Expose() blocked: BlockedResponseDto;
-  @Expose() selectedAddressId: AddressResponseDto;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() customerName: string;
-  @Expose() telegramId: number;
-  @Expose() phone?: string | null;
-  @Expose() sex?: string | null;
-  @Expose() birthDate?: Date | null;
-  @Expose() bonusPoints: number;
-}
+/**
+ * Full — профиль клиента (без internalNote, cart)
+ */
+export class CustomerResponseDto extends PickType(BaseCustomerResponseDto, [
+  'customerId',
+  'customerName',
+  'phone',
+  'telegramId',
+  'blocked',
+  'verifiedStatus',
+  'sex',
+  'birthDate',
+  'bonusPoints',
+  'selectedAddressId',
+] as const) {}
 
-export class CustomerPreviewResponseDto {
-  @Expose() blocked: BlockedResponseDto;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() customerName: string;
-  @Expose() phone: string;
-  @Expose() selectedAddressId: AddressResponseDto;
-  @Expose() bonusPoints: number;
-  @Expose() telegramUsername?: string;
-  @Expose() telegramId: number;
-  @Expose() customerId: string;
-}
+/**
+ * Preview — краткая информация
+ */
+export class CustomerPreviewResponseDto extends PickType(BaseCustomerResponseDto, [
+  'customerId',
+  'customerName',
+  'phone',
+  'telegramId',
+  'telegramUsername',
+  'blocked',
+  'verifiedStatus',
+  'bonusPoints',
+  'selectedAddressId',
+] as const) {}

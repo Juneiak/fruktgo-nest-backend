@@ -3,27 +3,33 @@ import { PaginateModel, HydratedDocument, Types } from 'mongoose';
 import { VerifiedStatus } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
-import { BlockedSchema, Blocked } from 'src/common/schemas/common-schemas';
+import { BlockedSchema, Blocked, initBlocked } from 'src/common/schemas/common-schemas';
 import { Image } from 'src/infra/images/image.schema';
-import { initBlocked } from 'src/common/schemas/common-schemas';
 import { Shop } from '../shop/shop.schema';
 import { SellerAccount } from '../finance/seller-account/schemas/seller-account.schema';
 
-const sellerStatisticsSchema = {
-  totalSales: { type: Number, min: 0, required: true, default: 0 },
-  totalOrders: { type: Number, min: 0, required: true, default: 0 },
-  shopsCount: { type: Number, min: 0, required: true, default: 0 },
-  employeesCount: { type: Number, min: 0, required: true, default: 0 },
-  productsCount: { type: Number, min: 0, required: true, default: 0 }
-};
+// ═══════════════════════════════════════════════════════════════
+// NESTED SCHEMAS
+// ═══════════════════════════════════════════════════════════════
 
-interface SellerStatistics {
+@Schema({ _id: false })
+export class SellerStatistics {
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalSales: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalOrders: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   shopsCount: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   employeesCount: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   productsCount: number;
-};
+}
+export const SellerStatisticsSchema = SchemaFactory.createForClass(SellerStatistics);
 
 @Schema({
   toJSON: { virtuals: true },
@@ -74,7 +80,7 @@ export class Seller {
   @Prop({ type: String, enum: VerifiedStatus, required: true, default: VerifiedStatus.IS_CHECKING })
   verifiedStatus: VerifiedStatus;
 
-  @Prop({ type: sellerStatisticsSchema, required: true, default: () => ({}) })
+  @Prop({ type: SellerStatisticsSchema, required: true, default: () => ({}) })
   statistics: SellerStatistics;
 
   @Prop({ type: Date, default: null })

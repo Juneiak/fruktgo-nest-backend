@@ -5,77 +5,91 @@ import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { ActorType, ShiftEventType, ShiftStatus } from './shift.enums';
 import { Shop } from '../shop/shop.schema';
 
-// Актор (кто совершил действие)
-const ActorSchema = {
-  actorType: { type: String, enum: Object.values(ActorType), required: true },
-  actorId: { type: Types.ObjectId, required: true, refPath: 'actorType' },
-  actorName: { type: String, required: true },
-  _id: false,
-};
-export interface Actor {
+// ═══════════════════════════════════════════════════════════════
+// NESTED SCHEMAS
+// ═══════════════════════════════════════════════════════════════
+
+@Schema({ _id: false })
+export class ShiftActor {
+  @Prop({ type: String, enum: Object.values(ActorType), required: true })
   actorType: ActorType;
+
+  @Prop({ type: Types.ObjectId, required: true, refPath: 'actorType' })
   actorId: Types.ObjectId;
+
+  @Prop({ type: String, required: true })
   actorName: string;
 }
+export const ShiftActorSchema = SchemaFactory.createForClass(ShiftActor);
 
-// SLA-снепшот на момент открытия смены
-const SlaSnapshotSchema = {
-  acceptanceTimeLimit: { type: Number, min: 0, required: true }, // сек
-  assemblyTimeLimit:   { type: Number, min: 0, required: true }, // сек
-  minOrderSum: { type: Number, min: 0, required: true },
-  openAt: { type: Date, required: true },
-  closedAt: { type: Date, required: true },
-  _id: false,
-};
-export interface SlaSnapshot {
-  acceptanceTimeLimit: number;
-  assemblyTimeLimit: number;
+@Schema({ _id: false })
+export class SlaSnapshot {
+  @Prop({ type: Number, min: 0, required: true })
+  acceptanceTimeLimit: number; // сек
+
+  @Prop({ type: Number, min: 0, required: true })
+  assemblyTimeLimit: number; // сек
+
+  @Prop({ type: Number, min: 0, required: true })
   minOrderSum: number;
+
+  @Prop({ type: Date, required: true })
   openAt: Date;
+
+  @Prop({ type: Date, required: true })
   closedAt: Date;
 }
+export const SlaSnapshotSchema = SchemaFactory.createForClass(SlaSnapshot);
 
-// Агрегаты по смене
-const StatisticsSchema = {
-  ordersCount: { type: Number, min: 0, default: 0 },
-  deliveredOrdersCount: { type: Number, min: 0, default: 0 },
-  canceledOrdersCount: { type: Number, min: 0, default: 0 },
-  declinedOrdersCount: { type: Number, min: 0, default: 0 },
-  totalIncome: { type: Number, min: 0, default: 0 },
-  declinedIncome: { type: Number, min: 0, default: 0 },
-  avgOrderPrice: { type: Number, min: 0, default: 0 },
-  avgOrderAcceptanceDuration: { type: Number, min: 0, default: 0 }, // сек
-  avgOrderAssemblyDuration: { type: Number, min: 0, default: 0 }, // сек
-  _id: false,
-};
-export interface Statistics {
+@Schema({ _id: false })
+export class ShiftStatistics {
+  @Prop({ type: Number, min: 0, default: 0 })
   ordersCount: number;
-  deliveredOrdersCount: number;
-  canceledOrdersCount: number;
-  declinedOrdersCount: number;
-  totalIncome: number;
-  declinedIncome: number;
-  avgOrderPrice: number;
-  avgOrderAcceptanceDuration: number;
-  avgOrderAssemblyDuration: number;
-}
 
-// Журнал событий смены
-const EventSchema = {
-  type: { type: String, enum: Object.values(ShiftEventType), required: true },
-  at: { type: Date, default: () => new Date(), required: true },
-  by: { type: ActorSchema, required: true },
-  comment: { type: String, default: null },
-  payload: { type: MongooseSchema.Types.Mixed, default: {} },
-  _id: false,
-};
-export interface ShiftEvent {
+  @Prop({ type: Number, min: 0, default: 0 })
+  deliveredOrdersCount: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  canceledOrdersCount: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  declinedOrdersCount: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  totalIncome: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  declinedIncome: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  avgOrderPrice: number;
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  avgOrderAcceptanceDuration: number; // сек
+
+  @Prop({ type: Number, min: 0, default: 0 })
+  avgOrderAssemblyDuration: number; // сек
+}
+export const ShiftStatisticsSchema = SchemaFactory.createForClass(ShiftStatistics);
+
+@Schema({ _id: false })
+export class ShiftEvent {
+  @Prop({ type: String, enum: Object.values(ShiftEventType), required: true })
   type: ShiftEventType;
+
+  @Prop({ type: Date, default: () => new Date(), required: true })
   at: Date;
-  by: Actor;
+
+  @Prop({ type: ShiftActorSchema, required: true })
+  by: ShiftActor;
+
+  @Prop({ type: String, default: null })
   comment?: string | null;
+
+  @Prop({ type: MongooseSchema.Types.Mixed, default: {} })
   payload?: Record<string, unknown>;
 }
+export const ShiftEventSchema = SchemaFactory.createForClass(ShiftEvent);
 
 // =============================
 // Shift schema (минимальное ядро + события + снепшоты)
@@ -104,23 +118,23 @@ export class Shift {
   sla: SlaSnapshot;
 
   // Агрегаты
-  @Prop({ type: StatisticsSchema, required: true, default: {} })
-  statistics: Statistics;
+  @Prop({ type: ShiftStatisticsSchema, required: true, default: {} })
+  statistics: ShiftStatistics;
 
-  @Prop({ type: ActorSchema, required: true })
-  openedBy: Actor;
+  @Prop({ type: ShiftActorSchema, required: true })
+  openedBy: ShiftActor;
 
   @Prop({ type: Date, required: true })
   openedAt: Date;
 
-  @Prop({ type: ActorSchema, required: false, default: null })
-  closedBy: Actor | null;
+  @Prop({ type: ShiftActorSchema, required: false, default: null })
+  closedBy: ShiftActor | null;
 
   @Prop({ type: Date, required: false, default: null })
   closedAt: Date | null;
 
   // Журнал событий
-  @Prop({ type: [EventSchema], default: [] })
+  @Prop({ type: [ShiftEventSchema], default: [] })
   events: ShiftEvent[];
 }
 

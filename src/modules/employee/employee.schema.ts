@@ -10,18 +10,19 @@ import { Seller } from 'src/modules/seller/seller.schema';
 import { Shift } from 'src/modules/shift/shift.schema';
 import { Image } from 'src/infra/images/image.schema';
 
-const employeeStatisticsSchema = {
-  _id: false,
-  totalOrders: { type: Number, min: 0, required: true, default: 0 },
-  totalShifts: { type: Number, max: 0, required: true, default: 0 },
-  shiftRating: { type: Number, min: 0, max: 100, required: true, default: 0 },
-};
-
-interface EmployeeStatistics {
+@Schema({ _id: false })
+export class EmployeeStatistics {
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalOrders: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalShifts: number;
+
+  @Prop({ type: Number, min: 0, max: 100, required: true, default: 0 })
   shiftRating: number;
-};
+}
+
+export const EmployeeStatisticsSchema = SchemaFactory.createForClass(EmployeeStatistics);
 
 @Schema({
   toJSON: { virtuals: true },
@@ -86,7 +87,7 @@ export class Employee {
   @Prop({ type: Date })
   lastLoginAt?: Date;
 
-  @Prop({ type: employeeStatisticsSchema, required: true, default: () => ({}) })
+  @Prop({ type: EmployeeStatisticsSchema, required: true, default: () => ({}) })
   statistics: EmployeeStatistics;
 
   @Prop({ type: Types.ObjectId, ref: Shop.name, default: null })

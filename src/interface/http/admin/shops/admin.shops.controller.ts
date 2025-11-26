@@ -7,8 +7,8 @@ import {
 import { UpdateShopDto, BlockShopDto } from './admin.shops.request.dtos';
 import { ApiTags, ApiOperation, ApiBearerAuth} from '@nestjs/swagger';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto, LogResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';

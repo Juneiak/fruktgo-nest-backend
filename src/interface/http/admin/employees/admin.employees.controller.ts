@@ -10,9 +10,9 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { BlockDto } from 'src/interface/http/common/common.request.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
+import { BlockDto } from 'src/interface/http/responses/common.request.dtos';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { PaginatedLogDto } from 'src/infra/logs/logs.response.dtos';
 

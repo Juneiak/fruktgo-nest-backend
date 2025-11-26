@@ -5,8 +5,8 @@ import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import { AdminOrdersRoleService } from './admin.orders.role.service';
 import {
   OrderPreviewResponseDto,

@@ -1,56 +1,63 @@
-import { Expose } from 'class-transformer';
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { Types } from 'mongoose';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+/**
+ * Admin Seller Response DTOs
+ *
+ * Используем PickType от BaseSellerResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/seller.base-response
+ */
 
-export class SellerPreviewResponseDto {
-  @Expose() sellerId: string;
-  @ExposeObjectId() sellerLogo: string;
-  @Expose() companyName: string;
-  @Expose() inn: number;
-  @Expose() isBlocked: boolean;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() totalSales: number;
-  @Expose() totalOrders: number;
-  @Expose() lastLoginDate?: Date | null;
-  @Expose() shopsCount: number;
-  @Expose() employeesCount: number;
-  @Expose() productsCount: number;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @Expose() lastLoginAt?: Date | null;
-  @Expose() email: string;
-  @Expose() phone: string | null;
-  @Expose() telegramId: number;
-  @Expose() telegramUsername?: string;
-  @Expose() telegramFirstName?: string;
-  @Expose() telegramLastName?: string;
-  @Expose() internalNote: string | null;
+import { PickType } from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
+import { BaseSellerResponseDto, BaseSellerStatisticsDto } from 'src/interface/http/shared/base-responses';
+
+/**
+ * Preview — для списков (со статистикой)
+ */
+class _SellerPreviewBase extends PickType(BaseSellerResponseDto, [
+  'sellerId',
+  'sellerLogo',
+  'companyName',
+  'inn',
+  'blocked',
+  'verifiedStatus',
+  'phone',
+  'email',
+  'telegramId',
+  'telegramUsername',
+  'telegramFirstName',
+  'telegramLastName',
+  'lastLoginAt',
+  'internalNote',
+  'createdAt',
+  'updatedAt',
+] as const) {}
+
+export class SellerPreviewResponseDto extends _SellerPreviewBase {
+  @Expose() @Type(() => BaseSellerStatisticsDto) statistics: BaseSellerStatisticsDto;
 }
 
-export class SellerFullResponseDto {
-  @Expose() sellerId: string;
-  @ExposeObjectId() sellerLogo: string;
-  @Expose() companyName: string;
-  @Expose() inn: number;
-  @Expose() isBlocked: boolean;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() totalSales: number;
-  @Expose() totalOrders: number;
-  @Expose() lastLoginDate?: Date | null;
-  @Expose() shopsCount: number;
-  @Expose() employeesCount: number;
-  @Expose() productsCount: number;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @Expose() lastLoginAt?: Date | null;
-  @Expose() email: string;
-  @Expose() phone: string | null;
-  @Expose() telegramId: number;
-  @Expose() telegramUsername?: string;
-  @Expose() telegramFirstName?: string;
-  @Expose() telegramLastName?: string;
-  @Expose() internalNote: string | null;
-  @ExposeObjectId() employees: Types.ObjectId[];
-  @ExposeObjectId() shops: Types.ObjectId[];
+/**
+ * Full — все поля + shops
+ */
+class _SellerFullBase extends PickType(BaseSellerResponseDto, [
+  'sellerId',
+  'sellerLogo',
+  'companyName',
+  'inn',
+  'blocked',
+  'verifiedStatus',
+  'phone',
+  'email',
+  'telegramId',
+  'telegramUsername',
+  'telegramFirstName',
+  'telegramLastName',
+  'lastLoginAt',
+  'internalNote',
+  'shops',
+  'createdAt',
+  'updatedAt',
+] as const) {}
+
+export class SellerFullResponseDto extends _SellerFullBase {
+  @Expose() @Type(() => BaseSellerStatisticsDto) statistics: BaseSellerStatisticsDto;
 }

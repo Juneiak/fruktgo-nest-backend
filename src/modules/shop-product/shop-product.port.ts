@@ -5,9 +5,11 @@ import {
   UpdateShopProductCommand, 
   ArchiveShopProductCommand,
   AddShopProductImageCommand,
-  RemoveShopProductImageCommand 
+  RemoveShopProductImageCommand,
+  AdjustStockQuantityCommand,
+  BulkAdjustStockQuantityCommand,
 } from './shop-product.commands';
-import { GetShopProductQuery, GetShopProductsQuery } from './shop-product.queries';
+import { GetShopProductQuery, GetShopProductsQuery, GetShopProductsByIdsQuery } from './shop-product.queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 
@@ -17,6 +19,7 @@ export interface ShopProductPort {
   // ==================================================== 
   getShopProduct(query: GetShopProductQuery, queryOptions?: CommonQueryOptions): Promise<ShopProduct | null>;
   getShopProducts(query: GetShopProductsQuery, queryOptions?: CommonListQueryOptions<'createdAt'>): Promise<PaginateResult<ShopProduct>>;
+  getShopProductsByIds(query: GetShopProductsByIdsQuery, queryOptions?: CommonQueryOptions): Promise<ShopProduct[]>;
 
   // ====================================================
   // COMMANDS
@@ -26,6 +29,8 @@ export interface ShopProductPort {
   archiveShopProduct(command: ArchiveShopProductCommand, commandOptions?: CommonCommandOptions): Promise<void>;
   addShopProductImage(command: AddShopProductImageCommand, commandOptions?: CommonCommandOptions): Promise<string>;
   removeShopProductImage(command: RemoveShopProductImageCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  adjustStockQuantity(command: AdjustStockQuantityCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  bulkAdjustStockQuantity(command: BulkAdjustStockQuantityCommand, commandOptions?: CommonCommandOptions): Promise<void>;
 }
 
 export const SHOP_PRODUCT_PORT = Symbol('SHOP_PRODUCT_PORT');

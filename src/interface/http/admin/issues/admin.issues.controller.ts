@@ -12,7 +12,7 @@ import { IssueQueryDto } from './admin.issues.query.dtos';
 import {
   PaginatedResponseDto,
   PaginationQueryDto
-} from 'src/interface/http/common';
+} from 'src/interface/http/shared';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')

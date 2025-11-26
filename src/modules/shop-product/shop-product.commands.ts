@@ -41,3 +41,21 @@ export class RemoveShopProductImageCommand {
     public readonly shopProductImageId: string,
   ) {}
 }
+
+export class AdjustStockQuantityCommand {
+  constructor(
+    public readonly shopProductId: string,
+    public readonly payload: {
+      adjustment: number; // positive to add, negative to subtract
+    }
+  ) {}
+}
+
+export class BulkAdjustStockQuantityCommand {
+  constructor(
+    public readonly items: Array<{
+      shopProductId: string;
+      adjustment: number;
+    }>
+  ) {}
+}

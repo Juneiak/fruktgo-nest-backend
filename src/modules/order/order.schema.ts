@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { PaginateModel, HydratedDocument, Types } from 'mongoose';
+import { PaginateModel, HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { PositiveFeedbackTag, NegativeFeedbackTag, OrderEventActorType } from './order.enums';
@@ -20,147 +20,164 @@ import {
   ProductMeasuringScale,
 } from 'src/modules/product/product.enums';
 
+// ═══════════════════════════════════════════════════════════════
+// NESTED SCHEMAS
+// ═══════════════════════════════════════════════════════════════
 
-// orderedBy (customer)
-const OrderedBySchema = {
-  _id: false,
-  customer: { type: Types.ObjectId, ref: Customer.name, required: true },
-  customerName: { type: String, required: true },
-};
-export interface OrderedBy {
+@Schema({ _id: false })
+export class OrderedBy {
+  @Prop({ type: Types.ObjectId, ref: Customer.name, required: true })
   customer: Types.ObjectId;
+
+  @Prop({ type: String, required: true })
   customerName: string;
 }
+export const OrderedBySchema = SchemaFactory.createForClass(OrderedBy);
 
-// orderedFrom (shop)
-const OrderedFromSchema = {
-  _id: false,
-  shop: { type: Types.ObjectId, ref: Shop.name, required: true },
-  shopName: { type: String, required: true },
-  shopImage: { type: String, required: true },
-};
-export interface OrderedFrom {
+@Schema({ _id: false })
+export class OrderedFrom {
+  @Prop({ type: Types.ObjectId, ref: Shop.name, required: true })
   shop: Types.ObjectId;
+
+  @Prop({ type: String, required: true })
   shopName: string;
+
+  @Prop({ type: String, required: true })
   shopImage: string;
 }
+export const OrderedFromSchema = SchemaFactory.createForClass(OrderedFrom);
 
-// HandledBy (employee)
-const HandledBySchema = {
-  _id: false,
-  employee: { type: Types.ObjectId, ref: Employee.name, default: null },
-  employeeName: { type: String, default: null },
-  shift: { type: Types.ObjectId, ref: Shift.name, default: null },
-};
-export interface HandledBy {
+@Schema({ _id: false })
+export class HandledBy {
+  @Prop({ type: Types.ObjectId, ref: Employee.name, default: null })
   employee: Types.ObjectId | null;
+
+  @Prop({ type: String, default: null })
   employeeName: string | null;
+
+  @Prop({ type: Types.ObjectId, ref: Shift.name, default: null })
   shift: Types.ObjectId | null;
 }
+export const HandledBySchema = SchemaFactory.createForClass(HandledBy);
 
-
-// finance
-const OrderFinancesSchema = {
-  totalCartSum: { type: Number, required: true, default: 0, min: 0 },
-  sentSum: { type: Number, required: true, default: 0, min: 0 },
-  deliveryPrice: { type: Number, required: true, default: 0, min: 0 },
-  systemTax: { type: Number, required: true, default: 0, min: 0 },
-  usedBonusPoints: { type: Number, required: false, default: 0 },
-  totalWeightCompensationBonus: { type: Number, required: false, default: 0 },
-  totalSum: { type: Number, required: true, default: 0, min: 0 },
-  _id: false
-};
-export interface OrderFinances {
+@Schema({ _id: false })
+export class OrderFinances {
+  @Prop({ type: Number, required: true, default: 0, min: 0 })
   totalCartSum: number;
-  sentSum: number;
-  deliveryPrice: number;
-  systemTax: number;
-  usedBonusPoints: number;
-  totalWeightCompensationBonus: number;
-  totalSum: number;
-};
 
-// rating
-const OrderRatingSchema = {
-  settedRating: { type: Number, default: 0, min: 0, max: 5 },
-  feedbackAt: { type: Date, default: null },
-  feedbackTags: [{ type: String, enum: [...Object.values(PositiveFeedbackTag), ...Object.values(NegativeFeedbackTag)], default: [] }],
-  feedbackComment: { type: String, default: '' },
-  _id: false
-};
-export interface OrderRating {
+  @Prop({ type: Number, required: true, default: 0, min: 0 })
+  sentSum: number;
+
+  @Prop({ type: Number, required: true, default: 0, min: 0 })
+  deliveryPrice: number;
+
+  @Prop({ type: Number, required: true, default: 0, min: 0 })
+  systemTax: number;
+
+  @Prop({ type: Number, required: false, default: 0 })
+  usedBonusPoints: number;
+
+  @Prop({ type: Number, required: false, default: 0 })
+  totalWeightCompensationBonus: number;
+
+  @Prop({ type: Number, required: true, default: 0, min: 0 })
+  totalSum: number;
+}
+export const OrderFinancesSchema = SchemaFactory.createForClass(OrderFinances);
+
+@Schema({ _id: false })
+export class OrderRating {
+  @Prop({ type: Number, default: 0, min: 0, max: 5 })
   settedRating: number;
+
+  @Prop({ type: Date, default: null })
   feedbackAt: Date | null;
+
+  @Prop({ type: [String], enum: [...Object.values(PositiveFeedbackTag), ...Object.values(NegativeFeedbackTag)], default: [] })
   feedbackTags: (PositiveFeedbackTag | NegativeFeedbackTag)[];
+
+  @Prop({ type: String, default: '' })
   feedbackComment: string;
 }
+export const OrderRatingSchema = SchemaFactory.createForClass(OrderRating);
 
-// Order Event (Event Sourcing)
-const OrderEventSchema = {
-  type: { type: String, enum: Object.values(OrderEventType), required: true },
-  timestamp: { type: Date, required: true, default: () => new Date() },
-  actor: {
-    type: { type: String, enum: Object.values(OrderEventActorType), required: true },
-    id: { type: Types.ObjectId, required: true },
-    name: { type: String, required: false }
-  },
-  data: { type: Object, required: false }, // Дополнительные данные события
-  metadata: { type: Object, required: false }, // Метаданные (например, IP, user-agent)
-  _id: true // Оставляем _id для событий для уникальности
-};
+@Schema({ _id: false })
+export class OrderEventActor {
+  @Prop({ type: String, enum: Object.values(OrderEventActorType), required: true })
+  type: OrderEventActorType;
 
-export interface OrderEventActor {
-  type?: OrderEventActorType;
-  id?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, required: true })
+  id: Types.ObjectId;
+
+  @Prop({ type: String, required: false })
   name?: string;
 }
+export const OrderEventActorSchema = SchemaFactory.createForClass(OrderEventActor);
 
-export interface OrderEvent {
+@Schema({ _id: true })
+export class OrderEvent {
   _id: Types.ObjectId;
+
+  @Prop({ type: String, enum: Object.values(OrderEventType), required: true })
   type: OrderEventType;
+
+  @Prop({ type: Date, required: true, default: () => new Date() })
   timestamp: Date;
+
+  @Prop({ type: OrderEventActorSchema, required: false })
   actor?: OrderEventActor;
+
+  @Prop({ type: MongooseSchema.Types.Mixed, required: false })
   data?: Record<string, any>;
+
+  @Prop({ type: MongooseSchema.Types.Mixed, required: false })
   metadata?: Record<string, any>;
 }
+export const OrderEventSchema = SchemaFactory.createForClass(OrderEvent);
 
-// delivery
-const OrderDeliverySchema = {
-  deliveryAddress: { type: String, required: true, default: '' },
-  deliveryPrice: { type: Number, required: true, min: 0, default: 0 },
-  deliveryTime: { type: Number, required: true, min: 0, default: 0 },
-  _id: false
-};
-export interface OrderDelivery {
+@Schema({ _id: false })
+export class OrderDelivery {
+  @Prop({ type: String, required: true, default: '' })
   deliveryAddress: string;
+
+  @Prop({ type: Number, required: true, min: 0, default: 0 })
   deliveryPrice: number;
+
+  @Prop({ type: Number, required: true, min: 0, default: 0 })
   deliveryTime: number;
 }
+export const OrderDeliverySchema = SchemaFactory.createForClass(OrderDelivery);
 
-// order product
-const OrderProductSchema = {
-  shopProduct: { type: Types.ObjectId, ref: ShopProduct.name, required: true },
-  category: { type: String, enum: Object.values(ProductCategory), required: true },
-  productName: { type: String, required: true },
-  price: { type: Number, required: true, min: 0 },
-  cardImage: { type: Types.ObjectId, ref: Image.name, required: false },
-  measuringScale: { type: String, enum: Object.values(ProductMeasuringScale), required: true },
-  selectedQuantity: { type: Number, required: true, min: 0 },
-  actualQuantity: { type: Number, min: 0, required: false, default: null },
-  weightCompensationBonus: { type: Number, min: 0, required: false, default: 0 },
-  _id: false
-};
-export interface OrderProduct {
+@Schema({ _id: false })
+export class OrderProduct {
+  @Prop({ type: Types.ObjectId, ref: ShopProduct.name, required: true })
   shopProduct: Types.ObjectId;
+
+  @Prop({ type: String, enum: Object.values(ProductCategory), required: true })
   category: ProductCategory;
+
+  @Prop({ type: String, required: true })
   productName: string;
+
+  @Prop({ type: Number, required: true, min: 0 })
   price: number;
+
+  @Prop({ type: Types.ObjectId, ref: Image.name, required: false })
   cardImage: Types.ObjectId | null;
+
+  @Prop({ type: String, enum: Object.values(ProductMeasuringScale), required: true })
   measuringScale: ProductMeasuringScale;
+
+  @Prop({ type: Number, required: true, min: 0 })
   selectedQuantity: number;
+
+  @Prop({ type: Number, min: 0, required: false, default: null })
   actualQuantity: number | null;
+
+  @Prop({ type: Number, min: 0, required: false, default: 0 })
   weightCompensationBonus: number;
 }
+export const OrderProductSchema = SchemaFactory.createForClass(OrderProduct);
 
 @Schema({
   toJSON: { virtuals: true },

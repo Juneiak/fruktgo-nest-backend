@@ -3,8 +3,8 @@ import { PublicShopProductsRoleService } from './public.shop-products.role.servi
 import { ShopProductResponseDto } from './public.shop-products.response.dtos'; 
 import { ApiTags, ApiOperation} from '@nestjs/swagger';
 import { ShopProductQueryDto } from './public.shop-products.query.dtos';
-import { PaginatedResponseDto, } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto, } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 
 @ApiTags('for public')
 @Controller()

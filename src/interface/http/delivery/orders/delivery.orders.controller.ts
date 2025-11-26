@@ -5,7 +5,7 @@ import { TypeGuard } from 'src/common/guards/type.guard';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
-import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { MessageResponseDto } from 'src/interface/http/shared';
 import {DeliveryOrdersRoleService} from './delivery.orders.role.service'; 
 
 @ApiTags('for delivery')

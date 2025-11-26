@@ -1,6 +1,11 @@
-import { BlockStatus } from "src/common/enums/common.enum";
-import { IsOptional, IsEnum, IsString, IsDate } from "class-validator";
+/**
+ * Common Request DTOs
+ *
+ * Общие Request DTOs.
+ */
 
+import { BlockStatus } from 'src/common/enums/common.enum';
+import { IsOptional, IsEnum, IsString, IsDate } from 'class-validator';
 
 export class BlockDto {
   @IsEnum(BlockStatus)

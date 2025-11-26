@@ -1,26 +1,60 @@
-import { Expose, Type } from 'class-transformer';
-import { Types } from 'mongoose';
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { ShopStatus } from 'src/modules/shop/shop.enums';
-import { ShiftResponseDto } from 'src/interface/http/seller/shifts/seller.shifts.response.dtos';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+/**
+ * Shop Me Response DTOs
+ *
+ * Магазин видит свой профиль (без sellerNote, internalNote).
+ * @see src/interface/http/shared/base-responses/shop.base-response
+ */
 
-export class ShopPreviewResponseDto {
-  @Expose() shopId: string;
-  @ExposeObjectId() owner: Types.ObjectId;
-  @Expose() isBlocked: boolean;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() shopName: string;
-  @ExposeObjectId() shopImage?: Types.ObjectId | null;
-  @Expose() aboutShop?: string | null;
-  @ExposeObjectId() address?: Types.ObjectId | null;
-  @Expose() status: ShopStatus;
-  @Expose() openAt?: string | null;
-  @Expose() closeAt?: string | null;
-  @Expose() minOrderSum: number;
-  @Expose() acceptanceTimeLimit: number;
-  @Expose() assemblyTimeLimit: number;
-  @Expose() minWeightPercentage: number;
-  @Expose() @Type(() => ShiftResponseDto) currentShift?: ShiftResponseDto;
-  @ExposeObjectId() pinnedEmployees: Types.ObjectId[];
+import { PickType } from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
+import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+import {
+  BaseShopResponseDto,
+  BaseShiftResponseDto,
+  BaseShiftStatisticsDto,
+} from 'src/interface/http/shared/base-responses';
+
+/**
+ * CurrentShift — вложенный DTO для populated shift
+ */
+class _CurrentShiftBase extends PickType(BaseShiftResponseDto, [
+  'shiftId',
+  'shop',
+  'status',
+  'openedBy',
+  'openedAt',
+  'closedBy',
+  'closedAt',
+  'createdAt',
+  'updatedAt',
+] as const) {}
+
+class CurrentShiftDto extends _CurrentShiftBase {
+  @Expose() @Type(() => BaseShiftStatisticsDto) statistics: BaseShiftStatisticsDto;
+}
+
+/**
+ * Preview — профиль магазина (для employee)
+ */
+class _ShopPreviewBase extends PickType(BaseShopResponseDto, [
+  'shopId',
+  'owner',
+  'blocked',
+  'verifiedStatus',
+  'shopName',
+  'shopImage',
+  'aboutShop',
+  'address',
+  'status',
+  'openAt',
+  'closeAt',
+  'minOrderSum',
+  'acceptanceTimeLimit',
+  'assemblyTimeLimit',
+  'minWeightDifferencePercentage',
+] as const) {}
+
+export class ShopPreviewResponseDto extends _ShopPreviewBase {
+  @Expose() @Type(() => CurrentShiftDto) currentShift?: CurrentShiftDto | null;
+  @ExposeObjectId() pinnedEmployees: string[];
 }

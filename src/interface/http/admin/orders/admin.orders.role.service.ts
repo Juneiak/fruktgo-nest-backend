@@ -5,8 +5,8 @@ import { Order } from 'src/modules/order/order.schema';
 import {
   PaginatedResponseDto,
   PaginationMetaDto,
-} from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+} from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import {
   OrderPreviewResponseDto,
   OrderFullResponseDto

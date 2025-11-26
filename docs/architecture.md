@@ -1,827 +1,332 @@
 # FruktGo Backend Architecture
 
-> **Версия:** 1.0  
-> **Последнее обновление:** Ноябрь 2024
+> Архитектура и концепции. Для практического руководства см. [tech-guidelines.md](./tech-guidelines.md).
 
 ## Содержание
 
-- [1. Обзор архитектуры](#1-обзор-архитектуры)
+- [1. Обзор](#1-обзор)
 - [2. Архитектурные принципы](#2-архитектурные-принципы)
-- [3. Структура слоев](#3-структура-слоев)
-- [4. Domain Modules](#4-domain-modules)
-- [5. Infrastructure Layer](#5-infrastructure-layer)
-- [6. Interface Layer](#6-interface-layer)
-- [7. Authentication & Authorization](#7-authentication--authorization)
-- [8. Event-Driven Architecture](#8-event-driven-architecture)
-- [9. Data Flow](#9-data-flow)
-- [10. Финансовая система](#10-финансовая-система)
-- [11. Ключевые архитектурные решения](#11-ключевые-архитектурные-решения)
+- [3. Структура проекта](#3-структура-проекта)
+- [4. Модули](#4-модули)
+- [5. Interface Layer](#5-interface-layer)
+- [6. Authentication](#6-authentication)
+- [7. Events](#7-events)
+- [8. Data Flow](#8-data-flow)
+- [9. Финансовая система](#9-финансовая-система)
 
 ---
 
-## 1. Обзор архитектуры
+## 1. Обзор
 
-FruktGo - это multi-tenant платформа для управления сетью продуктовых магазинов, построенная на NestJS с использованием **Port-Based Architecture** (Hexagonal Architecture) и **CQRS** паттерна.
-
-### Высокоуровневая схема
+FruktGo — multi-tenant платформа для продуктовых магазинов на NestJS + MongoDB.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     INTERFACE LAYER                          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  HTTP API    │  │  WebSockets  │  │ Telegram Bots│      │
-│  │  (по ролям)  │  │  (по ролям)  │  │  (по ролям)  │      │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    APPLICATION LAYER                         │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │  RoleServices (Orchestration)                        │   │
-│  │  - Координация вызовов к доменным модулям            │   │
-│  │  - Трансформация DTOs ↔ Commands/Queries           │   │
-│  │  - Обработка ошибок                                  │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      DOMAIN LAYER                            │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │  Customer  │  │   Seller   │  │    Shop    │ ...        │
-│  │   Module   │  │   Module   │  │   Module   │            │
-│  └────────────┘  └────────────┘  └────────────┘            │
-│                                                               │
-│  Каждый модуль содержит:                                     │
-│  - Port (интерфейс)                                          │
-│  - Service (бизнес-логика)                                   │
-│  - Schema (данные)                                           │
-│  - Commands/Queries (CQRS)                                   │
-└─────────────────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  INFRASTRUCTURE LAYER                        │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐            │
-│  │   Images   │  │  Addresses │  │    Logs    │ ...        │
-│  │  (Storage) │  │ (Geo data) │  │(Audit log) │            │
-│  └────────────┘  └────────────┘  └────────────┘            │
-└─────────────────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│                         DATABASE                             │
-│                      MongoDB + Mongoose                      │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────┐
+│                  INTERFACE LAYER                     │
+│   HTTP API  │  WebSockets  │  Telegram Bots         │
+│  (по ролям) │  (по ролям)  │   (по ролям)           │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                 APPLICATION LAYER                    │
+│   RoleServices: DTO ↔ Commands, оркестрация, errors │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                   DOMAIN LAYER                       │
+│   Customer │ Seller │ Shop │ Order │ Shift │ ...    │
+│   (Port + Service + Schema + Commands/Queries)      │
+└─────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────┐
+│                INFRASTRUCTURE LAYER                  │
+│   Images │ Addresses │ Logs │ Notifications │ Auth  │
+└─────────────────────────────────────────────────────┘
+                         ↓
+                    MongoDB
 ```
 
-### Основные роли в системе
+### Роли в системе
 
-Система поддерживает 5 типов пользователей:
+| Роль | Описание | Endpoint |
+|------|----------|----------|
+| **Customer** | Клиенты (заказывают товары) | `/customer/*` |
+| **Seller** | Продавцы (владельцы магазинов) | `/seller/*` |
+| **Shop** | Магазины (точки продаж) | `/shop/*` |
+| **Employee** | Сотрудники (работают в сменах) | `/employee/*` |
+| **Admin** | Администраторы платформы | `/admin/*` |
 
-1. **Customer** - клиенты платформы (заказывают товары)
-2. **Seller** - продавцы (владельцы магазинов)
-3. **Shop** - магазины (точки продаж с сотрудниками)
-4. **Employee** - сотрудники магазинов (работают в сменах)
-5. **Admin** - администраторы платформы
-
-Каждая роль имеет:
-- Свой HTTP API endpoint (`/customer/*`, `/seller/*`, `/shop/*`, `/employee/*`, `/admin/*`)
-- Свой WebSocket gateway для real-time обновлений
-- Своего Telegram бота для взаимодействия
+Каждая роль имеет: HTTP API, WebSocket gateway, Telegram бот.
 
 ---
 
 ## 2. Архитектурные принципы
 
-### 2.1 Port-Based Architecture (Hexagonal)
+### Port-Based Architecture (Hexagonal)
 
-**Суть:** Бизнес-логика изолирована через интерфейсы (Ports), что делает её независимой от деталей реализации.
+Бизнес-логика изолирована через интерфейсы (Ports). Модули взаимодействуют только через Ports, не через конкретные сервисы.
 
-```typescript
-// Port - контракт модуля
-export interface CustomerPort {
-  getCustomer(query: GetCustomerQuery): Promise<Customer | null>;
-  createCustomer(command: CreateCustomerCommand): Promise<Customer>;
-}
+**Преимущества:** тестируемость, замена реализации, четкие границы.
 
-// Service реализует Port
-@Injectable()
-export class CustomerService implements CustomerPort {
-  // Implementation
-}
+### CQRS
 
-// Зависимости через Port, не через конкретный сервис
-constructor(@Inject(CUSTOMER_PORT) private customerPort: CustomerPort) {}
-```
+Разделение операций чтения (Queries) и записи (Commands).
 
-**Преимущества:**
-- Тестируемость (легко мокировать через интерфейсы)
-- Независимость от фреймворка
-- Замена реализации без изменения клиентов
+**Преимущества:** явные намерения, раздельная оптимизация read/write.
 
-### 2.2 CQRS (Command Query Responsibility Segregation)
+### DDD Elements
 
-**Суть:** Разделение операций чтения (Queries) и записи (Commands).
+- **Aggregates:** Customer, Seller, Shop, Order, Shift
+- **Value Objects:** Address, Blocked, Statistics
+- **Domain Events:** через EventEmitter2
+- **Domain Errors:** `DomainError` с кодами
 
-```typescript
-// QUERIES - чтение данных
-class GetCustomerQuery {
-  constructor(
-    public readonly filter: { customerId: string },
-    public readonly options?: { select?: (keyof Customer)[] }
-  ) {}
-}
+### Dependency Injection
 
-// COMMANDS - изменение данных
-class UpdateCustomerCommand {
-  constructor(
-    public readonly customerId: string,
-    public readonly payload: { customerName?: string }
-  ) {}
-}
-```
-
-**Преимущества:**
-- Явное разделение намерений
-- Оптимизация read/write операций по отдельности
-- Упрощение валидации и авторизации
-
-### 2.3 Domain-Driven Design Elements
-
-- **Aggregates:** Customer, Seller, Shop, Order, Shift - основные доменные сущности
-- **Value Objects:** Address, Blocked status, Statistics
-- **Domain Events:** Логируются через EventEmitter2
-- **Domain Errors:** `DomainError` с кодами ошибок
-
-### 2.4 Dependency Injection
-
-Все зависимости управляются через NestJS DI контейнер:
-- Ports регистрируются как Symbol tokens
-- Services предоставляются через `useExisting`
-- Глобальные модули (`@Global()`) для общих сервисов
+- Ports через Symbol tokens
+- Services через `useExisting`
+- `@Global()` для общих модулей
 
 ---
 
-## 3. Структура слоев
+## 3. Структура проекта
 
 ```
 src/
-├── modules/          # Доменные модули (бизнес-логика)
-├── infra/            # Инфраструктурные модули (переиспользуемые)
-├── interface/        # Интерфейсные слои (HTTP, WS, Telegram)
-├── processes/        # Бизнес-процессы (оркестраторы)
-├── common/           # Общий код (guards, decorators, utils)
-└── main.ts           # Точка входа
+├── modules/      # Доменные модули (бизнес-логика)
+├── infra/        # Инфраструктурные модули
+├── interface/    # HTTP, WS, Telegram
+├── processes/    # Бизнес-процессы (оркестраторы)
+├── common/       # Guards, decorators, utils
+└── main.ts
 ```
 
-### Зависимости между слоями
-
+**Правила зависимостей:**
 ```
 interface → processes → modules → infra → database
     ↓                      ↓
   common ←────────────────┘
-```
 
-**Правила:**
-- ✅ Interface может зависеть от modules/processes
-- ✅ Modules могут зависеть от infra и других modules (через Ports)
-- ✅ Infra независим от modules
-- ❌ Modules НЕ должны зависеть от interface
-- ❌ Нет циклических зависимостей
+✅ Interface зависит от modules/processes
+✅ Modules зависят от infra и других modules (через Ports)
+✅ Infra независим от modules
+❌ Modules НЕ зависят от interface
+❌ Нет циклических зависимостей
+```
 
 ---
 
-## 4. Domain Modules
+## 4. Модули
 
-Доменные модули содержат основную бизнес-логику системы.
+### Domain Modules (`src/modules/`)
 
-### Список модулей
+| Модуль | Описание |
+|--------|----------|
+| **customer** | Клиенты, профиль, адреса |
+| **seller** | Продавцы, компании, верификация |
+| **shop** | Магазины, связь с продавцами |
+| **product** | Товары (мастер-каталог) |
+| **shop-product** | Товары в магазинах, цены, остатки |
+| **employee** | Сотрудники, прикрепление к магазинам |
+| **order** | Заказы, статусы, доставка |
+| **shift** | Смены, учет работы |
+| **cart** | Корзина клиента |
+| **issue** | Обращения в поддержку |
+| **article** | Блог/статьи |
+| **finance** | Счета, транзакции, выплаты |
+| **job-application** | Заявки на работу |
 
-| Модуль | Описание | Ключевые операции |
-|--------|----------|-------------------|
-| **customer** | Управление клиентами | Регистрация, профиль, адреса, корзина |
-| **seller** | Управление продавцами | Регистрация, компании, верификация |
-| **shop** | Управление магазинами | CRUD магазинов, связь с продавцами |
-| **product** | Управление товарами | Создание, редактирование, учет остатков |
-| **shop-product** | Товары в магазинах | Связь товаров с магазинами, цены |
-| **employee** | Управление сотрудниками | Регистрация, прикрепление к магазинам |
-| **order** | Управление заказами | Создание, статусы, доставка |
-| **shift** | Управление сменами | Открытие/закрытие смен, учет работы |
-| **issue** | Система обращений | Создание, обработка, ответы |
-| **article** | Блог/статьи | CMS для контента платформы |
-| **platform** | Платформенные настройки | Конфигурация системы |
-| **finance** | Финансовая система | Счета, транзакции, выплаты |
-| **job-application** | Заявки на работу | Соискатели на вакансии |
+### Infrastructure Modules (`src/infra/`)
 
-### Структура модуля (стандарт)
+| Модуль | Описание |
+|--------|----------|
+| **auth** | JWT, Guards, Strategies (`@Global()`) |
+| **images** | Storage providers (S3, R2, Local) |
+| **addresses** | Геокодирование, DaData |
+| **logs** | Аудит-логирование |
+| **notifications** | Push, Email, SMS, Telegram |
+| **access** | Проверка прав доступа |
+
+### Структура модуля
 
 ```
 customer/
-├── customer.schema.ts       # MongoDB схема + виртуальные поля
-├── customer.service.ts      # Реализация бизнес-логики (implements Port)
-├── customer.port.ts         # Интерфейс + DI Symbol
-├── customer.commands.ts     # Command классы (write операции)
-├── customer.queries.ts      # Query классы (read операции)
-├── customer.enums.ts        # Енумы модуля
-├── customer.module.ts       # NestJS модуль
-└── index.ts                 # Экспорты с namespace группировкой
+├── customer.schema.ts      # MongoDB схема
+├── customer.service.ts     # Реализация (implements Port)
+├── customer.port.ts        # Интерфейс + Symbol
+├── customer.commands.ts    # Write операции
+├── customer.queries.ts     # Read операции
+├── customer.enums.ts       # Енумы
+├── customer.module.ts      # NestJS модуль
+└── index.ts                # Exports
 ```
-
-### Взаимодействие модулей
-
-Модули взаимодействуют **только через Ports**:
-
-```typescript
-// ❌ НЕПРАВИЛЬНО - прямая зависимость от сервиса
-constructor(private customerService: CustomerService) {}
-
-// ✅ ПРАВИЛЬНО - через Port
-constructor(@Inject(CUSTOMER_PORT) private customerPort: CustomerPort) {}
-```
-
-**Примеры зависимостей:**
-- `order` → `customer`, `shop`, `product`, `shop-product`
-- `shift` → `employee`, `shop`
-- `customer` → `addresses` (infra)
-- `seller` → `images` (infra)
 
 ---
 
-## 5. Infrastructure Layer
+## 5. Interface Layer
 
-Инфраструктурные модули предоставляют переиспользуемые сервисы.
-
-### Модули инфраструктуры
-
-| Модуль | Описание | Используется |
-|--------|----------|--------------|
-| **auth** | JWT аутентификация, Guards, Strategies | Глобально (`@Global()`) |
-| **images** | Управление изображениями, поддержка нескольких storage providers | seller, product, shop-product |
-| **addresses** | Управление адресами с геоданными | customer, shop |
-| **logs** | Аудит-логирование действий пользователей | Все модули |
-| **notifications** | Push, Email, SMS уведомления | order, shift, issue |
-
-### Особенности
-
-1. **Независимость:** Infra модули не зависят от domain модулей
-2. **Переиспользование:** Один infra модуль используется многими domain модулями
-3. **Структура:** Такая же как у domain модулей (Port + Service + Commands/Queries)
-
-### Пример: Images Module
-
-Поддерживает несколько провайдеров хранилищ:
-
-```typescript
-export enum ImageStorageProvider {
-  LOCAL = 'local',
-  MINIO = 'minio',
-  AWS_S3 = 'aws-s3',
-  CLOUDFLARE_R2 = 'cloudflare-r2',
-  BACKBLAZE_B2 = 'backblaze-b2',
-  WASABI = 'wasabi'
-}
-```
-
-Работает с разными размерами изображений (thumbnails, original, etc.) и автоматически генерирует preview версии.
-
----
-
-## 6. Interface Layer
-
-Интерфейсный слой - точка входа для внешних взаимодействий.
-
-### 6.1 HTTP API Layer
-
-**Организация:** По ролям пользователей
+### HTTP API (`src/interface/http/`)
 
 ```
-interface/http/
-├── admin/          # /admin/* endpoints
-├── seller/         # /seller/* endpoints
-├── customer/       # /customer/* endpoints
-├── employee/       # /employee/* endpoints
-├── shop/           # /shop/* endpoints
-├── public/         # /public/* endpoints (без авторизации)
-├── common/         # Общие DTOs
-└── http.api.module.ts
-```
-
-**Маршрутизация:**
-
-```typescript
-RouterModule.register([
-  { path: 'admin', module: AdminApiModule },
-  { path: 'seller', module: SellerApiModule },
-  { path: 'customer', module: CustomerApiModule },
-  { path: 'employee', module: EmployeeApiModule },
-  { path: 'shop', module: ShopApiModule },
-  { path: 'public', module: PublicApiModule },
-])
+http/
+├── admin/          # /admin/*
+├── seller/         # /seller/*
+├── customer/       # /customer/*
+├── employee/       # /employee/*
+├── shop/           # /shop/*
+├── public/         # /public/* (без авторизации)
+└── shared/         # Общие DTOs, base-responses
 ```
 
 **Структура endpoint группы:**
-
 ```
 admin/customers/
-├── admin.customers.controller.ts      # NestJS контроллер
-├── admin.customers.request.dtos.ts    # Request DTOs (validation)
-├── admin.customers.response.dtos.ts   # Response DTOs (serialization)
-├── admin.customers.role.service.ts    # Оркестрация для роли admin
-└── admin.customers.api.module.ts      # Модуль
+├── admin.customers.controller.ts
+├── admin.customers.request.dtos.ts
+├── admin.customers.response.dtos.ts
+├── admin.customers.role.service.ts
+└── admin.customers.api.module.ts
 ```
 
-**Ответственность RoleService:**
+### WebSocket (`src/interface/ws/`)
 
-```typescript
-@Injectable()
-export class AdminCustomersRoleService {
-  constructor(
-    @Inject(CUSTOMER_PORT) private customerPort: CustomerPort,
-    private eventEmitter: EventEmitter2
-  ) {}
+Real-time обновления для каждой роли: уведомления о заказах, статусы, системные сообщения.
 
-  async updateCustomer(dto: UpdateCustomerDto): Promise<CustomerResponseDto> {
-    try {
-      // 1. Преобразование DTO → Command
-      const command = new CustomerCommands.UpdateCustomerCommand(/*...*/);
-      
-      // 2. Вызов domain port
-      await this.customerPort.updateCustomer(command);
-      
-      // 3. Инициация событий
-      this.eventEmitter.emit('customer.updated', /*...*/);
-      
-      // 4. Возврат response DTO
-      return this.getCustomer(customerId);
-    } catch (error) {
-      // 5. Обработка ошибок
-      handleServiceError(error, {/*...*/});
-    }
-  }
-}
-```
+### Telegram Bots (`src/modules/telegram/`)
 
-### 6.2 WebSocket Layer
-
-**Real-time обновления для каждой роли:**
-
-```
-interface/ws/
-├── admin/auth/          # AdminAuthGateway
-├── seller/auth/         # SellerAuthGateway
-├── customer/auth/       # CustomerAuthGateway
-├── employee/auth/       # EmployeeAuthGateway
-├── shop/auth/           # ShopAuthGateway
-└── ws.module.ts
-```
-
-**Использование:**
-- Уведомления о новых заказах
-- Обновления статусов в реальном времени
-- Системные сообщения
-
-### 6.3 Telegram Bots
-
-**Отдельный бот для каждой роли:**
-
-```
-modules/telegram/
-├── customer-bot/   # Бот для клиентов (заказы, статусы)
-├── seller-bot/     # Бот для продавцов (управление)
-├── employee-bot/   # Бот для сотрудников (работа в сменах)
-├── admin-bot/      # Бот для админов (мониторинг)
-└── telegram-utils.ts
-```
-
-**Интеграция:** Через библиотеку Telegraf с NestJS
+Отдельный бот для каждой роли: customer-bot, seller-bot, employee-bot, admin-bot.
 
 ---
 
-## 7. Authentication & Authorization
+## 6. Authentication
 
-### 7.1 Аутентификация
-
-**Схема:** JWT токены с 7-дневным сроком действия
+### JWT схема
 
 ```typescript
-// JWT Payload
 interface JwtPayload {
   id: string;           // User ID
   type: UserType;       // 'customer' | 'seller' | 'employee' | 'admin'
-  iat: number;          // Issued at
-  exp: number;          // Expires at
+  iat: number;
+  exp: number;          // 7 дней
 }
 ```
 
-**Процесс аутентификации:**
+### Процесс
 
-1. **Отправка кода:** `POST /customer/auth/send-code` с телефоном
-2. **Создание LoginCode:** Генерируется 4-значный код, хранится в БД (TTL 5 минут)
-3. **Верификация:** `POST /customer/auth/verify-code` с кодом
-4. **Выдача токена:** Возвращается JWT токен
+1. `POST /customer/auth/send-code` — отправка 4-значного кода (TTL 5 мин)
+2. `POST /customer/auth/verify-code` — верификация кода
+3. Возврат JWT токена
 
-**Модули аутентификации:**
+### Guards
 
-```
-modules/auth/
-├── customer-auth/      # Аутентификация клиентов
-├── seller-auth/        # Аутентификация продавцов
-├── employee-auth/      # Аутентификация сотрудников
-├── admin-auth/         # Аутентификация админов
-└── login-code.schema.ts # Общая схема кодов
-```
-
-### 7.2 Авторизация
-
-**Guards:**
-
-```typescript
-// JWT проверка
-@UseGuards(JwtAuthGuard)
-
-// Проверка типа пользователя
-@UseGuards(JwtAuthGuard, TypeGuard)
-@UserType('customer')
-
-// Проверка роли
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('admin', 'support')
-
-// Специфичная логика (например, для employee)
-@UseGuards(EmployeeAuthGuard)
-```
-
-**Декоратор для получения пользователя:**
-
-```typescript
-@Get('profile')
-getProfile(@GetUser() user: AuthenticatedUser) {
-  // user содержит { id, type }
-}
-```
-
-**Глобальный Auth Module:**
-
-```typescript
-@Global()  // Доступен везде без import
-@Module({
-  providers: [JwtStrategy, JwtAuthGuard, TypeGuard],
-  exports: [JwtAuthGuard, TypeGuard, JwtModule]
-})
-export class AuthModule {}
-```
+- `JwtAuthGuard` — проверка токена
+- `TypeGuard` + `@UserType('customer')` — проверка типа пользователя
+- `RolesGuard` + `@Roles('admin')` — проверка роли
+- `@GetUser()` — извлечение пользователя из JWT
 
 ---
 
-## 8. Event-Driven Architecture
+## 7. Events
 
-Система использует `@nestjs/event-emitter` для слабосвязанных коммуникаций между модулями.
+Система использует `@nestjs/event-emitter` для слабосвязанных коммуникаций.
 
-### Паттерн использования
+**Примеры событий:**
+- `customer.created` — регистрация клиента
+- `order.created` — создание заказа → уведомление продавцу, лог
+- `shift.opened/closed` — смены
+- `payment.completed` — оплата
+- `log.created` — аудит
 
-```typescript
-// Emit события
-this.eventEmitter.emit(
-  LogsEvents.LOG_EVENTS.CREATED,
-  new LogsCommands.CreateLogCommand({
-    entityType: LogsEnums.LogEntityType.ORDER,
-    entityId: orderId,
-    text: 'Заказ создан',
-    logLevel: LogsEnums.LogLevel.HIGH,
-    forRoles: [UserType.ADMIN, UserType.SELLER]
-  })
-);
-
-// Subscribe на события
-@OnEvent(LogsEvents.LOG_EVENTS.CREATED)
-async handleLogCreated(command: CreateLogCommand) {
-  await this.logsPort.createLog(command);
-}
-```
-
-### Примеры событий
-
-- `customer.created` - новый клиент зарегистрирован
-- `order.created` - создан заказ
-- `shift.opened` - открыта смена
-- `shift.closed` - закрыта смена
-- `payment.completed` - завершена оплата
-- `log.created` - создан лог (для аудита)
-
-**Преимущества:**
-- Слабая связанность модулей
-- Легко добавлять новую функциональность без изменения существующего кода
-- Асинхронная обработка побочных эффектов
+**Преимущества:** слабая связанность, легко добавлять функциональность, асинхронная обработка.
 
 ---
 
-## 9. Data Flow
+## 8. Data Flow
 
-### Типичный HTTP Request Flow
+### Типичный HTTP Request
 
 ```
-1. HTTP Request (Client)
-        ↓
-2. Controller
-   - Валидация DTO (class-validator)
-   - Извлечение AuthenticatedUser из JWT
-        ↓
-3. RoleService
-   - Трансформация DTO → Command/Query
-   - Авторизационные проверки
-        ↓
-4. Domain Service (через Port)
-   - Бизнес-логика
-   - Валидация бизнес-правил
-   - Работа с БД
-        ↓
-5. Infrastructure Services (при необходимости)
-   - Images, Addresses, Logs, etc.
-        ↓
-6. Database (MongoDB)
-   - Сохранение/чтение данных
-        ↓
-7. Event Emission (опционально)
-   - Асинхронные побочные эффекты
-        ↓
-8. Response DTO
-   - Трансформация через plainToInstance
-   - Serialization с @Expose()
-        ↓
-9. HTTP Response (Client)
+1. HTTP Request
+   ↓
+2. Controller — валидация DTO, извлечение user из JWT
+   ↓
+3. RoleService — DTO → Command, авторизация
+   ↓
+4. Domain Service (через Port) — бизнес-логика, БД
+   ↓
+5. Infrastructure (при необходимости)
+   ↓
+6. Events (опционально)
+   ↓
+7. Response DTO — plainToInstance с @Expose()
+   ↓
+8. HTTP Response
 ```
 
 ### Пример: Создание заказа
 
 ```
-POST /customer/orders
-Body: { shopId, items: [...], deliveryAddress }
+POST /customer/orders { shopId, items, deliveryAddress }
 
 1. CustomerOrdersController.createOrder()
-   - @Body() CreateOrderDto (валидация)
-   - @GetUser() authedCustomer (из JWT)
+   - Валидация CreateOrderDto
+   - Извлечение authedCustomer из JWT
 
 2. CustomerOrdersRoleService.createOrder()
-   - Проверка: customerId === authedCustomer.id
-   - Трансформация: DTO → CreateOrderCommand
+   - Проверка прав
+   - DTO → CreateOrderCommand
 
 3. OrderService.createOrder() [через OrderPort]
-   - Проверка существования customer
-   - Проверка существования shop
-   - Проверка availability товаров в shopProducts
-   - Расчет стоимости (items, delivery, bonuses)
-   - Создание Order entity
-   - Сохранение в БД через session
+   - Проверка customer, shop, товаров
+   - Расчет стоимости
+   - Создание Order
+   - Сохранение в БД
 
 4. Events:
-   - 'order.created' → LogsService создает лог
-   - 'order.created' → NotificationService уведомляет продавца
-   - 'order.created' → ShopAccountService резервирует средства
+   - order.created → LogsService
+   - order.created → NotificationService
+   - order.created → ShopAccountService (холд средств)
 
 5. Return: OrderResponseDto
-   - Трансформация через plainToInstance
-   - Только @Expose() поля
 ```
 
 ---
 
-## 10. Финансовая система
-
-Финансовая система - один из самых сложных модулей, отвечает за денежные потоки платформы.
+## 9. Финансовая система
 
 ### Структура
 
 ```
 modules/finance/
-├── shop-account/           # Счета магазинов
-│   ├── schemas/
-│   │   ├── shop-account.schema.ts
-│   │   ├── settlement-period.schema.ts
-│   │   └── settlement-period-transaction.schema.ts
-│   └── shop-account.service.ts
-├── seller-account/         # Счета продавцов
-│   ├── schemas/
-│   │   ├── seller-account.schema.ts
-│   │   └── withdrawal-request.schema.ts
-│   └── seller-account.service.ts
-├── platform-account/       # Счет платформы
-│   ├── schemas/
-│   │   ├── platform-account.schema.ts
-│   │   └── platform-account-transaction.schema.ts
-│   └── platform-account.service.ts
-├── order-payment/          # Платежи за заказы
-├── penalty/                # Штрафы
-├── refund/                 # Возвраты
-└── finance.module.ts
+├── shop-account/       # Счета магазинов + Settlement Periods
+├── seller-account/     # Счета продавцов + Withdrawals
+├── platform-account/   # Счет платформы
+├── order-payment/      # Платежи за заказы
+├── penalty/            # Штрафы
+└── refund/             # Возвраты
 ```
 
-### Основные концепции
+### Концепции
 
-**1. Shop Account (Счет магазина)**
-- Каждый магазин имеет свой счет
-- **Settlement Periods** (расчетные периоды) - обычно 1 неделя
-- Холд средств до доставки заказа
-- Автоматические отчисления платформе (комиссия)
+**Shop Account** — счет магазина с расчетными периодами (обычно неделя). Холд средств до доставки, автоматические комиссии платформе.
 
-**2. Seller Account (Счет продавца)**
-- Агрегирует средства со всех магазинов продавца
-- **Withdrawal Requests** - запросы на вывод средств
-- История транзакций
-- Минимальная сумма для вывода
+**Seller Account** — агрегирует средства со всех магазинов продавца. Withdrawal requests для вывода.
 
-**3. Platform Account (Счет платформы)**
-- Комиссии с каждого заказа
-- Штрафы от магазинов
-- Расходы на возвраты клиентам
+**Platform Account** — комиссии, штрафы, расходы на возвраты.
 
-**4. Типы транзакций**
-
-```typescript
-enum TransactionType {
-  CREDIT = 'credit',   // Поступление (увеличение баланса)
-  DEBIT = 'debit'      // Списание (уменьшение баланса)
-}
-```
+**Settlement Period** — период холдирования средств перед выплатой (защита от мошенничества, время на возвраты).
 
 ### Flow платежа
 
 ```
-1. Клиент создает заказ
-   ↓
-2. OrderPayment создается (status: PENDING)
-   ↓
-3. Клиент оплачивает через внешний платежный провайдер
-   ↓
-4. OrderPayment.status = COMPLETED
-   ↓
-5. Средства холдятся в ShopAccount (в текущем settlement period)
-   ↓
-6. После доставки заказа:
-   - Платформа берет комиссию (X%) → PlatformAccount
-   - Остаток (100% - X%) остается в ShopAccount
-   ↓
-7. Конец расчетного периода:
-   - Средства переводятся из ShopAccount в SellerAccount
-   - SettlementPeriod закрывается (status: RELEASED)
-   ↓
-8. Продавец запрашивает вывод:
-   - Создается WithdrawalRequest
-   - После одобрения админом средства выводятся
-   - WithdrawalRequest.status = APPROVED
-```
-
-### Settlement Period
-
-Расчетный период - это временной интервал, в который холдятся средства перед выплатой продавцу.
-
-**Зачем нужен:**
-- Защита от мошенничества
-- Время на возвраты и жалобы
-- Удержание штрафов
-
-**Жизненный цикл:**
-
-```typescript
-enum SettlementPeriodStatus {
-  ACTIVE = 'active',        // Текущий период
-  FROZEN = 'frozen',        // Замороженный (расследования)
-  RELEASED = 'released'     // Средства переведены продавцу
-}
+1. Клиент создает заказ → OrderPayment (PENDING)
+2. Оплата через провайдер → OrderPayment (COMPLETED)
+3. Средства холдятся в ShopAccount (settlement period)
+4. После доставки: комиссия → PlatformAccount, остаток в ShopAccount
+5. Конец периода: ShopAccount → SellerAccount, period (RELEASED)
+6. Продавец запрашивает вывод → WithdrawalRequest → одобрение → выплата
 ```
 
 ---
 
-## 11. Ключевые архитектурные решения
-
-### 11.1 Почему Port-Based Architecture?
-
-**Проблема:** Tight coupling между модулями затрудняет тестирование и изменения.
-
-**Решение:** Ports изолируют бизнес-логику от деталей реализации.
-
-**Преимущества:**
-- ✅ Легко писать unit тесты (mock через интерфейсы)
-- ✅ Можно менять реализацию без изменения клиентов
-- ✅ Четкие границы между модулями
-- ✅ Подготовка к микросервисам (в будущем)
-
-### 11.2 Почему CQRS?
-
-**Проблема:** Сложная логика валидации и разные требования к чтению/записи.
-
-**Решение:** Разделение на Commands (write) и Queries (read).
-
-**Преимущества:**
-- ✅ Явные намерения (что делает операция)
-- ✅ Разная оптимизация для read/write
-- ✅ Упрощенная валидация (Command валидируется, Query - нет)
-- ✅ Подготовка к Event Sourcing (в будущем)
-
-### 11.3 Почему Commands/Queries как классы?
-
-**Альтернатива:** Использовать обычные объекты или DTOs
-
-**Решение:** Классы с readonly полями
-
-**Преимущества:**
-- ✅ Type safety
-- ✅ Явная структура данных
-- ✅ Легко валидировать в конструкторе
-- ✅ IDE autocompletion
-- ✅ Легко рефакторить (найти все использования)
-
-### 11.4 Почему RoleService слой?
-
-**Проблема:** Контроллеры становятся толстыми, смешивается HTTP логика с оркестрацией.
-
-**Решение:** Отдельный RoleService для каждой роли.
-
-**Преимущества:**
-- ✅ Контроллер остается тонким (только routing)
-- ✅ Переиспользование логики между HTTP/WS/Telegram
-- ✅ Четкая ответственность за авторизацию на уровне роли
-- ✅ Легко тестировать оркестрацию отдельно
-
-### 11.5 Почему MongoDB?
-
-**Требования:**
-- Гибкая схема для быстрой разработки
-- Хорошая производительность для read-heavy операций
-- Embedded documents для денормализации
-- Native JSON для API responses
-
-**Компромиссы:**
-- ❌ Нет ACID транзакций между коллекциями (но есть sessions)
-- ❌ Сложнее делать сложные joins (но есть $lookup)
-- ✅ Быстрый старт и итерация
-- ✅ Хорошая масштабируемость (sharding)
-- ✅ Гибкость схемы для MVP
-
-### 11.6 Namespace группировка экспортов
-
-**Проблема:** `import * as X from 'module'` загрязняет namespace
-
-**Решение:** Явная группировка через `export * as`
-
-```typescript
-// index.ts
-export { CustomerModule } from './customer.module';
-export { Customer } from './customer.schema';
-export { CustomerPort, CUSTOMER_PORT } from './customer.port';
-export * as CustomerCommands from './customer.commands';
-export * as CustomerQueries from './customer.queries';
-
-// Usage
-import { CustomerCommands, CustomerQueries } from 'src/modules/customer';
-const cmd = new CustomerCommands.CreateCustomerCommand({...});
-```
-
-**Преимущества:**
-- ✅ Чистые импорты без wildcard
-- ✅ Группировка связанных классов
-- ✅ Избежание конфликтов имен
-- ✅ Понятно откуда что импортируется
-
-### 11.7 Виртуальные ID поля (*Id)
-
-**Проблема:** MongoDB использует `_id`, но в API хотим `customerId`, `orderId`, etc.
-
-**Решение:** Виртуальные поля с суффиксом Id
-
-```typescript
-@Schema({ id: false }) // Отключаем дефолтное virtual 'id'
-export class Customer {
-  readonly customerId: string; // Виртуальное поле
-  _id: Types.ObjectId;
-}
-
-// Virtual field
-CustomerSchema.virtual('customerId').get(function() {
-  return this._id.toString();
-});
-```
-
-**Преимущества:**
-- ✅ Единообразие именования в API
-- ✅ Понятно какой сущности принадлежит ID
-- ✅ `_id` остается для внутреннего использования
-- ✅ Плагин `mongooseLeanVirtuals` делает это работать с `.lean()`
-
----
-
-## Заключение
-
-Эта архитектура разработана с учетом:
-
-1. **Масштабируемости** - легко добавлять новые модули и функции
-2. **Тестируемости** - четкие границы через Ports
-3. **Поддерживаемости** - единообразная структура модулей
-4. **Гибкости** - CQRS и события позволяют эволюционировать систему
-5. **Производительности** - денормализация данных для быстрых чтений
-
-Для глубокого понимания паттернов реализации см. [tech-guidelines.md](../tech-guidelines.md).
-
-Для понимания бизнес-логики см. [docs/business/](../business/).
-
----
-
-> **Примечание:** Документ обновляется по мере эволюции системы. При внесении архитектурных изменений обязательно обновляйте этот файл.
-
+> Для практических примеров кода см. [tech-guidelines.md](./tech-guidelines.md).

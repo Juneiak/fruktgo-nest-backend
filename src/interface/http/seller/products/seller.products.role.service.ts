@@ -23,7 +23,7 @@ import {
   PaginationQueryDto,
   MessageResponseDto,
   LogResponseDto
-} from 'src/interface/http/common';
+} from 'src/interface/http/shared';
 
 @Injectable()
 export class SellerProductsRoleService {

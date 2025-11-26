@@ -5,8 +5,8 @@ import {
   ShopPreviewResponseDto,
 } from './public.shops.response.dtos'; 
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 
 @ApiTags('for public')
 @Controller()

@@ -9,8 +9,8 @@ import { SellerJobApplicationsRoleService } from './seller.job-applications.role
 import { JobApplicationResponseDto } from './seller.job-applications.response.dtos';
 import { CreateJobApplicationDto } from './seller.job-applications.request.dtos';
 import { JobApplicationQueryFilterDto } from './seller.job-applications.query.dtos';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 
 @ApiTags('for seller')
 @ApiBearerAuth('JWT-auth')

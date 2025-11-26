@@ -1,38 +1,47 @@
-import { Expose } from 'class-transformer';
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
-import { Types } from 'mongoose';
+/**
+ * Seller Me Response DTOs
+ *
+ * Продавец видит свой профиль (без internalNote).
+ * @see src/interface/http/shared/base-responses/seller.base-response
+ */
 
-export class SellerPreviewResponseDto {
-  @Expose() sellerId: string;
-  @ExposeObjectId() sellerLogo?: Types.ObjectId | null;
-  @Expose() companyName: string;
-  @Expose() isBlocked: boolean;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() lastLoginDate?: Date | null;
-  @Expose() phone: string | null;
-  @Expose() telegramId: number;
-}
+import { PickType } from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
+import { BaseSellerResponseDto, BaseSellerStatisticsDto } from 'src/interface/http/shared/base-responses';
 
+/**
+ * Preview — краткая информация
+ */
+export class SellerPreviewResponseDto extends PickType(BaseSellerResponseDto, [
+  'sellerId',
+  'sellerLogo',
+  'companyName',
+  'blocked',
+  'verifiedStatus',
+  'phone',
+  'telegramId',
+] as const) {}
 
-export class SellerFullResponseDto {
-  @Expose() sellerId: string;
-  @ExposeObjectId() sellerLogo?: Types.ObjectId | null;
-  @Expose() companyName: string;
-  @Expose() inn: number;
-  @Expose() isBlocked: boolean;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() totalSales: number;
-  @Expose() totalOrders: number;
-  @Expose() lastLoginDate?: Date | null;
-  @Expose() shopsCount: number;
-  @Expose() employeesCount: number;
-  @Expose() productsCount: number;
-  @Expose() createdAt: Date;
-  @Expose() email: string;
-  @Expose() phone: string | null;
-  @Expose() telegramId: number;
-  @Expose() telegramUsername?: string;
-  @Expose() telegramFirstName?: string;
-  @Expose() telegramLastName?: string;
+/**
+ * Full — полный профиль (без internalNote)
+ */
+class _SellerFullBase extends PickType(BaseSellerResponseDto, [
+  'sellerId',
+  'sellerLogo',
+  'companyName',
+  'inn',
+  'blocked',
+  'verifiedStatus',
+  'phone',
+  'email',
+  'telegramId',
+  'telegramUsername',
+  'telegramFirstName',
+  'telegramLastName',
+  'lastLoginAt',
+  'createdAt',
+] as const) {}
+
+export class SellerFullResponseDto extends _SellerFullBase {
+  @Expose() @Type(() => BaseSellerStatisticsDto) statistics: BaseSellerStatisticsDto;
 }

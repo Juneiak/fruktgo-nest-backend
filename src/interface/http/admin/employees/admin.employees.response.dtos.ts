@@ -1,64 +1,67 @@
-import { Expose, Type } from 'class-transformer';
-import { VerifiedStatus, UserSex } from 'src/common/enums/common.enum';
-import { EmployeeEnums } from 'src/modules/employee';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
-import { BlockedResponseDto } from 'src/interface/http/common/common.response.dtos';
+/**
+ * Admin Employee Response DTOs
+ *
+ * Используем PickType от BaseEmployeeResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/employee.base-response
+ */
 
-class EmployeeStatisticsDto {
-  @Expose() totalOrders: number;
-  @Expose() totalShifts: number;
-  @Expose() shiftRating: number;
-}
+import { PickType } from '@nestjs/swagger';
+import { BaseEmployeeResponseDto } from 'src/interface/http/shared/base-responses';
 
-export class EmployeePreviewResponseDto {
-  @Expose() employeeId: string;
-  @Expose() internalNote?: string | null;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @Expose() @Type(() => BlockedResponseDto) blocked: BlockedResponseDto;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @ExposeObjectId() employeeAvatar?: string | null;
-  @Expose() employeeName: string;
-  @Expose() phone: string;
-  @Expose() telegramId: number;
-  @Expose() telegramUsername?: string | null;
-  @Expose() telegramFirstName?: string | null;
-  @Expose() telegramLastName?: string | null;
-  @Expose() sex: UserSex;
-  @Expose() status: EmployeeEnums.EmployeeStatus;
-  @Expose() birthDate?: Date | null;
-  @Expose() position?: string | null;
-  @Expose() salary?: string | null;
-  @Expose() @Type(() => EmployeeStatisticsDto) statistics: EmployeeStatisticsDto;
-  @ExposeObjectId() pinnedTo?: string | null;
-  @ExposeObjectId() employer?: string | null;
-  @Expose() lastLoginAt?: Date | null;
-}
+/**
+ * Preview — без openedShift, sellerNote
+ */
+export class EmployeePreviewResponseDto extends PickType(BaseEmployeeResponseDto, [
+  'employeeId',
+  'employeeName',
+  'phone',
+  'employeeAvatar',
+  'telegramId',
+  'telegramUsername',
+  'telegramFirstName',
+  'telegramLastName',
+  'blocked',
+  'verifiedStatus',
+  'status',
+  'sex',
+  'birthDate',
+  'position',
+  'salary',
+  'statistics',
+  'pinnedTo',
+  'employer',
+  'lastLoginAt',
+  'internalNote',
+  'createdAt',
+  'updatedAt',
+] as const) {}
 
-
-export class EmployeeFullResponseDto {
-  @Expose() employeeId: string;
-  @Expose() internalNote?: string | null;
-  @Expose() sellerNote?: string | null;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @Expose() @Type(() => BlockedResponseDto) blocked: BlockedResponseDto;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @ExposeObjectId() employeeAvatar?: string | null;
-  @Expose() employeeName: string;
-  @Expose() phone: string;
-  @Expose() telegramId: number;
-  @Expose() telegramUsername?: string | null;
-  @Expose() telegramFirstName?: string | null;
-  @Expose() telegramLastName?: string | null;
-  @Expose() sex: UserSex;
-  @Expose() status: EmployeeEnums.EmployeeStatus;
-  @Expose() birthDate?: Date | null;
-  @Expose() position?: string | null;
-  @Expose() salary?: string | null;
-  @Expose() @Type(() => EmployeeStatisticsDto) statistics: EmployeeStatisticsDto;
-  @ExposeObjectId() pinnedTo?: string | null;
-  @ExposeObjectId() employer?: string | null;
-  @ExposeObjectId() openedShift?: string | null;
-  @Expose() lastLoginAt?: Date | null;
-}
+/**
+ * Full — все поля (admin видит всё)
+ */
+export class EmployeeFullResponseDto extends PickType(BaseEmployeeResponseDto, [
+  'employeeId',
+  'employeeName',
+  'phone',
+  'employeeAvatar',
+  'telegramId',
+  'telegramUsername',
+  'telegramFirstName',
+  'telegramLastName',
+  'blocked',
+  'verifiedStatus',
+  'status',
+  'sex',
+  'birthDate',
+  'position',
+  'salary',
+  'statistics',
+  'pinnedTo',
+  'employer',
+  'openedShift',
+  'lastLoginAt',
+  'internalNote',
+  'sellerNote',
+  'createdAt',
+  'updatedAt',
+] as const) {}

@@ -1,53 +1,62 @@
-import { Expose, Type } from 'class-transformer'
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { BlockedResponseDto, AddressResponseDto } from 'src/interface/http/common/common.response.dtos';
+/**
+ * Admin Customer Response DTOs
+ *
+ * Используем PickType от BaseCustomerResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/customer.base-response
+ */
 
+import { PickType } from '@nestjs/swagger';
+import { BaseCustomerResponseDto } from 'src/interface/http/shared/base-responses';
 
-export class CustomerPreviewResponseDto {
-  @Expose() customerId: string;
-  @Expose() internalNote?: string | null;
-  @Expose() email: string;
-  @Expose() phone: string;
-  @Expose() telegramId: number;
-  @Expose() telegramUsername?: string;
-  @Expose() telegramFirstName?: string;
-  @Expose() telegramLastName?: string;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @Expose() blocked: BlockedResponseDto;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() customerName: string;
-  @Expose() sex?: string | null;
-  @Expose() birthDate?: Date | null;
-  @Expose() bonusPoints: number;
-  @Expose() lastLoginAt?: Date | null;
-  @Expose() lastOrderAt?: Date | null;
-  @Expose() ordersCount: number;
-  @Expose() totalSpent: number;
-}
+/**
+ * Preview — для списков
+ */
+export class CustomerPreviewResponseDto extends PickType(BaseCustomerResponseDto, [
+  'customerId',
+  'customerName',
+  'phone',
+  'email',
+  'telegramId',
+  'telegramUsername',
+  'telegramFirstName',
+  'telegramLastName',
+  'blocked',
+  'verifiedStatus',
+  'sex',
+  'birthDate',
+  'statistics',
+  'bonusPoints',
+  'lastLoginAt',
+  'lastOrderAt',
+  'internalNote',
+  'createdAt',
+  'updatedAt',
+] as const) {}
 
-export class CustomerFullResponseDto {
-  @Expose() customerId: string;
-  @Expose() internalNote?: string | null;
-  @Expose() email: string;
-  @Expose() phone: string;
-  @Expose() telegramId: number;
-  @Expose() telegramUsername?: string;
-  @Expose() telegramFirstName?: string;
-  @Expose() telegramLastName?: string;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @Expose() blocked: BlockedResponseDto;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() customerName: string;
-  @Expose() sex?: string | null;
-  @Expose() birthDate?: Date | null;
-  @Expose() bonusPoints: number;
-  @Expose() @Type(() => AddressResponseDto) savedAddresses: AddressResponseDto[] | [];
-  @Expose() @Type(() => AddressResponseDto) selectedAddressId: AddressResponseDto | null;
-  @Expose() lastLoginAt?: Date | null;
-  @Expose() lastOrderAt?: Date | null;
-  @Expose() ordersCount: number;
-  @Expose() totalSpent: number;
-  @Expose() cart: any | null;
-}
+/**
+ * Full — все поля (admin видит всё)
+ */
+export class CustomerFullResponseDto extends PickType(BaseCustomerResponseDto, [
+  'customerId',
+  'customerName',
+  'phone',
+  'email',
+  'telegramId',
+  'telegramUsername',
+  'telegramFirstName',
+  'telegramLastName',
+  'blocked',
+  'verifiedStatus',
+  'sex',
+  'birthDate',
+  'statistics',
+  'bonusPoints',
+  'lastLoginAt',
+  'lastOrderAt',
+  'savedAddresses',
+  'selectedAddressId',
+  'internalNote',
+  'cart',
+  'createdAt',
+  'updatedAt',
+] as const) {}

@@ -37,4 +37,13 @@ export class GetShopProductsStockQuery {
   ) {}
 }
 
+export class GetShopProductsByIdsQuery {
+  constructor(
+    public readonly shopProductIds: string[],
+    public readonly options?: {
+      populateProduct?: boolean;
+    }
+  ) {}
+}
+
 

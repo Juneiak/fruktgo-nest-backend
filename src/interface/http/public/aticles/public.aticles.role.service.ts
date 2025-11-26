@@ -14,7 +14,7 @@ import {
   PaginatedResponseDto,
   transformPaginatedResult,
   PaginationQueryDto
-} from 'src/interface/http/common';
+} from 'src/interface/http/shared';
 
 
 @Injectable()

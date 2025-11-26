@@ -10,10 +10,10 @@ import {
   ProductPreviewResponseDto,
   ProductFullResponseDto,
 } from './admin.products.response.dtos';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import { ProductQueryFilterDto } from './admin.products.query.dtos';
-import { LogResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { LogResponseDto } from 'src/interface/http/shared';
 
 @ApiTags('for admin')
 @ApiBearerAuth('JWT-auth')

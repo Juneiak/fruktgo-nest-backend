@@ -6,18 +6,22 @@ import { Seller } from 'src/modules/seller/seller.schema';
 import { ProductCategory, ProductMeasuringScale, ProductStepRate } from './product.enums';
 import { Image } from 'src/infra/images/image.schema';
 
-const productStatisticsSchema = {
-  totalLast7daysSales: { type: Number, min: 0, required: true, default: 0 },
-  totalSales: { type: Number, min: 0, required: true, default: 0 },
-  totalLast7daysWriteOff: { type: Number, min: 0, required: true, default: 0 },
-  _id: false
-};
+// ═══════════════════════════════════════════════════════════════
+// NESTED SCHEMAS
+// ═══════════════════════════════════════════════════════════════
 
-interface ProductStatistics {
+@Schema({ _id: false })
+export class ProductStatistics {
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalLast7daysSales: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalSales: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalLast7daysWriteOff: number;
-};
+}
+export const ProductStatisticsSchema = SchemaFactory.createForClass(ProductStatistics);
 
 
 @Schema({
@@ -59,7 +63,7 @@ export class Product {
   @Prop({ type: String, default: '' })
   aboutProduct?: string;
 
-  @Prop({ type: productStatisticsSchema, required: true, default: () => ({}) })
+  @Prop({ type: ProductStatisticsSchema, required: true, default: () => ({}) })
   statistics: ProductStatistics;
 
   @Prop({ type: String})

@@ -1,44 +1,64 @@
-import { Expose } from 'class-transformer';
-import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { ShopStatus } from 'src/modules/shop/shop.enums';
-import { Types } from 'mongoose';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+/**
+ * Public Shop Response DTOs
+ *
+ * Используем PickType от BaseShopResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/shop.base-response
+ */
 
-export class ShopPreviewResponseDto {
-  @Expose() shopId: string;
-  @Expose() isBlocked: boolean;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() shopName: string;
-  @ExposeObjectId() shopImage?: Types.ObjectId | null;
-  @Expose() aboutShop?: string | null;
-  @ExposeObjectId() address?: Types.ObjectId | null;
-  @Expose() status: ShopStatus;
-  @Expose() openAt?: string | null;
-  @Expose() closeAt?: string | null;
-  @Expose() avgRating: number;
-  @Expose() ratingsCount: number;
-  @Expose() totalOrders: number;
-  @Expose() minOrderSum: number;
-  @Expose() shopOrdersCount: number;
+import { PickType } from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
+import {
+  BaseShopResponseDto,
+  BaseShopStatisticsDto,
+} from 'src/interface/http/shared/base-responses';
+
+/**
+ * Public statistics — только публичные поля
+ */
+class PublicShopStatisticsDto extends PickType(BaseShopStatisticsDto, [
+  'avgRating',
+  'ratingsCount',
+  'ordersCount',
+] as const) {}
+
+/**
+ * Preview — для списков (публичные данные)
+ */
+class _ShopPreviewBase extends PickType(BaseShopResponseDto, [
+  'shopId',
+  'blocked',
+  'verifiedStatus',
+  'shopName',
+  'shopImage',
+  'aboutShop',
+  'address',
+  'status',
+  'openAt',
+  'closeAt',
+  'minOrderSum',
+] as const) {}
+
+export class ShopPreviewResponseDto extends _ShopPreviewBase {
+  @Expose() @Type(() => PublicShopStatisticsDto) statistics: PublicShopStatisticsDto;
 }
 
-export class ShopFullResponseDto {
-  @Expose() shopId: string;
-  @Expose() isBlocked: boolean;
-  @Expose() verifiedStatus: VerifiedStatus;
-  @Expose() shopName: string;
-  @ExposeObjectId() shopImage?: Types.ObjectId | null;
-  @Expose() aboutShop?: string | null;
-  @ExposeObjectId() address?: Types.ObjectId | null;
-  @Expose() status: ShopStatus;
-  @Expose() openAt?: string | null;
-  @Expose() closeAt?: string | null;
-  @Expose() avgRating: number;
-  @Expose() ratingsCount: number;
-  @Expose() totalOrders: number;
-  @Expose() minOrderSum: number;
-  @Expose() shopOrdersCount: number;
-  @Expose() shopProductsCount: number;
-  // TODO: Добавить shopProducts когда будет реализована популяция через ShopPort
-  // @Expose() shopProducts: any[];
+/**
+ * Full — публичный полный вид
+ */
+class _ShopFullBase extends PickType(BaseShopResponseDto, [
+  'shopId',
+  'blocked',
+  'verifiedStatus',
+  'shopName',
+  'shopImage',
+  'aboutShop',
+  'address',
+  'status',
+  'openAt',
+  'closeAt',
+  'minOrderSum',
+] as const) {}
+
+export class ShopFullResponseDto extends _ShopFullBase {
+  @Expose() @Type(() => PublicShopStatisticsDto) statistics: PublicShopStatisticsDto;
 }

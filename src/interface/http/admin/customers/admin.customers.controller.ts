@@ -12,10 +12,13 @@ import { UserType } from 'src/common/decorators/type.decorator';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthenticatedUser } from 'src/common/types';
 import { GetUser } from 'src/common/decorators/user.decorator';
-import { PaginatedResponseDto, MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { BlockDto } from 'src/interface/http/common/common.request.dtos';
-import { LogResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import {
+  PaginatedResponseDto,
+  MessageResponseDto,
+  LogResponseDto,
+  PaginationQueryDto,
+  BlockDto
+} from 'src/interface/http/shared';
 
 
 @ApiTags('for admin')

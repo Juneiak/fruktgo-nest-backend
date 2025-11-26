@@ -9,7 +9,7 @@ import {
   BlockCustomerCommand,
   AddAddressCommand,
   DeleteAddressCommand,
-  SelectAddressCommand
+  SelectAddressCommand,
 } from './customer.commands';
 import { GetCustomersQuery, GetCustomerQuery } from './customer.queries';
 

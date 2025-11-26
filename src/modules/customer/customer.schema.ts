@@ -4,21 +4,23 @@ import { VerifiedStatus, UserSex } from 'src/common/enums/common.enum';
 import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 import * as mongoosePaginate from 'mongoose-paginate-v2';
 import { BlockedSchema, Blocked, initBlocked } from 'src/common/schemas/common-schemas';
-import { Cart } from './cart.schema';
 import { Order } from 'src/modules/order/order.schema';
 import { Address } from 'src/infra/addresses/address.schema';
+import { Cart } from '../cart';
 
+// ═══════════════════════════════════════════════════════════════
+// NESTED SCHEMAS
+// ═══════════════════════════════════════════════════════════════
 
-const customerStatisticsSchema = {
-  ordersCount: { type: Number, minimum: 0, required: true, default: 0 },
-  totalSpent: { type: Number, minimum: 0, required: true, default: 0 },
-  _id: false
-};
-
-interface CustomerStatistics {
+@Schema({ _id: false })
+export class CustomerStatistics {
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   ordersCount: number;
+
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
   totalSpent: number;
-};
+}
+export const CustomerStatisticsSchema = SchemaFactory.createForClass(CustomerStatistics);
 
 
 @Schema({
@@ -73,7 +75,7 @@ export class Customer {
   @Prop({ type: Date, default: null })
   lastOrderAt?: Date | null;
 
-  @Prop({ type: customerStatisticsSchema, required: true, default: () => ({}) })
+  @Prop({ type: CustomerStatisticsSchema, required: true, default: () => ({}) })
   statistics: CustomerStatistics;
 
   @Prop({ type: String })

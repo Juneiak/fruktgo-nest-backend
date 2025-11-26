@@ -4,6 +4,7 @@ export {
   DomainError,
   isDomainError,
   DomainErrorCode,
+  handleServiceError,
   type DomainErrorMeta,
 } from './domain-error';
 

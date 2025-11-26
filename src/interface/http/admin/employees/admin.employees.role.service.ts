@@ -17,7 +17,7 @@ import {
   transformPaginatedResult,
   PaginationQueryDto,
   BlockDto
-} from 'src/interface/http/common';
+} from 'src/interface/http/shared';
 import {
   EmployeePort,
   EMPLOYEE_PORT,

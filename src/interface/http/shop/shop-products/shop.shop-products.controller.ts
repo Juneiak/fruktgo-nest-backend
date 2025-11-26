@@ -9,8 +9,8 @@ import { GetEmployee } from 'src/common/decorators/employee.decorator';
 import { AuthenticatedUser, AuthenticatedEmployee } from 'src/common/types';
 import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.interceptor';
 import { ShopProductsStockQueryDto } from './shop.shop-products.query.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
 import { ShopShopProductsRoleService } from './shop.shop-products.role.service';
 import {
   ShopProductResponseDto,

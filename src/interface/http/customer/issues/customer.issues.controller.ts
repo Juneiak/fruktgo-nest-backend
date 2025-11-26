@@ -6,11 +6,11 @@ import { UserType } from 'src/common/decorators/type.decorator';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { UserType as UserTypeEnum } from 'src/common/enums/common.enum';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import { CustomerIssuesRoleService } from './customer.issues.role.service';
 import { IssueResponseDto } from './customer.issues.response.dtos';
 import { CreateIssueDto } from './customer.issues.request.dtos';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
 
 @ApiTags('Customer Issues')
 @ApiBearerAuth()

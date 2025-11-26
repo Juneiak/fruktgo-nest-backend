@@ -1,10 +1,12 @@
+import { Module } from '@nestjs/common';
+import { OrderProcessModule } from './order/order-process.module';
+
 @Module({
   imports: [
-    SellersModule,  // экспортируют фасады
-    ShopsModule,
-    ShiftsModule,
+    OrderProcessModule,
   ],
-  providers: [OpenShiftOrchestrator],
-  exports: [OpenShiftOrchestrator],
+  exports: [
+    OrderProcessModule,
+  ],
 })
 export class ProcessesModule {}

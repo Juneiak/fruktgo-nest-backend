@@ -1,48 +1,64 @@
+/**
+ * Admin ShopProduct Response DTOs
+ *
+ * Используем PickType от BaseShopProductResponseDto и BaseProductResponseDto.
+ * @see src/interface/http/shared/base-responses/shop-product.base-response
+ */
+
+import { PickType } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { Types } from 'mongoose';
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
-import { ProductEnums } from 'src/modules/product';
-import { ShopProductEnums } from 'src/modules/shop-product';
+import {
+  BaseShopProductResponseDto,
+  BaseProductResponseDto,
+} from 'src/interface/http/shared/base-responses';
 
-export class ProductPreviewDto {
-  @Expose() productId: string;
-  @ExposeObjectId() cardImage: Types.ObjectId;
-  @Expose() productArticle?: string | null;
-  @Expose() productName: string;
-  @Expose() category: ProductEnums.ProductCategory;
-  @Expose() price: number;
-  @Expose() measuringScale: ProductEnums.ProductMeasuringScale;
-  @Expose() stepRate: ProductEnums.ProductStepRate;
-  @Expose() aboutProduct?: string;
-  @Expose() origin?: string;
-}
+/**
+ * Product preview — вложенный в ShopProduct (populated)
+ */
+export class ProductPreviewDto extends PickType(BaseProductResponseDto, [
+  'productId',
+  'cardImage',
+  'productArticle',
+  'productName',
+  'category',
+  'price',
+  'measuringScale',
+  'stepRate',
+  'aboutProduct',
+  'origin',
+] as const) {}
 
+/**
+ * Image DTO
+ */
 class ShopProductImageDto {
   @ExposeObjectId() imageId: string;
   @Expose() createdAt: Date;
 }
 
-export class ShopProductFullResponseDto {
-  @Expose() shopProductId: string;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @ExposeObjectId() pinnedTo: string;
-  @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
-  @Expose() stockQuantity: number;
-  @Expose() status: ShopProductEnums.ShopProductStatus;
-  @Expose() last7daysSales: number;
-  @Expose() last7daysWriteOff: number;
-  @Expose() @Type(() => ShopProductImageDto) images: ShopProductImageDto[];
-};
+/**
+ * Preview — для списков
+ */
+class _ShopProductPreviewBase extends PickType(BaseShopProductResponseDto, [
+  'shopProductId',
+  'pinnedTo',
+  'stockQuantity',
+  'status',
+  'last7daysSales',
+  'last7daysWriteOff',
+  'createdAt',
+  'updatedAt',
+] as const) {}
 
-export class ShopProductPreviewResponseDto {
-  @Expose() shopProductId: string;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @ExposeObjectId() pinnedTo: string;
+export class ShopProductPreviewResponseDto extends _ShopProductPreviewBase {
   @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
-  @Expose() stockQuantity: number;
-  @Expose() status: ShopProductEnums.ShopProductStatus;
-  @Expose() last7daysSales: number;
-  @Expose() last7daysWriteOff: number;
+}
+
+/**
+ * Full — с images
+ */
+export class ShopProductFullResponseDto extends _ShopProductPreviewBase {
+  @Expose() @Type(() => ProductPreviewDto) product: ProductPreviewDto;
+  @Expose() @Type(() => ShopProductImageDto) images: ShopProductImageDto[];
 }

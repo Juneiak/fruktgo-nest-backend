@@ -6,27 +6,32 @@ import { JobApplicationStatus } from './job-application.enums';
 import { Seller } from 'src/modules/seller/seller.schema';
 import { Employee } from 'src/modules/employee';
 
-const JobApplicationEmployeeSchema = {
-  employeeId: { type: Types.ObjectId, required: true, ref: Employee.name },
-  employeeName: { type: String, required: true },
-  employeePhone: { type: String, required: true },
-  _id: false,
-};
-export interface JobApplicationEmployee {
+// ═══════════════════════════════════════════════════════════════
+// NESTED SCHEMAS
+// ═══════════════════════════════════════════════════════════════
+
+@Schema({ _id: false })
+export class JobApplicationEmployee {
+  @Prop({ type: Types.ObjectId, required: true, ref: Employee.name })
   employeeId: Types.ObjectId;
+
+  @Prop({ type: String, required: true })
   employeeName: string;
+
+  @Prop({ type: String, required: true })
   employeePhone: string;
 }
+export const JobApplicationEmployeeSchema = SchemaFactory.createForClass(JobApplicationEmployee);
 
-const JobApplicationSellerSchema = {
-  sellerId: { type: Types.ObjectId, required: true, ref: Seller.name },
-  sellerCompanyName: { type: String, required: true },
-  _id: false,
-};
-export interface JobApplicationSeller {
+@Schema({ _id: false })
+export class JobApplicationSeller {
+  @Prop({ type: Types.ObjectId, required: true, ref: Seller.name })
   sellerId: Types.ObjectId;
+
+  @Prop({ type: String, required: true })
   sellerCompanyName: string;
 }
+export const JobApplicationSellerSchema = SchemaFactory.createForClass(JobApplicationSeller);
 
 @Schema({
   toJSON: { virtuals: true },

@@ -8,8 +8,8 @@ import { UserType } from 'src/common/decorators/type.decorator';
 import { AuthenticatedUser } from 'src/common/types';
 import { GetUser } from 'src/common/decorators/user.decorator';
 import { UpdateEmployeeDto } from './seller.employees.request.dtos';
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import { EmployeeQueryFilterDto } from './seller.employees.query.dtos';
 
 @ApiTags('for seller')

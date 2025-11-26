@@ -16,7 +16,7 @@ import { UserType } from 'src/common/decorators/type.decorator';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { AuthenticatedUser } from 'src/common/types';
 import { GetUser } from 'src/common/decorators/user.decorator';
-import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { MessageResponseDto } from 'src/interface/http/shared';
 
 @ApiTags('for customer')
 @ApiBearerAuth('JWT-auth')

@@ -29,14 +29,14 @@ import {
   UpdateCustomerDto
 } from './admin.customers.request.dtos';
 import { CustomerQueryDto } from './admin.customers.query.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import {
   PaginatedResponseDto,
   MessageResponseDto,
   LogResponseDto,
   BlockDto,
   transformPaginatedResult
-} from 'src/interface/http/common';
+} from 'src/interface/http/shared';
 
 
 @Injectable()

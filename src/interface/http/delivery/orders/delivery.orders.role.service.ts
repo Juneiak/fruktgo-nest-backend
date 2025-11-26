@@ -3,7 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Order } from 'src/modules/order/order.schema';
 import { OrderStatus } from "src/modules/order/order.schema";
-import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { MessageResponseDto } from 'src/interface/http/shared';
 import {AuthenticatedUser} from 'src/common/types';
 import { Customer } from 'src/modules/customer/infrastructure/schemas/customer.schema';
 

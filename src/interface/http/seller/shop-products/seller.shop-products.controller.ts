@@ -1,8 +1,8 @@
 import { Controller, Get, Body, Param, Delete, Query, UseGuards, Post } from '@nestjs/common';
 import { SellerShopProductsRoleService } from './seller.shop-products.role.service';
-import { PaginationQueryDto } from "src/interface/http/common/common.query.dtos";
-import { PaginatedResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { MessageResponseDto } from 'src/interface/http/common/common.response.dtos';
+import { PaginationQueryDto } from "src/interface/http/responses/common.query.dtos";
+import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { MessageResponseDto } from 'src/interface/http/shared';
 import { UpdateShopProductDto} from './seller.shop-products.request.dtos';
 import { ShopProductResponseDto } from './seller.shop-products.response.dtos';
 import { UserType } from 'src/common/decorators/type.decorator';

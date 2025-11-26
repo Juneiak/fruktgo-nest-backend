@@ -1,29 +1,37 @@
-import { Expose, Type } from 'class-transformer';
-import { 
-  ArticleTargetAudience,
-  ArtcilesTag 
-} from 'src/modules/article/article.enums';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+/**
+ * Public Article Response DTOs
+ *
+ * Используем PickType от BaseArticleResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/article.base-response
+ */
 
-export class ArticleFullResponseDto {
-  @Expose() articleId: string;
-  @Expose() title: string;
-  @Expose() content: string;
-  @ExposeObjectId() articleImage?: string | null;
-  @Expose() @Type(() => String) targetAudience: ArticleTargetAudience;
-  @Expose() tags: ArtcilesTag[];
-  @Expose() viewCount: number;
-  @Expose() createdAt: Date;
-  @Expose() @Type(() => Date) publishedAt?: Date;
-}
+import { PickType } from '@nestjs/swagger';
+import { BaseArticleResponseDto } from 'src/interface/http/shared/base-responses';
 
+/**
+ * Full — без author, authorType, status (публичные данные)
+ */
+export class ArticleFullResponseDto extends PickType(BaseArticleResponseDto, [
+  'articleId',
+  'title',
+  'content',
+  'articleImage',
+  'targetAudience',
+  'tags',
+  'viewCount',
+  'createdAt',
+  'publishedAt',
+] as const) {}
 
-export class ArticlePreviewResponseDto {
-  @Expose() articleId: string;
-  @Expose() title: string;
-  @ExposeObjectId() articleImage?: string | null;
-  @Expose() contentPreview?: string;
-  @Expose() tags: ArtcilesTag[];
-  @Expose() createdAt: Date;
-  @Expose() @Type(() => Date) publishedAt?: Date;
-}
+/**
+ * Preview — для списков
+ */
+export class ArticlePreviewResponseDto extends PickType(BaseArticleResponseDto, [
+  'articleId',
+  'title',
+  'articleImage',
+  'contentPreview',
+  'tags',
+  'createdAt',
+  'publishedAt',
+] as const) {}

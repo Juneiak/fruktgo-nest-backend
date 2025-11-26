@@ -1,28 +1,34 @@
+/**
+ * Shop Shift Response DTOs
+ *
+ * Используем PickType от BaseShiftResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/shift.base-response
+ */
+
+import { PickType } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { Types } from 'mongoose';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+import {
+  BaseShiftResponseDto,
+  BaseShiftStatisticsDto,
+  BaseShiftEventDto,
+} from 'src/interface/http/shared/base-responses';
 
-class ShiftStatisticsDto {
-  @Expose() ordersCount: number;
-  @Expose() deliveredOrdersCount: number;
-  @Expose() canceledOrdersCount: number;
-  @Expose() declinedOrdersCount: number;
-  @Expose() declinedIncome: number;
-  @Expose() totalIncome: number;
-  @Expose() avgOrderPrice: number;
-  @Expose() avgOrderAssemblyDuration: number;
-  @Expose() avgOrderAcceptanceDuration: number;
-  @Expose() topSellingProducts: string[];
-}
+/**
+ * Preview — для списков смен магазина
+ */
+class _ShiftPreviewBase extends PickType(BaseShiftResponseDto, [
+  'shiftId',
+  'shop',
+  'status',
+  'openedBy',
+  'openedAt',
+  'closedBy',
+  'closedAt',
+  'createdAt',
+  'updatedAt',
+] as const) {}
 
-export class ShiftPreviewResponseDto {
-  @Expose() shiftId: string;
-  @ExposeObjectId() shop: Types.ObjectId;
-  @Expose() status: string;
-  @Expose() createdAt: Date;
-  @Expose() updatedAt: Date;
-  @Expose() openedAt: Date;
-  @Expose() closedAt: Date | null;
-  @Expose() @Type(() => ShiftStatisticsDto) statistics: ShiftStatisticsDto;
-  @Expose() events: any[];
+export class ShiftPreviewResponseDto extends _ShiftPreviewBase {
+  @Expose() @Type(() => BaseShiftStatisticsDto) statistics: BaseShiftStatisticsDto;
+  @Expose() @Type(() => BaseShiftEventDto) events: BaseShiftEventDto[];
 }

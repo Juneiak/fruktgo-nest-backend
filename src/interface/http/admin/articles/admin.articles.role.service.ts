@@ -7,9 +7,7 @@ import {
   InternalServerErrorException
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { checkId } from "src/common/utils";
 import { AuthenticatedUser } from "src/common/types";
-import { CommonListQueryOptions } from 'src/common/types/queries';
 import { DomainErrorCode, handleServiceError } from 'src/common/errors/domain-error';
 import {
   ArticlePort,
@@ -31,7 +29,7 @@ import {
   PaginationQueryDto,
   PaginatedResponseDto,
   transformPaginatedResult
-} from 'src/interface/http/common';
+} from 'src/interface/http/shared';
 
 
 @Injectable()

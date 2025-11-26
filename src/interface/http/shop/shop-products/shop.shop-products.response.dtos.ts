@@ -1,38 +1,62 @@
+/**
+ * Shop ShopProduct Response DTOs
+ *
+ * Используем PickType от BaseShopProductResponseDto и BaseProductResponseDto.
+ * @see src/interface/http/shared/base-responses/shop-product.base-response
+ */
+
+import { PickType } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
-import { ShopProductStatus } from "src/modules/shop-product/shop-product.schema";
-import { Types } from 'mongoose';
-import { ProductCategory, ProductMeasuringScale, ProductStepRate } from "src/modules/product/product.schema";
 import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+import {
+  BaseShopProductResponseDto,
+  BaseProductResponseDto,
+} from 'src/interface/http/shared/base-responses';
 
-class ProductDto {
-  @Expose() productId: string;
-  @ExposeObjectId() cardImage: Types.ObjectId;
-  @Expose() productArticle?: string | null;
-  @Expose() productName: string;
-  @Expose() category: ProductCategory;
-  @Expose() price: number;
-  @Expose() measuringScale: ProductMeasuringScale;
-  @Expose() stepRate: ProductStepRate;
-  @Expose() aboutProduct?: string;
-  @Expose() origin?: string;
-  @Expose() owner: any;
-};
+/**
+ * Product — вложенный в ShopProduct (populated)
+ */
+class ProductDto extends PickType(BaseProductResponseDto, [
+  'productId',
+  'cardImage',
+  'productArticle',
+  'productName',
+  'category',
+  'price',
+  'measuringScale',
+  'stepRate',
+  'aboutProduct',
+  'origin',
+  'owner',
+] as const) {}
 
+/**
+ * Image DTO
+ */
 class ShopProductImageDto {
   @ExposeObjectId() imageId: string;
   @Expose() createdAt: Date;
 }
-export class ShopProductResponseDto {
-  @Expose() shopProductId: string;
-  @ExposeObjectId() pinnedTo: string;
+
+/**
+ * Shop view — базовые поля
+ */
+class _ShopProductBase extends PickType(BaseShopProductResponseDto, [
+  'shopProductId',
+  'pinnedTo',
+  'stockQuantity',
+  'status',
+] as const) {}
+
+export class ShopProductResponseDto extends _ShopProductBase {
   @Expose() @Type(() => ProductDto) product: ProductDto;
-  @Expose() stockQuantity: number;
-  @Expose() status: ShopProductStatus;
   @Expose() @Type(() => ShopProductImageDto) images: ShopProductImageDto[];
 }
 
-
-export class CurrentShopProductStockResponseDto {
-  @Expose() shopProductId: string;
-  @Expose() stockQuantity: number;
-}
+/**
+ * Current stock — минимальный DTO
+ */
+export class CurrentShopProductStockResponseDto extends PickType(BaseShopProductResponseDto, [
+  'shopProductId',
+  'stockQuantity',
+] as const) {}

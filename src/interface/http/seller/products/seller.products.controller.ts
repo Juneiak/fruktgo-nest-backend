@@ -10,8 +10,8 @@ import {
   ProductFullResponseDto,
   ProductOfShopResponseDto,
 } from './seller.products.response.dtos';
-import { PaginatedResponseDto, MessageResponseDto, LogResponseDto } from 'src/interface/http/common/common.response.dtos';
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto, MessageResponseDto, LogResponseDto } from 'src/interface/http/shared';
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import { ImageUploadInterceptor } from 'src/common/interceptors/image-upload.interceptor';
 import { CreateProductDto, UpdateProductDto } from './seller.products.request.dtos';
 import { SellerProductsRoleService } from './seller.products.role.service';

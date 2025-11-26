@@ -1,18 +1,48 @@
-import { IssueStatus, IssueUserType, IssueLevel, IssueCategory } from 'src/modules/issue/issue.enums';
+/**
+ * Admin Issue Response DTOs
+ *
+ * Используем PickType от BaseIssueResponseDto для выбора полей.
+ * @see src/interface/http/shared/base-responses/issue.base-response
+ */
+
+import { PickType } from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import { VerifiedStatus } from 'src/common/enums/common.enum';
-import { ExposeObjectId } from 'src/common/decorators/expose-object-id.decorator';
+import { BaseIssueResponseDto } from 'src/interface/http/shared/base-responses';
 
-export class CreatedIssueResponseDto {
-  @Expose() status?: IssueStatus;
-  @Expose() issueText?: string;
-  @Expose() issueId: string;
-  @ExposeObjectId() from: string;
-  @Expose() level: IssueLevel;
-  @Expose() fromTelegramId: number;
-  @Expose() fromUserType: IssueUserType;
-}
+/**
+ * Created — после создания issue
+ */
+export class CreatedIssueResponseDto extends PickType(BaseIssueResponseDto, [
+  'issueId',
+  'from',
+  'fromUserType',
+  'fromTelegramId',
+  'issueText',
+  'status',
+  'level',
+] as const) {}
 
+/**
+ * Preview — для списков
+ */
+export class IssuePreviewResponseDto extends PickType(BaseIssueResponseDto, [
+  'issueId',
+  'from',
+  'fromUserType',
+  'fromTelegramId',
+  'issueText',
+  'status',
+  'level',
+  'category',
+  'resolution',
+  'createdAt',
+] as const) {}
+
+/**
+ * Full — с populated from (контактные данные)
+ * from переопределён на FromContactDto
+ */
 class FromContactDto {
   @Expose() id: string;
   @Expose() telegramId: number;
@@ -25,29 +55,19 @@ class FromContactDto {
   @Expose() verifiedStatus: VerifiedStatus;
 }
 
-export class IssueFullResponseDto {
-  @Expose() createdAt: Date;
-  @Expose() status?: IssueStatus;
-  @Expose() issueText?: string;
-  @Expose() resolution?: string | null;
-  @Expose() resolvedAt?: Date | null;
-  @Expose() category?: IssueCategory;
-  @Expose() issueId: string;
-  @Expose() @Type(() => FromContactDto) from: FromContactDto;
-  @Expose() level: IssueLevel;
-  @Expose() fromTelegramId: number;
-  @Expose() fromUserType: IssueUserType;
-}
+class _IssueFullBase extends PickType(BaseIssueResponseDto, [
+  'issueId',
+  'fromUserType',
+  'fromTelegramId',
+  'issueText',
+  'status',
+  'level',
+  'category',
+  'resolution',
+  'resolvedAt',
+  'createdAt',
+] as const) {}
 
-export class IssuePreviewResponseDto {
-  @Expose() createdAt: Date;
-  @Expose() status?: IssueStatus;
-  @Expose() issueId: string;
-  @ExposeObjectId() from: string;
-  @Expose() issueText: string;
-  @Expose() category?: IssueCategory;
-  @Expose() resolution?: string | null;
-  @Expose() level: IssueLevel;
-  @Expose() fromTelegramId: number;
-  @Expose() fromUserType: IssueUserType;
+export class IssueFullResponseDto extends _IssueFullBase {
+  @Expose() @Type(() => FromContactDto) from: FromContactDto;
 }

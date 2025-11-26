@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { SellerShiftsRoleService } from './seller.shifts.role.service';
-import { PaginatedResponseDto, LogResponseDto } from "src/interface/http/common/common.response.dtos";
-import { PaginationQueryDto } from 'src/interface/http/common/common.query.dtos';
+import { PaginatedResponseDto, LogResponseDto } from "src/interface/http/responses";
+import { PaginationQueryDto } from 'src/interface/http/responses/common.query.dtos';
 import { ShiftResponseDto } from './seller.shifts.response.dtos';
 import { UserType } from 'src/common/decorators/type.decorator';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
