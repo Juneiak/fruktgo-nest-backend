@@ -3,6 +3,8 @@ import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/que
 import { Employee } from './employee.schema';
 import { PaginateResult } from 'mongoose';
 import {
+  CreateEmployeeCommand,
+  ActivateEmployeeCommand,
   UpdateEmployeeCommand,
   BlockEmployeeCommand
 } from './employee.commands';
@@ -20,6 +22,8 @@ export interface EmployeePort {
   // ====================================================
   // COMMANDS
   // ==================================================== 
+  createEmployee(command: CreateEmployeeCommand, commandOptions?: CommonCommandOptions): Promise<Employee>;
+  activateEmployee(command: ActivateEmployeeCommand, commandOptions?: CommonCommandOptions): Promise<Employee>;
   updateEmployee(command: UpdateEmployeeCommand, commandOptions?: CommonCommandOptions): Promise<void>;
   blockEmployee(command: BlockEmployeeCommand, commandOptions?: CommonCommandOptions): Promise<void>;
 

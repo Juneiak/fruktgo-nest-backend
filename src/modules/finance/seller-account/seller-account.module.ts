@@ -1,28 +1,36 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
+import { SellerAccount, SellerAccountSchema } from './schemas/seller-account.schema';
+import { WithdrawalRequest, WithdrawalRequestSchema } from './schemas/withdrawal-request.schema';
 import { SellerAccountService } from './seller-account.service';
-import { SellerAccountSchema } from './schemas/seller-account.schema';
-import { WithdrawalRequestSchema } from './schemas/withdrawal-request.schema';
-import { SellerAccountSellerController } from './seller/seller-account.seller.controller';
-import { SellerAccountAdminController } from './admin/seller-account.admin.controller';
-import { SellerAccountSellerService } from './seller/seller-account.seller.service';
-import { SellerAccountAdminService } from './admin/seller-account.admin.service';
-import { SellerAccountSharedService } from './shared/seller-account.shared.service';
+import { SELLER_ACCOUNT_PORT } from './seller-account.port';
 
+/**
+ * =====================================================
+ * МОДУЛЬ SELLER ACCOUNT
+ * =====================================================
+ * 
+ * Счета продавцов и выводы средств:
+ * - SellerAccount — баланс продавца (сумма со всех магазинов)
+ * - WithdrawalRequest — заявки на вывод средств
+ * 
+ * @see docs/modules/main/finance.md
+ */
+@Global()
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: 'SellerAccount', schema: SellerAccountSchema },
-      { name: 'WithdrawalRequest', schema: WithdrawalRequestSchema }
-    ])
+      { name: SellerAccount.name, schema: SellerAccountSchema },
+      { name: WithdrawalRequest.name, schema: WithdrawalRequestSchema },
+    ]),
   ],
-  controllers: [SellerAccountSellerController, SellerAccountAdminController],
   providers: [
     SellerAccountService,
-    SellerAccountSellerService,
-    SellerAccountAdminService,
-    SellerAccountSharedService
+    {
+      provide: SELLER_ACCOUNT_PORT,
+      useExisting: SellerAccountService,
+    },
   ],
-  exports: [SellerAccountSharedService]
+  exports: [SELLER_ACCOUNT_PORT],
 })
 export class SellerAccountModule {}

@@ -23,6 +23,7 @@ import { BlogModule } from './modules/article/blog.module';
 import { DadataModule } from './interface/http/public/dadata/public.dadata.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { AuthModule } from './infra/auth/auth.module';
+import { LoginCodeModule } from './modules/auth';
 import { LogsModule } from './infra/logs/log.module';
 import { UploadsModule } from './infra/images/images.module';
 
@@ -42,6 +43,7 @@ import { DomainErrorFilter } from 'src/common/errors/domain-error.filter';
 
 
     AuthModule,
+    LoginCodeModule,
     LogsModule,
     UploadsModule,
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 
 // Orchestrator
 import { OrderProcessOrchestrator } from './order-process.orchestrator';
@@ -11,6 +11,9 @@ import { CustomerModule } from 'src/modules/customer';
 import { CartModule } from 'src/modules/cart';
 import { ShopProductModule } from 'src/modules/shop-product';
 
+// Process Modules
+import { FinanceProcessModule } from 'src/processes/finance';
+
 export const ORDER_PROCESS_ORCHESTRATOR = Symbol('ORDER_PROCESS_ORCHESTRATOR');
 
 @Module({
@@ -22,6 +25,8 @@ export const ORDER_PROCESS_ORCHESTRATOR = Symbol('ORDER_PROCESS_ORCHESTRATOR');
     CustomerModule,
     CartModule,
     ShopProductModule,
+    // Finance process for recording order income
+    forwardRef(() => FinanceProcessModule),
   ],
   providers: [
     OrderProcessOrchestrator,

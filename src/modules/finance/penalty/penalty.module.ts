@@ -1,34 +1,38 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { PenaltySchema } from './penalty.schema';
+import { Penalty, PenaltySchema } from './penalty.schema';
 import { PenaltyService } from './penalty.service';
-import { PenaltySharedService } from './shared/penalty.shared.service';
-import { ShopAccountModule } from '../shop-account/shop-account.module';
-import { ShopAccountSchema } from '../shop-account/schemas/shop-account.schema';
-import { PenaltyAdminController } from './admin/penalty.admin.controller';
-import { PenaltySellerController } from './seller/penalty.seller.controller';
-import { PenaltyAdminService } from './admin/penalty.admin.service';
-import { PenaltySellerService } from './seller/penalty.seller.service';
+import { PENALTY_PORT } from './penalty.port';
 
-
+/**
+ * =====================================================
+ * МОДУЛЬ PENALTY (ШТРАФЫ)
+ * =====================================================
+ * 
+ * Штрафы назначаются магазину за нарушения:
+ * - ORDER_DELAY — задержка заказа
+ * - PRODUCT_QUALITY — проблемы с качеством
+ * - PRODUCT_MISMATCH — несоответствие описанию
+ * - RULE_VIOLATION — нарушение правил платформы
+ * 
+ * Lifecycle: CREATED → CONTESTED (опционально) → CONFIRMED/CANCELED
+ * 
+ * @see docs/modules/main/finance.md
+ */
+@Global()
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: 'Penalty', schema: PenaltySchema },
-      { name: 'ShopAccount', schema: ShopAccountSchema },
+      { name: Penalty.name, schema: PenaltySchema },
     ]),
-    ShopAccountModule,
-  ],
-  controllers: [
-    PenaltyAdminController,
-    PenaltySellerController
   ],
   providers: [
-    PenaltyAdminService,
-    PenaltySellerService,
     PenaltyService,
-    PenaltySharedService,
+    {
+      provide: PENALTY_PORT,
+      useExisting: PenaltyService,
+    },
   ],
-  exports: [PenaltySharedService]
+  exports: [PENALTY_PORT],
 })
 export class PenaltyModule {}

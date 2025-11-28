@@ -1,23 +1,36 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { PlatformAccountAdminController } from './admin/platform-account.admin.controller';
+import { PlatformAccount, PlatformAccountSchema } from './schemas/platform-account.schema';
+import { PlatformAccountTransaction, PlatformAccountTransactionSchema } from './schemas/platform-account-transaction.schema';
 import { PlatformAccountService } from './platform-account.service';
-import { PlatformAccountSchema } from './schemas/platform-account.schema';
-import { PlatformAccountSharedService } from './shared/platform-account.shared.service';
-import { PlatformAccountAdminService } from './admin/platform-account.admin.service';
+import { PLATFORM_ACCOUNT_PORT } from './platform-account.port';
 
+/**
+ * =====================================================
+ * МОДУЛЬ PLATFORM ACCOUNT
+ * =====================================================
+ * 
+ * Единственный счёт платформы с агрегатами:
+ * - PlatformAccount — финансовые показатели платформы
+ * - PlatformAccountTransaction — транзакции платформы
+ * 
+ * @see docs/modules/main/finance.md
+ */
+@Global()
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: 'PlatformAccount', schema: PlatformAccountSchema },
-    ])
+      { name: PlatformAccount.name, schema: PlatformAccountSchema },
+      { name: PlatformAccountTransaction.name, schema: PlatformAccountTransactionSchema },
+    ]),
   ],
-  controllers: [PlatformAccountAdminController],
   providers: [
     PlatformAccountService,
-    PlatformAccountAdminService,
-    PlatformAccountSharedService
+    {
+      provide: PLATFORM_ACCOUNT_PORT,
+      useExisting: PlatformAccountService,
+    },
   ],
-  exports: [PlatformAccountSharedService]
+  exports: [PLATFORM_ACCOUNT_PORT],
 })
 export class PlatformAccountModule {}

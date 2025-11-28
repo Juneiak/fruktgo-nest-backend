@@ -1,19 +1,24 @@
-// src/modules/auth/schemas/login-code.schema.ts
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Types } from 'mongoose';
+import { Document, Model, Types } from 'mongoose';
+import { LoginCodeType } from './auth.enums';
 
-export enum LoginCodeType {
-  ADMIN = 'admin',
-  CUSTOMER = 'customer', 
-  SELLER = 'seller',
-  SHOP = 'shop',
-  EMPLOYEE_TO_SHOP = 'employee_to_shop'
+export interface LoginCodeContext {
+  ownerId?: Types.ObjectId;
+  shopId?: Types.ObjectId;
+  shopName?: string;
+  employeeId?: Types.ObjectId;
+  metadata?: Record<string, any>;
 }
 
-@Schema({ timestamps: true })
+@Schema({
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true },
+  id: false,
+})
 export class LoginCode extends Document {
   _id: Types.ObjectId;
-  id: string;
+  codeId: string;
   createdAt: Date;
   updatedAt: Date;
 
@@ -36,28 +41,23 @@ export class LoginCode extends Document {
   @Prop({ type: String, required: false })
   entityModel: string; // 'Admin' | 'Customer' | 'Seller' | 'Shop' | 'Employee'
 
-  // Дополнительная информация в зависимости от типа
   @Prop({ type: Object, default: {} })
-  context: {
-    // Для SHOP
-    ownerId?: Types.ObjectId;        // ID продавца-владельца
-    
-    // Для EMPLOYEE_TO_SHOP
-    shopId?: Types.ObjectId;         // ID магазина
-    shopName?: string;               // Название магазина
-    employeeId?: Types.ObjectId;     // ID сотрудника (может быть заранее известен)
-    
-    // Для будущих расширений
-    metadata?: Record<string, any>;  // Любые дополнительные данные
-  };
+  context: LoginCodeContext;
 }
 
 export const LoginCodeSchema = SchemaFactory.createForClass(LoginCode);
 
-// TTL-индекс
+// Virtual codeId
+LoginCodeSchema.virtual('codeId').get(function (this: LoginCode): string {
+  return this._id.toString();
+});
+
+// TTL-индекс (автоудаление просроченных)
 LoginCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Составные индексы для быстрого поиска
+// Составные индексы
 LoginCodeSchema.index({ type: 1, code: 1 });
 LoginCodeSchema.index({ type: 1, entityId: 1, confirmed: 1 });
-LoginCodeSchema.index({ type: 1, 'context.shopId': 1, confirmed: 1 }); // для employee
+LoginCodeSchema.index({ type: 1, 'context.shopId': 1, confirmed: 1 });
+
+export type LoginCodeModel = Model<LoginCode>;

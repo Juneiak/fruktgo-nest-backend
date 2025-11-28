@@ -1,31 +1,40 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { ShopAccountSchema } from './schemas/shop-account.schema';
-import { SettlementPeriodSchema } from './schemas/settlement-period.schema'
-import { SettlementPeriodTransactionSchema } from './schemas/settlement-period-transaction.schema'
+import { ShopAccount, ShopAccountSchema } from './schemas/shop-account.schema';
+import { SettlementPeriod, SettlementPeriodSchema } from './schemas/settlement-period.schema';
+import { SettlementPeriodTransaction, SettlementPeriodTransactionSchema } from './schemas/settlement-period-transaction.schema';
 import { ShopAccountService } from './shop-account.service';
-import { ShopAccountSharedService } from './shared/shop-account.shared.service';
-import { ShopAccountAdminService } from './admin/shop-account.admin.service';
-import { ShopAccountSellerService } from './seller/shop-account.seller.service';
-import { ShopAccountAdminController } from './admin/shop-account.admin.controller';
-import { ShopAccountSellerController } from './seller/shop-account.seller.controller';
+import { SHOP_ACCOUNT_PORT } from './shop-account.port';
 
+/**
+ * =====================================================
+ * МОДУЛЬ SHOP ACCOUNT
+ * =====================================================
+ * 
+ * Счета магазинов и расчётные периоды:
+ * - ShopAccount — финансовый счёт магазина
+ * - SettlementPeriod — расчётный период (14-21 день)
+ * - SettlementPeriodTransaction — транзакции в периоде
+ * 
+ * @see docs/modules/main/finance.md
+ */
+@Global()
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: 'ShopAccount', schema: ShopAccountSchema },
-      { name: 'SettlementPeriod', schema: SettlementPeriodSchema },
-      { name: 'SettlementPeriodTransaction', schema: SettlementPeriodTransactionSchema },
-    ])
+      { name: ShopAccount.name, schema: ShopAccountSchema },
+      { name: SettlementPeriod.name, schema: SettlementPeriodSchema },
+      { name: SettlementPeriodTransaction.name, schema: SettlementPeriodTransactionSchema },
+    ]),
   ],
-  controllers: [ShopAccountAdminController, ShopAccountSellerController],
   providers: [
     ShopAccountService,
-    ShopAccountAdminService,
-    ShopAccountSellerService,
-    ShopAccountSharedService
+    {
+      provide: SHOP_ACCOUNT_PORT,
+      useExisting: ShopAccountService,
+    },
   ],
-  exports: [ShopAccountSharedService],
+  exports: [SHOP_ACCOUNT_PORT],
 })
 export class ShopAccountModule {}
 

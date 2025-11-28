@@ -6,7 +6,13 @@ import { CommonCommandOptions } from 'src/common/types/commands';
 import { CommonListQueryOptions, CommonQueryOptions } from 'src/common/types/queries';
 import { PaginateResult, Types } from 'mongoose';
 import { EmployeeModel, Employee } from './employee.schema';
-import { BlockEmployeeCommand, UpdateEmployeeCommand } from './employee.commands';
+import { 
+  CreateEmployeeCommand, 
+  ActivateEmployeeCommand, 
+  BlockEmployeeCommand, 
+  UpdateEmployeeCommand 
+} from './employee.commands';
+import { EmployeeStatus } from './employee.enums';
 import { DomainError } from 'src/common/errors/domain-error';
 import { parcePhoneNumber } from 'src/common/utils';
 import { EmployeePort } from './employee.port';
@@ -85,6 +91,73 @@ export class EmployeeService implements EmployeePort {
   // ====================================================
   // COMMANDS
   // ====================================================
+  async createEmployee(
+    command: CreateEmployeeCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<Employee> {
+    const { payload } = command;
+    
+    const phone = parcePhoneNumber(payload.phone);
+    if (!phone) throw DomainError.validation('Некорректный номер телефона');
+
+    // Проверка уникальности телефона
+    const existingEmployee = await this.employeeModel.findOne({ phone: phone.number }).lean();
+    if (existingEmployee) {
+      throw DomainError.conflict('Сотрудник с таким номером телефона уже существует');
+    }
+
+    const employee = new this.employeeModel({
+      employeeName: payload.employeeName,
+      phone: phone.number,
+      employer: new Types.ObjectId(payload.employerId),
+      pinnedTo: payload.pinnedTo ? new Types.ObjectId(payload.pinnedTo) : null,
+      position: payload.position,
+      salary: payload.salary,
+      sellerNote: payload.sellerNote,
+      status: EmployeeStatus.PENDING,
+    });
+
+    const saveOptions: any = {};
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
+
+    await employee.save(saveOptions);
+    return employee;
+  }
+
+
+  async activateEmployee(
+    command: ActivateEmployeeCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<Employee> {
+    const { employeeId, payload } = command;
+    checkId([employeeId]);
+
+    const dbQuery = this.employeeModel.findById(new Types.ObjectId(employeeId));
+    if (commandOptions?.session) dbQuery.session(commandOptions.session);
+
+    const employee = await dbQuery.exec();
+    if (!employee) throw DomainError.notFound('Employee', employeeId);
+
+    // Проверка что сотрудник ожидает активации
+    if (employee.status !== EmployeeStatus.PENDING) {
+      throw DomainError.invariant('Сотрудник уже активирован или отклонён');
+    }
+
+    employee.telegramId = payload.telegramId;
+    employee.telegramUsername = payload.telegramUsername;
+    employee.telegramFirstName = payload.telegramFirstName;
+    employee.telegramLastName = payload.telegramLastName;
+    employee.status = EmployeeStatus.ACTIVE;
+    employee.lastLoginAt = new Date();
+
+    const saveOptions: any = {};
+    if (commandOptions?.session) saveOptions.session = commandOptions.session;
+
+    await employee.save(saveOptions);
+    return employee;
+  }
+
+
   async updateEmployee(
     command: UpdateEmployeeCommand,
     commandOptions?: CommonCommandOptions

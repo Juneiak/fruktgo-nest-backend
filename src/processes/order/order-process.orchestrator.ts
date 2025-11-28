@@ -16,6 +16,12 @@ import { CartPort, CART_PORT, CartQueries, CartCommands } from 'src/modules/cart
 
 import { ShopProductPort, SHOP_PRODUCT_PORT, ShopProductQueries, ShopProductCommands } from 'src/modules/shop-product';
 
+// Finance
+import { 
+  FINANCE_PROCESS_ORCHESTRATOR, 
+  FinanceProcessOrchestrator 
+} from 'src/processes/finance';
+
 // Process types
 import {
   CheckoutInput,
@@ -46,6 +52,7 @@ export class OrderProcessOrchestrator {
     @Inject(CUSTOMER_PORT) private readonly customerPort: CustomerPort,
     @Inject(CART_PORT) private readonly cartPort: CartPort,
     @Inject(SHOP_PRODUCT_PORT) private readonly shopProductPort: ShopProductPort,
+    @Inject(FINANCE_PROCESS_ORCHESTRATOR) private readonly financeOrchestrator: FinanceProcessOrchestrator,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -464,11 +471,18 @@ export class OrderProcessOrchestrator {
   // ====================================================
   // DELIVER ORDER - Доставка заказа
   // ====================================================
+  /**
+   * Доставка заказа:
+   * 1. Обновляет статус заказа на DELIVERED
+   * 2. Записывает доход в SettlementPeriod через FinanceProcessOrchestrator
+   * 3. Обновляет статистику смены
+   */
   async deliverOrder(input: DeliverOrderInput): Promise<DeliveryResult> {
     const session = await this.connection.startSession();
     
     try {
       let result: DeliveryResult;
+      let orderForFinance: Order;
       
       await session.withTransaction(async () => {
         const order = await this.orderPort.getOrder(
@@ -486,6 +500,9 @@ export class OrderProcessOrchestrator {
             { currentStatus: order.orderStatus }
           );
         }
+
+        // Сохраняем данные заказа для финансовой записи
+        orderForFinance = order;
 
         await this.orderPort.deliverOrder(
           { orderId: input.orderId },
@@ -510,6 +527,32 @@ export class OrderProcessOrchestrator {
           deliveredAt,
         };
       });
+
+      // После успешной транзакции записываем доход в финансы
+      // Это делается отдельно, т.к. financeOrchestrator использует свою транзакцию
+      try {
+        // Получаем shop для shopAccountId
+        const shop = await this.shopPort.getShop({
+          filter: { shopId: orderForFinance!.orderedFrom.shop.toString() }
+        });
+        
+        if (shop && shop.account) {
+          await this.financeOrchestrator.recordOrderIncome({
+            shopAccountId: shop.account.toString(),
+            orderId: input.orderId,
+            orderAmount: orderForFinance!.finances.sentSum,
+            commissionAmount: orderForFinance!.finances.systemTax,
+          });
+        }
+      } catch (financeError) {
+        // Логируем ошибку, но не откатываем доставку
+        // Финансовая запись может быть добавлена вручную
+        console.error('[OrderProcess] Failed to record order income:', financeError);
+        this.eventEmitter.emit('order.finance.error', {
+          orderId: input.orderId,
+          error: financeError.message,
+        });
+      }
 
       this.eventEmitter.emit('order.delivered', {
         orderId: input.orderId,

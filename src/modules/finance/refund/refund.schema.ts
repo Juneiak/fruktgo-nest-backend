@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, SchemaTypes, Types } from 'mongoose';
+import * as mongooseLeanVirtuals from 'mongoose-lean-virtuals';
 
 export enum RefundStatus {
   CREATED = 'created',          // Создан
@@ -62,3 +63,8 @@ export class Refund extends Document {
 }
 
 export const RefundSchema = SchemaFactory.createForClass(Refund);
+RefundSchema.plugin(mongooseLeanVirtuals as any);
+
+RefundSchema.virtual('refundId').get(function (this: Refund): string {
+  return this._id.toString();
+});
