@@ -1,46 +1,101 @@
 # Addresses Module
 
-Централизованный модуль для управления адресами с поддержкой полиморфных связей через `refPath`.
+> `src/infra/addresses/`
 
-## 🏗️ Архитектура
+Централизованное хранилище адресов с полиморфной связью через `refPath`. Поддерживает Customer, Shop, Employee, Warehouse.
 
-### Схема с refPath
+## Структура
+
+```
+src/infra/addresses/
+├── index.ts
+├── address.schema.ts
+├── addresses.enums.ts
+├── addresses.commands.ts
+├── addresses.queries.ts
+├── addresses.port.ts
+├── addresses.service.ts
+└── addresses.module.ts
+```
+
+## Импорт
 
 ```typescript
-@Schema({
-  timestamps: true,
-  versionKey: false,
-  id: false,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
-export class Address {
-  @Prop({ type: String, required: true, enum: Object.values(AddressEntityType) })
-  entityType: AddressEntityType; // 'customer' | 'shop' | 'employee'
+import {
+  AddressesPort,
+  ADDRESSES_PORT,
+  AddressesCommands,
+  AddressesQueries,
+  AddressesEnums,
+  Address,
+} from 'src/infra/addresses';
 
-  @Prop({ 
-    type: Types.ObjectId, 
-    required: true,
-    refPath: 'entityType' // 🔥 Динамическая ссылка на разные модели
-  })
-  entity: Types.ObjectId;
+@Inject(ADDRESSES_PORT) private readonly addressesPort: AddressesPort
+```
+
+## Схема
+
+```typescript
+class Address {
+  entityType: AddressEntityType;  // 'customer' | 'shop' | 'employee' | 'Warehouse'
+  entity: Types.ObjectId;         // refPath → entityType
+  
+  latitude: number;
+  longitude: number;
+  city: string;
+  street: string;
+  house: string;
+  
+  apartment?: string;
+  floor?: string;
+  entrance?: string;
+  intercomCode?: string;
+  label?: string;  // home | work | other
 }
 ```
 
-### Почему refPath?
-
-1. **Полиморфизм** - один адрес может принадлежать разным типам сущностей
-2. **Populate** - Mongoose автоматически найдет нужную модель для `.populate('entity')`
-3. **Консистентность** - следует паттерну из `Issue` модуля
-4. **Гибкость** - легко добавить новые типы сущностей
-
-## 📦 Использование
-
-### Customer Module
+## Енумы
 
 ```typescript
-// Добавление адреса клиенту
-await this.addressesPort.createAddress(
+enum AddressEntityType {
+  CUSTOMER = 'customer',
+  SHOP = 'shop',
+  EMPLOYEE = 'employee',
+  WAREHOUSE = 'Warehouse',
+}
+
+enum AddressLabel {
+  HOME = 'home',
+  WORK = 'work',
+  OTHER = 'other',
+}
+```
+
+## API
+
+### Queries
+
+| Метод | Описание |
+|-------|----------|
+| `getAddress(addressId)` | Получить адрес по ID |
+| `getEntityAddresses(query)` | Все адреса сущности (paginated) |
+| `getNearbyAddresses(query)` | Геопоиск в радиусе |
+
+### Commands
+
+| Метод | Описание |
+|-------|----------|
+| `createAddress(command)` | Создать адрес |
+| `updateAddress(command)` | Обновить адрес |
+| `deleteAddress(addressId)` | Удалить адрес |
+| `deleteAllEntityAddresses(command)` | Удалить все адреса сущности |
+
+## Использование
+
+### Создание адреса
+
+```typescript
+const address = await this.addressesPort.createAddress(
   new AddressesCommands.CreateAddressCommand(
     AddressesEnums.AddressEntityType.CUSTOMER,
     customerId,
@@ -51,118 +106,85 @@ await this.addressesPort.createAddress(
       street: 'Тверская',
       house: '1',
       apartment: '10',
-      floor: '3',
-      entrance: '2',
-      intercomCode: '1234',
     }
   )
 );
+```
 
-// Получение всех адресов клиента
-const addresses = await this.addressesPort.getEntityAddresses(
+### Получение адресов
+
+```typescript
+const result = await this.addressesPort.getEntityAddresses(
   new AddressesQueries.GetEntityAddressesQuery(
     AddressesEnums.AddressEntityType.CUSTOMER,
-    customerId
-  )
-);
-
-// Установка адреса по умолчанию
-await this.addressesPort.setDefaultAddress(
-  new AddressesCommands.SetDefaultAddressCommand(
-    AddressesEnums.AddressEntityType.CUSTOMER,
     customerId,
-    addressId
+    { label: AddressesEnums.AddressLabel.HOME }
+  ),
+  { pagination: { page: 1, pageSize: 10 } }
+);
+```
+
+### Геопоиск
+
+```typescript
+const nearby = await this.addressesPort.getNearbyAddresses(
+  new AddressesQueries.GetNearbyAddressesQuery(
+    55.7558, // latitude
+    37.6173, // longitude
+    5,       // radiusKm
+    { entityType: AddressesEnums.AddressEntityType.SHOP }
   )
 );
 ```
 
-### Shop Module
+### Каскадное удаление
 
 ```typescript
-// Создание адреса магазина
-const addressCommand = new AddressesCommands.CreateAddressCommand(
-  AddressesEnums.AddressEntityType.SHOP,
-  shopId,
-  {
-    latitude: 55.7558,
-    longitude: 37.6173,
-    city: 'Москва',
-    street: 'Арбат',
-    house: '15',
-  }
+await this.addressesPort.deleteAllEntityAddresses(
+  new AddressesCommands.DeleteAllEntityAddressesCommand(
+    AddressesEnums.AddressEntityType.CUSTOMER,
+    customerId
+  ),
+  { session }
 );
-const createdAddress = await this.addressesPort.createAddress(addressCommand);
-
-// Сохранение ссылки на адрес (через ObjectId)
-shop.address = new Types.ObjectId(createdAddress.addressId);
-await shop.save();
 ```
 
-## 🔄 Миграция данных
+## Особенности
 
-Если в базе уже есть адреса с полем `entityId`, запустите миграцию:
+### Выбранный адрес
+Управление «адресом по умолчанию» находится в схеме сущности:
+- `Customer.selectedAddress` → ObjectId
+- `Shop.address` → ObjectId
 
-```bash
-node migrations/rename-address-entityId-to-entity.js
-```
-
-Миграция:
-1. Переименует `entityId` → `entity`
-2. Создаст необходимые индексы
-3. Проверит количество измененных документов
-
-## 📊 Индексы
-
-Созданы следующие индексы для оптимизации:
+### Индексы
 
 ```typescript
-AddressSchema.index({ entityType: 1, entity: 1 });     // Поиск адресов сущности
-AddressSchema.index({ latitude: 1, longitude: 1 });    // Геопоиск
+AddressSchema.index({ entityType: 1, entity: 1 });  // Поиск по сущности
+AddressSchema.index({ latitude: 1, longitude: 1 }); // Геопоиск
 ```
 
-## 🎯 Основные методы
-
-### Queries
-- `getAddress(addressId)` - получить адрес по ID
-- `getEntityAddresses(query)` - получить все адреса сущности с пагинацией
-- `getNearbyAddresses(query)` - геопоиск адресов в радиусе
-
-### Commands
-- `createAddress(command)` - создать новый адрес
-- `updateAddress(command)` - обновить адрес
-- `deleteAddress(addressId)` - удалить адрес
-- `deleteAllEntityAddresses(command)` - удалить все адреса сущности
-
-**Примечание:** Установка выбранного адреса теперь выполняется через обновление поля в схеме сущности (`shop.address` или `customer.selectedAddress`), а не через Address модуль.
-
-## 🔗 Связи
-
-### AddressEntityType
+### Виртуалы
 
 ```typescript
-export enum AddressEntityType {
-  CUSTOMER = UserType.CUSTOMER,  // 'customer'
-  SHOP = UserType.SHOP,          // 'shop'
-  EMPLOYEE = UserType.EMPLOYEE,  // 'employee'
-}
+AddressSchema.virtual('addressId').get(function() {
+  return this._id?.toString();
+});
 ```
 
-Значения совпадают с `UserType` для консистентности.
+## Best Practices
 
-## 💡 Особенности
+```typescript
+// ✅ Создание с транзакцией
+const address = await addressesPort.createAddress(command, { session });
 
-1. **Автоматический дефолтный адрес** - первый созданный адрес автоматически становится дефолтным
-2. **Управление дефолтными адресами** - при установке нового дефолтного, старый автоматически сбрасывается
-3. **Каскадное удаление** - при удалении дефолтного адреса, следующий становится дефолтным
-4. **Виртуальное поле** - `addressId` автоматически генерируется из `_id`
-5. **Транзакции** - все методы поддерживают Mongoose sessions
+// ✅ Каскадное удаление при удалении сущности
+await addressesPort.deleteAllEntityAddresses(
+  new AddressesCommands.DeleteAllEntityAddressesCommand(entityType, entityId),
+  { session }
+);
 
-## 🚀 Преимущества новой архитектуры
-
-- ✅ Централизованное хранение адресов
-- ✅ Переиспользование между модулями
-- ✅ Масштабируемость - легко добавить новые entity типы
-- ✅ Геофункции готовы к использованию
-- ✅ Следование стандартам проекта (Port/Facade/Service)
-- ✅ Чистые схемы - Customer и Shop не содержат embedded адреса
-- ✅ Полиморфные связи через refPath
+// ✅ Обновление выбранного адреса в сущности после создания
+await customerPort.updateCustomer(
+  new CustomerCommands.SetSelectedAddressCommand(customerId, address.addressId)
+);
+```
