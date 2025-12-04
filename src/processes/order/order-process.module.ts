@@ -10,6 +10,7 @@ import { ShiftModule } from 'src/modules/shift';
 import { CustomerModule } from 'src/modules/customer';
 import { CartModule } from 'src/modules/cart';
 import { ShopProductModule } from 'src/modules/shop-product';
+import { StockMovementModule } from 'src/modules/stock-movement';
 
 // Process Modules
 import { FinanceProcessModule } from 'src/processes/finance';
@@ -25,6 +26,7 @@ export const ORDER_PROCESS_ORCHESTRATOR = Symbol('ORDER_PROCESS_ORCHESTRATOR');
     CustomerModule,
     CartModule,
     ShopProductModule,
+    StockMovementModule,
     // Finance process for recording order income
     forwardRef(() => FinanceProcessModule),
   ],

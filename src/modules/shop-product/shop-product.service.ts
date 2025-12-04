@@ -22,6 +22,9 @@ import {
   ArchiveShopProductCommand,
   AdjustStockQuantityCommand,
   BulkAdjustStockQuantityCommand,
+  BulkReserveStockCommand,
+  BulkReleaseReserveCommand,
+  BulkConfirmReserveCommand,
 } from './shop-product.commands';
 import { ShopProductStatus } from './shop-product.enums';
 import { ShopProductPort } from './shop-product.port';
@@ -345,6 +348,88 @@ export class ShopProductService implements ShopProductPort {
       updateOne: {
         filter: { _id: new Types.ObjectId(item.shopProductId) },
         update: { $inc: { stockQuantity: item.adjustment } }
+      }
+    }));
+
+    const bulkOptions: any = {};
+    if (commandOptions?.session) bulkOptions.session = commandOptions.session;
+
+    await this.shopProductModel.bulkWrite(bulkOps, bulkOptions);
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════
+  // RESERVE COMMANDS
+  // ═══════════════════════════════════════════════════════════════
+
+  async bulkReserveStock(
+    command: BulkReserveStockCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    const { items } = command;
+    if (items.length === 0) return;
+    
+    const ids = items.map(i => i.shopProductId);
+    checkId(ids);
+
+    const bulkOps = items.map(item => ({
+      updateOne: {
+        filter: { _id: new Types.ObjectId(item.shopProductId) },
+        update: { $inc: { reservedQuantity: item.quantity } }
+      }
+    }));
+
+    const bulkOptions: any = {};
+    if (commandOptions?.session) bulkOptions.session = commandOptions.session;
+
+    await this.shopProductModel.bulkWrite(bulkOps, bulkOptions);
+  }
+
+
+  async bulkReleaseReserve(
+    command: BulkReleaseReserveCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    const { items } = command;
+    if (items.length === 0) return;
+    
+    const ids = items.map(i => i.shopProductId);
+    checkId(ids);
+
+    const bulkOps = items.map(item => ({
+      updateOne: {
+        filter: { _id: new Types.ObjectId(item.shopProductId) },
+        update: { $inc: { reservedQuantity: -item.quantity } }
+      }
+    }));
+
+    const bulkOptions: any = {};
+    if (commandOptions?.session) bulkOptions.session = commandOptions.session;
+
+    await this.shopProductModel.bulkWrite(bulkOps, bulkOptions);
+  }
+
+
+  async bulkConfirmReserve(
+    command: BulkConfirmReserveCommand,
+    commandOptions?: CommonCommandOptions
+  ): Promise<void> {
+    const { items } = command;
+    if (items.length === 0) return;
+    
+    const ids = items.map(i => i.shopProductId);
+    checkId(ids);
+
+    // Уменьшаем и reservedQuantity и stockQuantity
+    const bulkOps = items.map(item => ({
+      updateOne: {
+        filter: { _id: new Types.ObjectId(item.shopProductId) },
+        update: { 
+          $inc: { 
+            reservedQuantity: -item.quantity,
+            stockQuantity: -item.quantity,
+          } 
+        }
       }
     }));
 

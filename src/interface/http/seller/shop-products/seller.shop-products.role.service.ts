@@ -13,9 +13,15 @@ import {
 import { ShopPort, SHOP_PORT, ShopQueries } from 'src/modules/shop';
 import { LogsPort, LOGS_PORT } from 'src/infra/logs';
 import {
+  StockMovementPort,
+  STOCK_MOVEMENT_PORT,
+  StockMovementQueries,
+} from 'src/modules/stock-movement';
+import {
   PaginatedResponseDto,
   transformPaginatedResult,
   PaginationQueryDto,
+  StockMovementResponseDto,
 } from 'src/interface/http/shared';
 
 @Injectable()
@@ -24,6 +30,7 @@ export class SellerShopProductsRoleService {
     @Inject(SHOP_PRODUCT_PORT) private readonly shopProductPort: ShopProductPort,
     @Inject(SHOP_PORT) private readonly shopPort: ShopPort,
     @Inject(LOGS_PORT) private readonly logsPort: LogsPort,
+    @Inject(STOCK_MOVEMENT_PORT) private readonly stockMovementPort: StockMovementPort,
   ) {}
 
   async getShopProducts(
@@ -339,4 +346,39 @@ export class SellerShopProductsRoleService {
   //     session.endSession();
   //   }
   // }
-};
+
+
+  async getStockMovements(
+    authedSeller: AuthenticatedUser,
+    shopProductId: string,
+    paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<StockMovementResponseDto>> {
+    checkId([shopProductId]);
+
+    // Проверяем что товар существует
+    const shopProduct = await this.shopProductPort.getShopProduct(
+      new ShopProductQueries.GetShopProductQuery(shopProductId)
+    );
+    if (!shopProduct) throw new NotFoundException('Товар не найден');
+
+    // Проверяем что магазин принадлежит продавцу
+    const shop = await this.shopPort.getShop(
+      new ShopQueries.GetShopQuery({ shopId: shopProduct.pinnedTo.toString() })
+    );
+    if (!shop || shop.owner.toString() !== authedSeller.id) {
+      throw new NotFoundException('Товар не найден');
+    }
+
+    const query = new StockMovementQueries.GetStockMovementsQuery({
+      shopProductId,
+    });
+
+    const queryOptions: CommonListQueryOptions<'createdAt'> = {
+      pagination: paginationQuery,
+      sort: { createdAt: -1 },
+    };
+
+    const result = await this.stockMovementPort.getStockMovements(query, queryOptions);
+    return transformPaginatedResult(result, StockMovementResponseDto);
+  }
+}

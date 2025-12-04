@@ -6,6 +6,7 @@ import { ShopMeApiModule } from "./me/shop.me.api.module";
 import { ShopOrdersApiModule } from "./orders/shop.orders.api.module";
 import { ShopShiftsApiModule } from "./shifts/shop.shifts.api.module";
 import { ShopShopProductsApiModule } from "./shop-products/shop.shop-products.api.module";
+import { ShopInventoryApiModule } from "./inventory/shop.inventory.api.module";
 
 @Module({
   imports: [  
@@ -15,6 +16,7 @@ import { ShopShopProductsApiModule } from "./shop-products/shop.shop-products.ap
       { path: 'orders', module: ShopOrdersApiModule },
       { path: 'shifts', module: ShopShiftsApiModule },
       { path: 'shop-products', module: ShopShopProductsApiModule },
+      { path: 'inventory', module: ShopInventoryApiModule },
     ]),
   ],
 })

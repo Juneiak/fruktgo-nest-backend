@@ -1,676 +1,403 @@
 # Процесс: Складской учёт
 
-**Участники:** Seller, Shop, Employee, PlatformStaff  
-**Зависимости:** Product, ShopProduct, StockMovement, InventoryAudit
+> **Статус:** ✅ Полностью реализовано (Фазы 1-4)  
+> **Обновлено:** 2024-12-03
 
 ---
 
-## Краткое содержание
+## Как это работает
 
-### Основная идея
+### Общая схема
 
-Магазины и склады ведут учёт товарных остатков через систему складских операций: **приёмка** (товар пришёл от поставщика), **перемещение** (со склада в магазин или между магазинами), **списание** (брак, просрочка, недостача), **инвентаризация** (сверка факта с учётом). Все движения фиксируются, история хранится для аудита.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         SELLER (владелец)                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   СКЛАДЫ (Warehouse)              МАГАЗИНЫ (Shop)               │
+│   ┌──────────────┐                ┌──────────────┐              │
+│   │ Warehouse 1  │ ──Transfer───▶ │    Shop 1    │              │
+│   │  - products  │                │ - shopProducts│──▶ Продажи  │
+│   │  - остатки   │                │ - остатки    │              │
+│   └──────────────┘                └──────────────┘              │
+│          │                               ▲                      │
+│          │                               │                      │
+│   ┌──────────────┐                ┌──────────────┐              │
+│   │ Warehouse 2  │ ──Transfer───▶ │    Shop 2    │              │
+│   └──────────────┘                └──────────────┘              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+         ▲                                    │
+         │                                    ▼
+    ┌─────────┐                        ┌─────────────┐
+    │ Приёмка │                        │  Списание   │
+    │ от пос- │                        │ (брак,      │
+    │ тавщика │                        │  просрочка) │
+    └─────────┘                        └─────────────┘
+```
 
-**Схема:** Приёмка → Хранение → Перемещение → Продажа/Списание + Периодическая инвентаризация.
+### Ключевые сущности
 
-### Ключевая логика
+| Сущность | Где | Что хранит |
+|----------|-----|------------|
+| **Warehouse** | `src/modules/warehouse/` | Склад продавца (адрес, контакты) |
+| **WarehouseProduct** | `src/modules/warehouse-product/` | Остаток товара НА СКЛАДЕ |
+| **Shop** | `src/modules/shop/` | Магазин продавца |
+| **ShopProduct** | `src/modules/shop-product/` | Остаток товара В МАГАЗИНЕ + продажи |
 
-**Структура хранения:**
-- **Warehouse** (склад) — приёмка от поставщиков, хранение, отгрузка в магазины
-- **Shop** (магазин) — приёмка со склада, продажа, списание
-- У продавца может быть несколько складов и магазинов
+### Операции и их модули
 
-**Основные операции:**
-- **Приёмка** — увеличение остатков (на склад от поставщика, в магазин со склада)
-- **Перемещение** — из одной точки в другую (склад→магазин, магазин→магазин)
-- **Списание** — уменьшение остатков (брак, просрочка, недостача, кража)
-- **Продажа** — автоматическое списание при доставке заказа
+| Операция | Модуль | Что делает |
+|----------|--------|------------|
+| **Приёмка** | `receiving` | Товар пришёл → +остаток |
+| **Списание** | `write-off` | Брак/просрочка → -остаток |
+| **Перемещение** | `transfer` | Склад→Магазин или Магазин→Магазин |
+| **Инвентаризация** | `inventory-audit` | Сверка факта с учётом |
+| **Импорт** | `import` | Загрузка данных из Excel/1С |
+
+### История движений
+
+**Каждое изменение остатка** записывается в `StockMovement`:
+- Кто изменил (employeeId)
+- Когда (timestamp)
+- Сколько (+/-)
+- Почему (тип операции, документ)
+- Остаток до/после
+
+---
+
+## Workflow операций
+
+### 1. Приёмка (Receiving)
+
+```
+DRAFT → CONFIRMED
+```
+
+1. **Создаём черновик** с ожидаемым количеством
+2. **Подтверждаем** с фактическим количеством
+3. Автоматически: +остаток, запись в StockMovement
+
+**Типы приёмки:**
+- `SUPPLIER` - от поставщика
+- `TRANSFER` - с другой точки
+- `RETURN` - возврат от покупателя
+- `INITIAL` - начальные остатки
+
+### 2. Списание (WriteOff)
+
+```
+DRAFT → CONFIRMED
+```
+
+1. **Создаём черновик** с причиной и позициями
+2. **Подтверждаем**
+3. Автоматически: -остаток, запись в StockMovement
+
+**Причины списания:**
+- `EXPIRED` - просрочка
+- `DAMAGED` - брак
+- `SHORTAGE` - недостача
+- `SPOILAGE` - порча
+- `THEFT` - кража
+- `TESTING` - дегустация
+- `OTHER` - другое
+
+### 3. Перемещение (Transfer)
+
+```
+DRAFT → SENT → RECEIVED
+```
+
+1. **Создаём черновик** (откуда, куда, что)
+2. **Отправляем** → -остаток у отправителя
+3. **Принимаем** → +остаток у получателя
+
+**Направления:**
+- Shop → Shop
+- Warehouse → Shop
+- Warehouse → Warehouse
+- Shop → Warehouse
+
+### 4. Инвентаризация (InventoryAudit)
+
+```
+DRAFT → IN_PROGRESS → COMPLETED
+```
+
+1. **Создаём** → формируем список товаров для проверки
+2. **Начинаем** → сотрудники вносят фактические количества
+3. **Завершаем** → (опционально) применяем расхождения к остаткам
+
+**Типы:**
+- `FULL` - полная (все товары)
+- `PARTIAL` - выборочная
+- `CONTROL` - контрольная проверка
+
+### 5. Резервирование при заказе
+
+```
+Заказ создан → товар зарезервирован
+Заказ отменён → резерв снят
+Заказ доставлен → товар списан
+```
+
+Поля ShopProduct:
+- `stockQuantity` - общий остаток
+- `reservedQuantity` - зарезервировано под заказы
+- `availableQuantity` = stockQuantity - reservedQuantity
+
+---
+
+## API Endpoints
+
+### Employee (работа с магазином)
+
+**Списание:**
+```
+GET    /shop/inventory/write-offs              
+POST   /shop/inventory/write-offs              
+POST   /shop/inventory/write-offs/:id/confirm  
+```
+
+**Приёмка:**
+```
+GET    /shop/inventory/receivings              
+POST   /shop/inventory/receivings              
+POST   /shop/inventory/receivings/:id/confirm  
+```
+
+**Перемещения:**
+```
+GET    /shop/inventory/transfers/outgoing      
+GET    /shop/inventory/transfers/incoming      
+POST   /shop/inventory/transfers               
+POST   /shop/inventory/transfers/:id/send      
+POST   /shop/inventory/transfers/:id/receive   
+```
 
 **Инвентаризация:**
-- Полная (весь товар) или выборочная (конкретные SKU)
-- Сравнение фактических остатков с учётными
-- Если расхождение — создаётся списание или дооприходование
-- Рекомендуемая частота: раз в месяц
-
-**Импорт данных:**
-- Из 1С (CommerceML 2.0)
-- Из Excel/CSV (по шаблону)
-- Из МойСклад (JSON API)
-- Автоматическое создание товаров и обновление остатков
-
-### История и аудит
-
-Все складские движения фиксируются в `StockMovement` с указанием: кто, когда, откуда, куда, сколько, причина. Это позволяет отследить любое изменение остатков и провести аудит.
-
----
-
-## Обзор
-
-Система управления товарными остатками для магазинов и складов с поддержкой основных операций учёта.
-
-**Масштаб:**
-- 5-6 магазинов
-- 2 распределительных склада
-- ~1000 SKU на точку
-- Базовые операции без сложной логистики
-
-**Ключевые возможности:**
-- Приёмка товара
-- Перемещения между точками
-- Списания (брак, просрочка, недостача)
-- Инвентаризация
-- Импорт данных из внешних систем
-- История движения товара
-
----
-
-## Архитектура складской системы
-
-### Уровни хранения
-
 ```
-Seller (владелец)
-  ├── Warehouse 1 (склад)
-  │    └── Products (остатки)
-  ├── Warehouse 2 (склад)
-  │    └── Products (остатки)
-  ├── Shop 1 (магазин)
-  │    └── ShopProducts (остатки + продажи)
-  ├── Shop 2 (магазин)
-  │    └── ShopProducts (остатки + продажи)
-  └── Shop 3 (магазин)
-       └── ShopProducts (остатки + продажи)
+GET    /shop/inventory/audits                  
+POST   /shop/inventory/audits                  
+POST   /shop/inventory/audits/:id/start        
+PATCH  /shop/inventory/audits/:id/items        
+POST   /shop/inventory/audits/:id/complete     
 ```
 
-### Типы точек хранения
-
-| Тип | Назначение | Операции |
-|-----|------------|----------|
-| **Warehouse** | Распределительный склад | Приёмка, хранение, отгрузка в магазины |
-| **Shop** | Торговая точка | Приёмка, продажа, списание |
-
----
-
-## 1. Приёмка товара
-
-**Актор:** Employee (кладовщик)
-
-### Сценарий приёмки на склад
-
-1. **Создание документа приёмки:**
-   ```typescript
-   {
-     type: "RECEIVING",
-     location: warehouseId,
-     supplier: "ООО Поставщик",
-     invoiceNumber: "ПН-12345",
-     plannedItems: [
-       { productId, quantity: 100, price: 50 }
-     ],
-     status: "DRAFT"
-   }
-   ```
-
-2. **Фактическая приёмка:**
-   - Сканирование/ввод товаров
-   - Проверка качества
-   - Указание фактического количества
-   - Указание сроков годности (для скоропорта)
-
-3. **Расхождения:**
-   ```typescript
-   {
-     plannedQuantity: 100,
-     actualQuantity: 98,
-     discrepancy: -2,
-     discrepancyReason: "Повреждение при транспортировке"
-   }
-   ```
-
-4. **Подтверждение:**
-   ```typescript
-   {
-     status: "COMPLETED",
-     completedAt: new Date(),
-     completedBy: employeeId
-   }
-   ```
-
-5. **Обновление остатков:**
-   ```typescript
-   warehouseStock.quantity += actualQuantity
-   warehouseStock.lastReceivingDate = new Date()
-   ```
-
-**API:** 
-- `POST /warehouse/receiving` - создать приёмку
-- `PATCH /warehouse/receiving/:id/complete` - завершить
-
-### Сценарий прямой поставки в магазин
-
-Аналогично, но:
-- `location: shopId`
-- Обновляется `shopProduct.stockQuantity`
-- Товар сразу доступен для продажи
-
----
-
-## 2. Перемещение между точками
-
-**Актор:** Employee (кладовщик/менеджер)
-
-### Сценарий: Склад → Магазин
-
-1. **Создание заявки (из магазина):**
-   ```typescript
-   {
-     type: "TRANSFER_REQUEST",
-     from: warehouseId,
-     to: shopId,
-     items: [
-       { productId, requestedQuantity: 50 }
-     ],
-     status: "PENDING"
-   }
-   ```
-
-2. **Подтверждение складом:**
-   ```typescript
-   {
-     status: "APPROVED",
-     items: [
-       { 
-         productId,
-         requestedQuantity: 50,
-         approvedQuantity: 45,  // Может быть меньше
-         reason: "Недостаточно на складе"
-       }
-     ]
-   }
-   ```
-
-3. **Отгрузка:**
-   ```typescript
-   {
-     type: "TRANSFER_OUT",
-     from: warehouseId,
-     to: shopId,
-     status: "IN_TRANSIT",
-     shippedAt: new Date()
-   }
-   ```
-
-4. **Приёмка в магазине:**
-   ```typescript
-   {
-     status: "COMPLETED",
-     receivedAt: new Date(),
-     receivedItems: [
-       { productId, quantity: 45 }
-     ]
-   }
-   ```
-
-5. **Обновление остатков:**
-   ```typescript
-   // Склад
-   warehouseStock.quantity -= 45
-   
-   // Магазин
-   shopProduct.stockQuantity += 45
-   ```
-
-**API:**
-- `POST /shop/transfer-requests` - заявка
-- `PATCH /warehouse/transfers/:id/approve` - одобрить
-- `PATCH /warehouse/transfers/:id/ship` - отгрузить
-- `PATCH /shop/transfers/:id/receive` - принять
-
-### Сценарий: Магазин → Магазин
-
-Для срочного пополнения между соседними магазинами:
-1. Запрос от магазина-получателя
-2. Подтверждение магазином-отправителем
-3. Прямое перемещение (без транзита)
-4. Обновление остатков в обоих магазинах
-
----
-
-## 3. Списание товара
-
-**Актор:** Employee
-
-### Причины списания
-
-| Причина | Код | Описание | Требует фото? |
-|---------|-----|----------|---------------|
-| **Истёк срок** | `EXPIRED` | Просроченный товар | ✅ Да |
-| **Брак** | `DAMAGED` | Повреждённый товар | ✅ Да |
-| **Недостача** | `SHORTAGE` | Выявлено при инвентаризации | ❌ Нет |
-| **Порча** | `SPOILAGE` | Испорченный товар (гниль) | ✅ Да |
-| **Кража** | `THEFT` | Хищение | ❌ Нет |
-| **Тестирование** | `TESTING` | Проверка качества | ❌ Нет |
-| **Другое** | `OTHER` | Иные причины | ❌ Опционально |
-
-### Сценарий списания
-
-1. **Создание акта:**
-   ```typescript
-   {
-     type: "WRITE_OFF",
-     location: shopId,
-     reason: "EXPIRED",
-     items: [
-       {
-         productId,
-         quantity: 5,
-         comment: "Истёк срок годности 22.11.2024"
-       }
-     ],
-     photos: ["photo1.jpg", "photo2.jpg"],
-     status: "DRAFT"
-   }
-   ```
-
-2. **Подтверждение менеджером:**
-   - Проверка обоснованности
-   - Проверка фото (если требуется)
-   - Одобрение/отклонение
-
-3. **Проведение:**
-   ```typescript
-   {
-     status: "APPROVED",
-     approvedBy: managerId,
-     approvedAt: new Date()
-   }
-   ```
-
-4. **Обновление остатков:**
-   ```typescript
-   shopProduct.stockQuantity -= quantity
-   shopProduct.writeOffQuantity += quantity  // Статистика
-   ```
-
-**API:**
-- `POST /shop/write-offs` - создать списание
-- `PATCH /shop/write-offs/:id/approve` - одобрить
-
----
-
-## 4. Инвентаризация
-
-**Актор:** Employee + Manager
-
-### Типы инвентаризации
-
-| Тип | Периодичность | Охват |
-|-----|---------------|-------|
-| **Полная** | 1 раз в квартал | Все товары |
-| **Выборочная** | 1 раз в месяц | Случайная выборка 20% |
-| **По категории** | По необходимости | Конкретная категория |
-| **Внеплановая** | При подозрениях | Любой охват |
-
-### Сценарий инвентаризации
-
-1. **Создание документа:**
-   ```typescript
-   {
-     type: "INVENTORY",
-     location: shopId,
-     inventoryType: "FULL",
-     status: "IN_PROGRESS",
-     startedAt: new Date(),
-     items: []  // Заполняется в процессе
-   }
-   ```
-
-2. **Подсчёт товаров:**
-   ```typescript
-   // Для каждого товара
-   {
-     productId,
-     systemQuantity: 100,  // По данным системы
-     actualQuantity: 98,   // Фактически насчитано
-     difference: -2,
-     status: "COUNTED"
-   }
-   ```
-
-3. **Анализ расхождений:**
-   ```typescript
-   {
-     totalItems: 150,
-     matchedItems: 140,     // Совпадает
-     surplusItems: 3,       // Излишки
-     shortageItems: 7,      // Недостача
-     totalSurplus: 12,      // Штук излишков
-     totalShortage: 25,     // Штук недостачи
-     totalValue: -1250      // Денежная оценка
-   }
-   ```
-
-4. **Корректировка остатков:**
-   - Автоматическая для расхождений <5%
-   - Требует одобрения для >5%
-   ```typescript
-   // Для каждого расхождения
-   if (Math.abs(difference) / systemQuantity < 0.05) {
-     shopProduct.stockQuantity = actualQuantity  // Автокорректировка
-   } else {
-     // Требует решения менеджера
-     createAdjustmentRequest(productId, difference)
-   }
-   ```
-
-5. **Закрытие инвентаризации:**
-   ```typescript
-   {
-     status: "COMPLETED",
-     completedAt: new Date(),
-     approvedBy: managerId,
-     adjustmentDocument: "ИНВ-2024-11-001"
-   }
-   ```
-
-**API:**
-- `POST /shop/inventory` - начать инвентаризацию
-- `PATCH /shop/inventory/:id/items` - обновить подсчёт
-- `PATCH /shop/inventory/:id/complete` - завершить
-
----
-
-## 5. Импорт данных
-
-**Актор:** Seller или PlatformStaff
-
-### Поддерживаемые форматы
-
-| Формат | Расширение | Источник | Описание |
-|--------|------------|----------|----------|
-| **1С** | `.xml` | 1С:Предприятие | CommerceML 2.0 |
-| **Excel** | `.xlsx` | Любая система | Шаблон платформы |
-| **CSV** | `.csv` | Любая система | Простой формат |
-| **МойСклад** | `.json` | МойСклад API | JSON export |
-
-### Сценарий импорта из 1С
-
-1. **Экспорт из 1С:**
-   - Выгрузка в формате CommerceML 2.0
-   - Файлы: `import.xml`, `offers.xml`
-
-2. **Загрузка на платформу:**
-   ```typescript
-   {
-     type: "IMPORT_1C",
-     files: ["import.xml", "offers.xml"],
-     mapping: {
-       // Маппинг полей 1С на поля системы
-       "Номенклатура.Наименование": "name",
-       "Номенклатура.Артикул": "sku",
-       "ПакетПредложений.Цена": "price",
-       "ПакетПредложений.Остаток": "stockQuantity"
-     }
-   }
-   ```
-
-3. **Валидация:**
-   ```typescript
-   {
-     totalItems: 500,
-     validItems: 485,
-     errors: [
-       { line: 45, error: "SKU уже существует" },
-       { line: 120, error: "Отрицательный остаток" }
-     ]
-   }
-   ```
-
-4. **Предпросмотр и подтверждение:**
-   - Показ первых 10 записей
-   - Сводка по категориям
-   - Подтверждение импорта
-
-5. **Импорт:**
-   ```typescript
-   // Для каждого товара
-   await createOrUpdateProduct({
-     sku: "АРТ-12345",
-     name: "Яблоко Гала",
-     price: 120,
-     stockQuantity: 50,
-     externalId: "1c_guid_here"  // Для синхронизации
-   })
-   ```
-
-**API:**
-- `POST /import/upload` - загрузка файлов
-- `POST /import/validate` - валидация
-- `POST /import/process` - выполнить импорт
-
-### Шаблон Excel
-
-Стандартный шаблон для импорта:
-
-| Артикул | Название | Категория | Ед.изм | Цена | Остаток | Штрихкод |
-|---------|----------|-----------|--------|------|---------|----------|
-| 12345 | Яблоко Гала | Фрукты | кг | 120 | 50.5 | 4600000000123 |
-| 12346 | Банан | Фрукты | кг | 95 | 30 | 4600000000124 |
-
----
-
-## 6. История движения товара
-
-**Актор:** Любой авторизованный
-
-### StockMovement - запись движения
-
-```typescript
-{
-  type: "RECEIVING" | "SALE" | "TRANSFER" | "WRITE_OFF" | "ADJUSTMENT",
-  product: productId,
-  location: shopId | warehouseId,
-  quantity: 10,  // Положительное или отрицательное
-  balanceBefore: 100,
-  balanceAfter: 110,
-  document: {
-    type: "Order" | "Transfer" | "WriteOff" | "Inventory",
-    id: documentId,
-    number: "ДОК-12345"
-  },
-  actor: employeeId,
-  comment: "Приёмка по накладной ПН-12345",
-  createdAt: Date
-}
+### Seller (управление складами)
+
+**Склады:**
+```
+GET    /seller/warehouses              
+POST   /seller/warehouses              
+PATCH  /seller/warehouses/:id          
+PATCH  /seller/warehouses/:id/status   
 ```
 
-### Просмотр истории
-
-```typescript
-// Фильтры
-{
-  productId?: string,
-  location?: string,
-  type?: MovementType,
-  dateFrom?: Date,
-  dateTo?: Date,
-  actor?: string
-}
-
-// Результат
-[
-  { type: "RECEIVING", quantity: +100, date: "2024-11-20", ... },
-  { type: "SALE", quantity: -5, date: "2024-11-21", ... },
-  { type: "TRANSFER", quantity: -20, date: "2024-11-22", ... },
-  { type: "WRITE_OFF", quantity: -2, date: "2024-11-23", ... }
-]
+**Товары на складе:**
 ```
-
-**API:** `GET /stock/movements`
+GET    /seller/warehouses/:id/products              
+POST   /seller/warehouses/:id/products              
+PATCH  /seller/warehouses/:id/products/:id/adjust   
+PATCH  /seller/warehouses/:id/products/:id/set-stock
+GET    /seller/warehouses/:id/products/low-stock    
+```
 
 ---
 
-## Остатки в реальном времени
-
-### Резервирование при продаже
-
-```typescript
-// При создании заказа
-shopProduct.stockQuantity = 100
-shopProduct.reservedQuantity = 5  // Зарезервировано под заказы
-
-// Доступно для продажи
-availableQuantity = stockQuantity - reservedQuantity  // 95
-```
-
-### Уведомления о низких остатках
-
-```typescript
-{
-  product: productId,
-  location: shopId,
-  currentStock: 5,
-  minStock: 10,  // Минимальный остаток
-  alertLevel: "CRITICAL",  // CRITICAL | WARNING | INFO
-  message: "Товар заканчивается, требуется пополнение"
-}
-```
-
-**Правила:**
-- `< minStock * 0.5` → CRITICAL (красный)
-- `< minStock` → WARNING (жёлтый)  
-- `< minStock * 1.5` → INFO (синий)
-
----
-
-## Техническая сводка
+## Справочник для разработчика
 
 ### Модули
 
-- `inventory/warehouse` - склады
-- `inventory/stock-movement` - движение товара
-- `inventory/transfer` - перемещения
-- `inventory/write-off` - списания
-- `inventory/inventory-audit` - инвентаризации
-- `import/import-service` - импорт данных
+| Модуль | Путь | Port Symbol |
+|--------|------|-------------|
+| StockMovement | `src/modules/stock-movement/` | `STOCK_MOVEMENT_PORT` |
+| WriteOff | `src/modules/write-off/` | `WRITE_OFF_PORT` |
+| Receiving | `src/modules/receiving/` | `RECEIVING_PORT` |
+| Transfer | `src/modules/transfer/` | `TRANSFER_PORT` |
+| InventoryAudit | `src/modules/inventory-audit/` | `INVENTORY_AUDIT_PORT` |
+| Warehouse | `src/modules/warehouse/` | `WAREHOUSE_PORT` |
+| WarehouseProduct | `src/modules/warehouse-product/` | `WAREHOUSE_PRODUCT_PORT` |
+| Import | `src/infra/import/` | `IMPORT_SERVICE` |
 
-### API
+### Оркестратор
 
-**Shop/Warehouse:**
-- `GET /shop/stock` - остатки магазина
-- `GET /warehouse/stock` - остатки склада
-- `POST /shop/receiving` - приёмка
-- `POST /shop/transfer-requests` - запрос товара
-- `POST /shop/write-offs` - списание
-- `POST /shop/inventory` - инвентаризация
+```typescript
+import { 
+  INVENTORY_PROCESS_ORCHESTRATOR, 
+  InventoryProcessOrchestrator 
+} from 'src/processes/inventory';
 
-**Import:**
-- `POST /import/upload` - загрузка файла
-- `GET /import/templates` - шаблоны
-- `POST /import/process` - импорт
+// Инъекция
+@Inject(INVENTORY_PROCESS_ORCHESTRATOR) 
+private readonly inventoryProcess: InventoryProcessOrchestrator
 
-**Reports:**
-- `GET /reports/stock-balance` - остатки
-- `GET /reports/movements` - движение
-- `GET /reports/turnover` - оборачиваемость
+// Использование
+await inventoryProcess.createWriteOff({ shopId, reason, items, employeeId, employeeName });
+await inventoryProcess.confirmWriteOff({ writeOffId, employeeId, employeeName });
 
-### Бизнес-правила
+await inventoryProcess.createReceiving({ shopId, type, items, employeeId, employeeName });
+await inventoryProcess.confirmReceiving({ receivingId, actualItems, employeeId, employeeName });
+
+await inventoryProcess.createTransfer({ sourceShopId, targetShopId, items, employeeId, employeeName });
+await inventoryProcess.sendTransfer({ transferId, employeeId, employeeName });
+await inventoryProcess.receiveTransfer({ transferId, employeeId, employeeName });
+
+await inventoryProcess.createInventoryAudit({ shopId, type, shopProductIds, employeeId });
+await inventoryProcess.completeInventoryAudit({ inventoryAuditId, applyResults, employeeId, employeeName });
+```
+
+### Структура модуля (типовая)
+
+```
+src/modules/{module-name}/
+├── index.ts              # Barrel exports
+├── {name}.enums.ts       # Перечисления (Status, Type, Reason)
+├── {name}.schema.ts      # MongoDB схема
+├── {name}.commands.ts    # Create, Update, Confirm, Cancel
+├── {name}.queries.ts     # Get, GetList, GetBy...
+├── {name}.port.ts        # Интерфейс порта + Symbol
+├── {name}.service.ts     # Реализация
+└── {name}.module.ts      # NestJS модуль
+```
+
+### Типы документов StockMovement
+
+| Тип | Когда создаётся |
+|-----|-----------------|
+| `RESERVATION` | При создании заказа |
+| `RESERVATION_CANCEL` | При отмене заказа |
+| `ADJUSTMENT` | При корректировке (недовес при сборке) |
+| `SALE` | При продаже |
+| `RECEIVING` | При подтверждении приёмки |
+| `WRITE_OFF` | При подтверждении списания |
+| `TRANSFER` | При перемещении |
+
+---
+
+## Бизнес-правила
 
 1. **Остатки не могут быть отрицательными**
-2. **Резерв создаётся** при оплате заказа
-3. **Резерв снимается** при отгрузке или отмене
-4. **Списание >1000₽** требует фото
-5. **Расхождения >5%** требуют одобрения
-6. **Перемещения** проводятся через документы
-7. **История** хранится минимум 3 года
-8. **Импорт** не удаляет существующие товары
+2. **Резерв создаётся** при создании заказа
+3. **Резерв снимается** при отмене или доставке
+4. **Все изменения остатков** записываются в StockMovement
+5. **Документы проводятся** транзакционно (MongoDB sessions)
+6. **История хранится** для аудита
 
 ---
 
-## Интеграция с внешними системами
+## Партионный учёт (Lot/Batch Tracking)
 
-### Webhooks для синхронизации
+Для скоропортящихся товаров реализован партионный учёт с FIFO.
+
+### Модули
+
+| Модуль | Путь | Назначение |
+|--------|------|------------|
+| **ProductBatch** | `src/modules/product-batch/` | Партия товара (срок годности, поставщик) |
+| **BatchStock** | `src/modules/batch-stock/` | Остаток партии в конкретной локации |
+
+### ProductBatch — партия товара
 
 ```typescript
-// Отправка изменений во внешнюю систему
-POST https://external.system/webhook
 {
-  event: "STOCK_UPDATED",
-  product: { sku: "12345", name: "Яблоко" },
-  location: { id: "shop_1", name: "Магазин на Ленина" },
-  oldQuantity: 100,
-  newQuantity: 95,
-  timestamp: "2024-11-23T10:00:00Z"
+  seller: ObjectId,        // Владелец
+  product: ObjectId,       // Товар
+  batchNumber: string,     // Номер партии
+  expirationDate: Date,    // Срок годности (!)
+  productionDate?: Date,   // Дата производства
+  supplier?: string,       // Поставщик
+  supplierInvoice?: string,// Номер накладной
+  purchasePrice?: number,  // Закупочная цена
+  initialQuantity: number, // Начальное кол-во
+  status: 'ACTIVE' | 'BLOCKED' | 'EXPIRED' | 'DEPLETED',
 }
 ```
 
-### API для внешних систем
+### BatchStock — остаток партии в локации
 
 ```typescript
-// Получение остатков
-GET /api/external/stock?sku=12345
-Authorization: Bearer {api_token}
-
-// Обновление остатков
-PATCH /api/external/stock
 {
-  sku: "12345",
-  location: "shop_1",
-  quantity: 95
+  batch: ObjectId,         // Партия
+  locationType: 'SHOP' | 'WAREHOUSE',
+  shop?: ObjectId,         // Если в магазине
+  warehouse?: ObjectId,    // Если на складе
+  shopProduct?: ObjectId,  // Связь с ShopProduct
+  warehouseProduct?: ObjectId,
+  quantity: number,        // Текущий остаток
+  reservedQuantity: number,// Зарезервировано
+  status: 'ACTIVE' | 'BLOCKED' | 'DEPLETED',
 }
 ```
 
----
+### FIFO логика
 
-## Примеры
-
-### Типичный день магазина
+При продаже/списании автоматически выбираются партии с ближайшим сроком годности:
 
 ```typescript
-// Утро - приёмка товара
-receiving = createReceiving({
-  supplier: "Овощебаза",
-  items: [
-    { product: "Яблоки", planned: 100, actual: 98 },
-    { product: "Бананы", planned: 50, actual: 50 }
-  ]
-})
+// Списать 10 единиц по FIFO
+const result = await batchStockPort.consumeFifo(
+  new BatchStockCommands.ConsumeFifoCommand({
+    locationType: BatchStockLocationType.SHOP,
+    shopProductId: '...',
+    productId: '...',
+    quantity: 10,
+  })
+);
 
-// День - продажи (автоматически при заказах)
-// stockQuantity уменьшается при подтверждении заказа
+// result.consumed — какие партии списались
+// result.remainingToConsume — сколько не хватило (0 если всё ок)
+```
 
-// Вечер - списание просрочки
-writeOff = createWriteOff({
-  reason: "EXPIRED",
-  items: [
-    { product: "Молоко", quantity: 3 }
-  ]
-})
+### Уровни алертов по сроку годности
 
-// Конец недели - инвентаризация выборочная
-inventory = startInventory({
-  type: "SELECTIVE",
-  categories: ["Молочные продукты"]
-})
+| Уровень | Условие | Действие |
+|---------|---------|----------|
+| `NORMAL` | > 7 дней | Нормально |
+| `WARNING` | 3-7 дней | Уведомление менеджеру |
+| `CRITICAL` | < 3 дней | Срочная распродажа / списание |
+| `EXPIRED` | Истёк | Автоблокировка, списание |
+
+### Workflow
+
+1. **Приёмка** → создаётся `ProductBatch` + `BatchStock` в локации
+2. **Продажа** → `consumeFifo()` списывает по FIFO
+3. **Списание** → можно списать конкретную партию или по FIFO
+4. **Перемещение** → `transferBatchStock()` между локациями
+5. **Cron job** → `expireProductBatches()` помечает истёкшие
+
+### Использование
+
+```typescript
+import { 
+  ProductBatchPort, PRODUCT_BATCH_PORT, 
+  ProductBatchCommands, ProductBatchQueries 
+} from 'src/modules/product-batch';
+
+import { 
+  BatchStockPort, BATCH_STOCK_PORT, 
+  BatchStockCommands, BatchStockQueries 
+} from 'src/modules/batch-stock';
 ```
 
 ---
 
-## Связь с другими процессами
+## Импорт данных
 
-**Order Flow:**
-- Оплата заказа → резервирование товара
-- Выдача заказа → списание остатков
+### Поддерживаемые форматы
+- Excel (.xlsx)
+- CSV (.csv)
+- CommerceML 2.0 (1С) - структура готова
 
-**Finance Flow:**
-- Списания → учёт в расходах
-- Недостачи → возможные штрафы
+### Типы импорта
+- `PRODUCTS` - товары
+- `WAREHOUSE_STOCK` - остатки на складе
+- `SHOP_STOCK` - остатки в магазине
+- `PRICES` - цены
 
-**Product/ShopProduct:**
-- Создание товара → начальные остатки
-- Обновление цен → не влияет на остатки
-
----
-
-> **Статус:** ✅ Готов  
-> **Обновлено:** 2024-11-24
+### Workflow
+1. Загрузка файла → создание ImportJob
+2. Парсинг и валидация
+3. Создание/обновление записей
+4. Отчёт: created/updated/errors

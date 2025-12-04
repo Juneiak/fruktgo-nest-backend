@@ -30,6 +30,10 @@ export class ShopProduct {
   @Prop({ type: Number, min: 0, required: true, default: 0 })
   stockQuantity: number;
 
+  /** Зарезервированное количество (при неоплаченных заказах) */
+  @Prop({ type: Number, min: 0, required: true, default: 0 })
+  reservedQuantity: number;
+
   @Prop({ type: String, enum: Object.values(ShopProductStatus), default: ShopProductStatus.ACTIVE, required: true })
   status: ShopProductStatus;
 
@@ -49,6 +53,11 @@ ShopProductSchema.plugin(mongoosePaginate);
 
 ShopProductSchema.virtual('shopProductId').get(function (this: ShopProduct): string {
   return this._id.toString();
+});
+
+/** Доступное количество = stockQuantity - reservedQuantity */
+ShopProductSchema.virtual('availableQuantity').get(function (this: ShopProduct): number {
+  return Math.max(0, this.stockQuantity - this.reservedQuantity);
 });
 
 

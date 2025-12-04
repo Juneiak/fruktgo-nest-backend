@@ -59,3 +59,75 @@ export class BulkAdjustStockQuantityCommand {
     }>
   ) {}
 }
+
+/**
+ * Резервирование товара (при создании заказа до оплаты)
+ */
+export class ReserveStockCommand {
+  constructor(
+    public readonly shopProductId: string,
+    public readonly payload: {
+      quantity: number;
+    }
+  ) {}
+}
+
+/**
+ * Массовое резервирование
+ */
+export class BulkReserveStockCommand {
+  constructor(
+    public readonly items: Array<{
+      shopProductId: string;
+      quantity: number;
+    }>
+  ) {}
+}
+
+/**
+ * Освобождение резерва (отмена заказа, истечение времени)
+ */
+export class ReleaseReserveCommand {
+  constructor(
+    public readonly shopProductId: string,
+    public readonly payload: {
+      quantity: number;
+    }
+  ) {}
+}
+
+/**
+ * Массовое освобождение резерва
+ */
+export class BulkReleaseReserveCommand {
+  constructor(
+    public readonly items: Array<{
+      shopProductId: string;
+      quantity: number;
+    }>
+  ) {}
+}
+
+/**
+ * Подтверждение резерва (оплата прошла, списываем из stockQuantity)
+ */
+export class ConfirmReserveCommand {
+  constructor(
+    public readonly shopProductId: string,
+    public readonly payload: {
+      quantity: number;
+    }
+  ) {}
+}
+
+/**
+ * Массовое подтверждение резерва
+ */
+export class BulkConfirmReserveCommand {
+  constructor(
+    public readonly items: Array<{
+      shopProductId: string;
+      quantity: number;
+    }>
+  ) {}
+}

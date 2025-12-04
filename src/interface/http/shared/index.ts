@@ -13,3 +13,4 @@ export * from './shared.query.dtos';
 export * from './shared.request.dtos';
 export * from './shared.utils';
 export * from './base-responses';
+export * from './stock-movement.response.dtos';

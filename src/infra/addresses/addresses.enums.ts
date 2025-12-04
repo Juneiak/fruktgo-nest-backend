@@ -4,6 +4,7 @@ export enum AddressEntityType {
   CUSTOMER = UserType.CUSTOMER,
   SHOP = UserType.SHOP,
   EMPLOYEE = UserType.EMPLOYEE,
+  WAREHOUSE = 'Warehouse',
 }
 
 export enum AddressLabel {

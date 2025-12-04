@@ -1,7 +1,7 @@
 import { Controller, Get, Body, Param, Delete, Query, UseGuards, Post } from '@nestjs/common';
 import { SellerShopProductsRoleService } from './seller.shop-products.role.service';
 import { PaginationQueryDto } from "src/interface/http/responses/common.query.dtos";
-import { PaginatedResponseDto } from 'src/interface/http/shared';
+import { PaginatedResponseDto, StockMovementResponseDto } from 'src/interface/http/shared';
 import { MessageResponseDto } from 'src/interface/http/shared';
 import { UpdateShopProductDto} from './seller.shop-products.request.dtos';
 import { ShopProductResponseDto } from './seller.shop-products.response.dtos';
@@ -84,5 +84,16 @@ export class SellerShopProductsController {
     @Param('imageId') imageId: string
   ): Promise<ShopProductResponseDto> {
     return this.sellerShopProductsRoleService.removeShopProductImage(authedSeller, shopProductId, imageId);
+  }
+
+
+  @ApiOperation({ summary: 'Получение истории движений товара (склад)' })
+  @Get(':shopProductId/stock-movements')
+  getStockMovements(
+    @GetUser() authedSeller: AuthenticatedUser,
+    @Param('shopProductId') shopProductId: string,
+    @Query() paginationQuery: PaginationQueryDto
+  ): Promise<PaginatedResponseDto<StockMovementResponseDto>> {
+    return this.sellerShopProductsRoleService.getStockMovements(authedSeller, shopProductId, paginationQuery);
   }
 }

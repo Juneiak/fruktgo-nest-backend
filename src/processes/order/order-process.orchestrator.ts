@@ -15,6 +15,14 @@ import { CUSTOMER_PORT, CustomerPort } from 'src/modules/customer';
 import { CartPort, CART_PORT, CartQueries, CartCommands } from 'src/modules/cart';
 
 import { ShopProductPort, SHOP_PRODUCT_PORT, ShopProductQueries, ShopProductCommands } from 'src/modules/shop-product';
+import { 
+  StockMovementPort, 
+  STOCK_MOVEMENT_PORT, 
+  StockMovementCommands,
+  StockMovementType,
+  StockMovementDocumentType,
+  StockMovementActorType,
+} from 'src/modules/stock-movement';
 
 // Finance
 import { 
@@ -52,6 +60,7 @@ export class OrderProcessOrchestrator {
     @Inject(CUSTOMER_PORT) private readonly customerPort: CustomerPort,
     @Inject(CART_PORT) private readonly cartPort: CartPort,
     @Inject(SHOP_PRODUCT_PORT) private readonly shopProductPort: ShopProductPort,
+    @Inject(STOCK_MOVEMENT_PORT) private readonly stockMovementPort: StockMovementPort,
     @Inject(FINANCE_PROCESS_ORCHESTRATOR) private readonly financeOrchestrator: FinanceProcessOrchestrator,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -182,13 +191,45 @@ export class OrderProcessOrchestrator {
         const sentSum = totalCartSum - usedBonusPoints;
         const totalSum = sentSum + deliveryPrice;
 
-        // 8. Резервируем товары через ShopProductPort
+        // 8. Генерируем orderId заранее для связи с движениями
+        const orderId = new Types.ObjectId().toString();
+
+        // 9. Резервируем товары через ShopProductPort
         await this.shopProductPort.bulkAdjustStockQuantity(
           new ShopProductCommands.BulkAdjustStockQuantityCommand(stockAdjustments),
           { session }
         );
 
-        // 9. Создаём заказ
+        // 10. Записываем движения товаров (RESERVATION)
+        const stockMovements = stockAdjustments.map(adj => {
+          const shopProduct = productMap.get(adj.shopProductId);
+          const balanceBefore = shopProduct?.stockQuantity || 0;
+          const balanceAfter = balanceBefore + adj.adjustment; // adjustment отрицательный
+          
+          return {
+            type: StockMovementType.RESERVATION,
+            shopProductId: adj.shopProductId,
+            shopId: input.shopId,
+            quantity: adj.adjustment,
+            balanceBefore,
+            balanceAfter,
+            actor: {
+              type: StockMovementActorType.SYSTEM,
+              name: 'Order Checkout',
+            },
+            document: {
+              type: StockMovementDocumentType.ORDER,
+              id: orderId,
+            },
+          };
+        });
+
+        await this.stockMovementPort.bulkCreateStockMovements(
+          new StockMovementCommands.BulkCreateStockMovementsCommand(stockMovements),
+          { session }
+        );
+
+        // 11. Создаём заказ
         const deliveryAddress = `${input.deliveryAddress.city}, ${input.deliveryAddress.street}, ${input.deliveryAddress.house}`;
         
         const order = await this.orderPort.createOrder(
@@ -219,6 +260,7 @@ export class OrderProcessOrchestrator {
                 source: input.source,
               },
             },
+            orderId,
           },
           { session }
         );
@@ -397,8 +439,47 @@ export class OrderProcessOrchestrator {
         }
         
         if (stockAdjustments.length > 0) {
+          // Получаем текущие остатки для записи движений
+          const shopProductIds = stockAdjustments.map(adj => adj.shopProductId);
+          const shopProducts = await this.shopProductPort.getShopProductsByIds(
+            new ShopProductQueries.GetShopProductsByIdsQuery(shopProductIds),
+            { session }
+          );
+          const productMap = new Map(shopProducts.map(sp => [sp._id.toString(), sp]));
+
           await this.shopProductPort.bulkAdjustStockQuantity(
             new ShopProductCommands.BulkAdjustStockQuantityCommand(stockAdjustments),
+            { session }
+          );
+
+          // Записываем движения товаров (ADJUSTMENT - возврат недовеса)
+          const stockMovements = stockAdjustments.map(adj => {
+            const shopProduct = productMap.get(adj.shopProductId);
+            const balanceBefore = shopProduct?.stockQuantity || 0;
+            const balanceAfter = balanceBefore + adj.adjustment;
+            
+            return {
+              type: StockMovementType.ADJUSTMENT,
+              shopProductId: adj.shopProductId,
+              shopId: order.orderedFrom.shop.toString(),
+              quantity: adj.adjustment,
+              balanceBefore,
+              balanceAfter,
+              actor: {
+                type: StockMovementActorType.EMPLOYEE,
+                id: input.employeeId,
+                name: input.employeeName,
+              },
+              document: {
+                type: StockMovementDocumentType.ORDER,
+                id: input.orderId,
+              },
+              comment: 'Возврат недовеса при сборке',
+            };
+          });
+
+          await this.stockMovementPort.bulkCreateStockMovements(
+            new StockMovementCommands.BulkCreateStockMovementsCommand(stockMovements),
             { session }
           );
         }
@@ -606,6 +687,14 @@ export class OrderProcessOrchestrator {
           { session }
         );
 
+        // Получаем текущие остатки для записи движений
+        const shopProductIds = order.products.map(p => p.shopProduct.toString());
+        const shopProducts = await this.shopProductPort.getShopProductsByIds(
+          new ShopProductQueries.GetShopProductsByIdsQuery(shopProductIds),
+          { session }
+        );
+        const productMap = new Map(shopProducts.map(sp => [sp._id.toString(), sp]));
+
         // Возвращаем товары на склад через ShopProductPort
         const stockAdjustments = order.products.map(product => ({
           shopProductId: product.shopProduct.toString(),
@@ -614,6 +703,36 @@ export class OrderProcessOrchestrator {
         
         await this.shopProductPort.bulkAdjustStockQuantity(
           new ShopProductCommands.BulkAdjustStockQuantityCommand(stockAdjustments),
+          { session }
+        );
+
+        // Записываем движения товаров (RESERVATION_CANCEL)
+        const stockMovements = stockAdjustments.map(adj => {
+          const shopProduct = productMap.get(adj.shopProductId);
+          const balanceBefore = shopProduct?.stockQuantity || 0;
+          const balanceAfter = balanceBefore + adj.adjustment;
+          
+          return {
+            type: StockMovementType.RESERVATION_CANCEL,
+            shopProductId: adj.shopProductId,
+            shopId: order.orderedFrom.shop.toString(),
+            quantity: adj.adjustment,
+            balanceBefore,
+            balanceAfter,
+            actor: {
+              type: StockMovementActorType.SYSTEM,
+              name: 'Order Cancel',
+            },
+            document: {
+              type: StockMovementDocumentType.ORDER,
+              id: input.orderId,
+            },
+            comment: `Отмена заказа: ${input.reason}`,
+          };
+        });
+
+        await this.stockMovementPort.bulkCreateStockMovements(
+          new StockMovementCommands.BulkCreateStockMovementsCommand(stockMovements),
           { session }
         );
 
@@ -683,6 +802,14 @@ export class OrderProcessOrchestrator {
           { session }
         );
 
+        // Получаем текущие остатки для записи движений
+        const shopProductIds = order.products.map(p => p.shopProduct.toString());
+        const shopProducts = await this.shopProductPort.getShopProductsByIds(
+          new ShopProductQueries.GetShopProductsByIdsQuery(shopProductIds),
+          { session }
+        );
+        const productMap = new Map(shopProducts.map(sp => [sp._id.toString(), sp]));
+
         // Возвращаем товары на склад через ShopProductPort
         const stockAdjustments = order.products.map(product => ({
           shopProductId: product.shopProduct.toString(),
@@ -691,6 +818,36 @@ export class OrderProcessOrchestrator {
         
         await this.shopProductPort.bulkAdjustStockQuantity(
           new ShopProductCommands.BulkAdjustStockQuantityCommand(stockAdjustments),
+          { session }
+        );
+
+        // Записываем движения товаров (RESERVATION_CANCEL)
+        const stockMovements = stockAdjustments.map(adj => {
+          const shopProduct = productMap.get(adj.shopProductId);
+          const balanceBefore = shopProduct?.stockQuantity || 0;
+          const balanceAfter = balanceBefore + adj.adjustment;
+          
+          return {
+            type: StockMovementType.RESERVATION_CANCEL,
+            shopProductId: adj.shopProductId,
+            shopId: order.orderedFrom.shop.toString(),
+            quantity: adj.adjustment,
+            balanceBefore,
+            balanceAfter,
+            actor: {
+              type: StockMovementActorType.SYSTEM,
+              name: 'Order Decline',
+            },
+            document: {
+              type: StockMovementDocumentType.ORDER,
+              id: input.orderId,
+            },
+            comment: `Отклонение заказа: ${input.reason}`,
+          };
+        });
+
+        await this.stockMovementPort.bulkCreateStockMovements(
+          new StockMovementCommands.BulkCreateStockMovementsCommand(stockMovements),
           { session }
         );
 

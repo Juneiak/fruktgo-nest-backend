@@ -8,6 +8,9 @@ import {
   RemoveShopProductImageCommand,
   AdjustStockQuantityCommand,
   BulkAdjustStockQuantityCommand,
+  BulkReserveStockCommand,
+  BulkReleaseReserveCommand,
+  BulkConfirmReserveCommand,
 } from './shop-product.commands';
 import { GetShopProductQuery, GetShopProductsQuery, GetShopProductsByIdsQuery } from './shop-product.queries';
 import { CommonCommandOptions } from 'src/common/types/commands';
@@ -31,6 +34,18 @@ export interface ShopProductPort {
   removeShopProductImage(command: RemoveShopProductImageCommand, commandOptions?: CommonCommandOptions): Promise<void>;
   adjustStockQuantity(command: AdjustStockQuantityCommand, commandOptions?: CommonCommandOptions): Promise<void>;
   bulkAdjustStockQuantity(command: BulkAdjustStockQuantityCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+
+  // ====================================================
+  // RESERVE COMMANDS
+  // ====================================================
+  /** Резервирование товаров (увеличивает reservedQuantity) */
+  bulkReserveStock(command: BulkReserveStockCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  
+  /** Освобождение резерва (уменьшает reservedQuantity) */
+  bulkReleaseReserve(command: BulkReleaseReserveCommand, commandOptions?: CommonCommandOptions): Promise<void>;
+  
+  /** Подтверждение резерва (уменьшает reservedQuantity и stockQuantity) */
+  bulkConfirmReserve(command: BulkConfirmReserveCommand, commandOptions?: CommonCommandOptions): Promise<void>;
 }
 
 export const SHOP_PRODUCT_PORT = Symbol('SHOP_PRODUCT_PORT');
