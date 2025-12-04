@@ -1,6 +1,8 @@
 # New Inventory System - План реализации v2
 
-> **Цель:** Реализовать систему складского учёта согласно `docs/inventory-system-overview.md` с нуля внутри `src/modules/new-inventory/`, с последующей интеграцией в основную систему.
+> **Цель:** Реализовать полноценную систему складского учёта с нуля внутри `src/modules/new-inventory/`, **полностью заменяющую** старые модули (`warehouse`, `warehouse-product`, `batch-stock`, `receiving`, `transfer`, `write-off`, `inventory-audit`, `shop-product`).
+
+> **⚠️ ВАЖНО:** Модуль `new-inventory` — это **полная замена**, а не расширение. После внедрения старые модули будут удалены.
 
 ---
 
@@ -2400,81 +2402,47 @@ export class InventoryOrchestrator {
 }
 ```
 
-#### 7.2 Интеграция с существующими модулями
+#### 7.2 Архитектура модуля (Полная замена старых модулей)
 
-**Стратегия:** Не модифицируем старые модули напрямую. Создаём новые сущности в new-inventory и устанавливаем связи.
+**Стратегия:** `new-inventory` — это **самодостаточный модуль**, полностью заменяющий старые модули складского учёта. Никаких `legacyProduct`, `legacyShopProduct` refs.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    ИНТЕГРАЦИЯ (обратная совместимость)                      │
+│                    ПОЛНАЯ ЗАМЕНА (без legacy refs)                          │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  СТАРЫЕ МОДУЛИ (не трогаем)         НОВЫЕ МОДУЛИ (new-inventory)           │
-│  ─────────────────────────          ─────────────────────────────          │
+│  СТАРЫЕ МОДУЛИ (будут удалены)      НОВЫЕ МОДУЛИ (new-inventory)           │
+│  ────────────────────────────       ─────────────────────────────          │
 │                                                                             │
-│  Product ─────────────────────────► ProductTemplate                        │
-│    (legacyProduct ref)               + storageConditions                   │
-│                                      + recommendedRetailPrice               │
-│                                      + returnable settings                  │
+│  ❌ warehouse/                  →   ✅ entities/storage-location/           │
+│  ❌ warehouse-product/          →   ✅ entities/storefront/                 │
+│  ❌ batch-stock/                →   ✅ batch-location/                      │
+│  ❌ receiving/                  →   ✅ operations/receiving/                │
+│  ❌ transfer/                   →   ✅ operations/transfer/                 │
+│  ❌ write-off/                  →   ✅ operations/write-off/                │
+│  ❌ inventory-audit/            →   ✅ operations/audit/                    │
+│  ❌ shop-product/ (часть)       →   ✅ entities/storefront/                 │
 │                                                                             │
-│  Shop ────────────────────────────► StorageLocation (type=SHOP)            │
-│    (shop ref)                        + температура/влажность                │
-│                                      + коэффициент деградации               │
-│                                                                             │
-│                                    ► Storefront                             │
-│                                      + StorefrontProduct[]                  │
-│                                      + pricing (онлайн/офлайн/скидки)       │
-│                                                                             │
-│  Warehouse ───────────────────────► StorageLocation (type=WAREHOUSE)       │
-│    (warehouse ref)                   + температура/влажность                │
-│                                      + коэффициент деградации               │
-│                                                                             │
-│  ShopProduct ─────────────────────► StorefrontProduct                      │
-│    (legacyShopProduct ref)           + ProductPricing                       │
-│                                      + остатки из BatchLocation             │
+│  Модули Shop, Product, Seller ОСТАЮТСЯ                                      │
+│  (но Product.price теперь только "рекомендованная цена")                   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Миграция данных:**
+**Связи с внешними модулями:**
 
 ```typescript
-// 1. Создание ProductTemplate из Product
-const productTemplate = await productTemplatePort.createFromLegacy({
-  legacyProductId: product._id,
-  storageConditions: inferStorageConditions(product.category),
-});
+// ProductTemplate связан с внешним Product (справочник товаров)
+@Prop({ type: Types.ObjectId, ref: 'Product', required: true, index: true })
+product: Types.ObjectId;  // NOT legacyProduct — это основная связь
 
-// 2. Создание StorageLocation для Shop
-const storageLocation = await storageLocationPort.create({
-  type: LocationType.SHOP,
-  shop: shop._id,
-  name: `${shop.shopName} - Склад`,
-  temperatureRange: TemperatureRange.ROOM, // по умолчанию
-});
+// StorageLocation связан с Shop или Warehouse
+@Prop({ type: Types.ObjectId, ref: 'Shop' })
+shop?: Types.ObjectId;
 
-// 3. Создание Storefront для Shop
-const storefront = await storefrontPort.create({
-  shop: shop._id,
-  storageLocation: storageLocation._id,
-  products: await migrateShopProducts(shop._id),
-});
-
-// 4. Миграция ShopProduct в StorefrontProduct
-async function migrateShopProducts(shopId: string): Promise<StorefrontProduct[]> {
-  const shopProducts = await shopProductModel.find({ pinnedTo: shopId });
-  
-  return shopProducts.map(sp => ({
-    product: productTemplateByLegacy[sp.product],
-    legacyShopProduct: sp._id,
-    isVisible: sp.status === 'ACTIVE',
-    pricing: {
-      onlinePrice: sp.product.price, // из старого Product
-      offlinePrice: sp.product.price,
-      purchasePrice: null, // заполнится из Batch
-    },
-  }));
-}
+// Storefront привязан к Shop
+@Prop({ type: Types.ObjectId, ref: 'Shop', required: true, unique: true })
+shop: Types.ObjectId;
 ```
 
 #### Файлы Фазы 7:
@@ -2497,11 +2465,11 @@ async function migrateShopProducts(shopId: string): Promise<StorefrontProduct[]>
 // entities/product-template/product-template.port.ts
 export interface ProductTemplatePort {
   create(command: CreateProductTemplateCommand): Promise<ProductTemplate>;
-  createFromLegacy(command: CreateFromLegacyCommand): Promise<ProductTemplate>;
   update(command: UpdateProductTemplateCommand): Promise<ProductTemplate>;
   getById(query: GetByIdQuery): Promise<ProductTemplate | null>;
   getBySeller(query: GetBySellerQuery): Promise<ProductTemplate[]>;
-  getByLegacyProduct(query: GetByLegacyProductQuery): Promise<ProductTemplate | null>;
+  getByProduct(query: GetByProductQuery): Promise<ProductTemplate | null>;
+  search(query: SearchProductTemplatesQuery): Promise<ProductTemplate[]>;
 }
 ```
 
@@ -2645,60 +2613,61 @@ const defaultRules: ExpirationDiscountRule[] = [
 
 ---
 
-### Фаза 10: Смешивание партий (1-2 дня)
+### Фаза 10: Автоматическое смешивание и консолидация (1 день)
 
-**Цель:** Реализовать операцию смешивания партий.
+**Цель:** Реализовать **автоматическое** смешивание партий (без ручного создания пользователем).
 
-#### 10.1 Mixing Operation
+**⚠️ Упрощение MVP:** MixedBatch создаётся только системой, не пользователем.
+
+#### 10.1 Автоконсолидация остатков
 
 ```typescript
-// operations/mixing/mixing.service.ts
+// operations/consolidation/consolidation.service.ts
 @Injectable()
-export class MixingService implements MixingPort {
+export class ConsolidationService {
   /**
-   * Создать смешанную партию
+   * Автоматическая консолидация мелких остатков одного товара
+   * Вызывается: после инвентаризации, по cron, вручную менеджером
    */
-  async mixBatches(command: MixBatchesCommand): Promise<MixedBatch> {
-    // Валидация:
-    // - Все источники одного товара
-    // - Все источники в одной локации
-    // - Достаточное количество в каждом источнике
+  async autoConsolidate(input: {
+    locationId: string;
+    productId: string;
+    minQuantityThreshold: number; // консолидировать остатки < X
+  }): Promise<MixedBatch | null> {
+    const smallBatches = await batchLocationPort.findSmallRemnants({
+      locationId: input.locationId,
+      productId: input.productId,
+      maxQuantity: input.minQuantityThreshold,
+    });
     
-    // Расчёт:
-    // - effectiveExpirationDate = MIN(источники)
-    // - weightedFreshnessRemaining = Σ(freshness × qty) / Σ(qty)
-    // - weightedPurchasePrice = Σ(price × qty) / Σ(qty)
+    if (smallBatches.length < 2) return null;
     
-    // Действия:
-    // 1. Создать MixedBatch
-    // 2. Уменьшить quantity в исходных BatchLocation
-    // 3. Создать BatchLocation для MixedBatch
-    // 4. Записать Movement type=MIXING для каждого источника
-    // 5. Записать Movement type=MIXING_IN для результата
+    // Создаём MixedBatch автоматически
+    return await this.createMixedBatch(smallBatches, 'AUTO_CONSOLIDATION');
   }
 
   /**
-   * Получить информацию о составе смешанной партии
+   * Консолидация при инвентаризации (когда нашли смешанный товар)
    */
-  async getMixedBatchComposition(mixedBatchId: string): Promise<MixedBatchComposition>;
+  async consolidateAtAudit(input: {
+    auditId: string;
+    productId: string;
+    foundBatches: Array<{ batchId: string; quantity: number }>;
+  }): Promise<MixedBatch>;
 
   /**
-   * Проверить возможность смешивания
+   * Получить состав MixedBatch для трассировки
    */
-  async canMix(sources: BatchSource[]): Promise<MixingValidation>;
+  async getMixedBatchComposition(mixedBatchId: string): Promise<MixedBatchComposition>;
 }
 ```
 
 #### Файлы Фазы 10:
 
 - `batch/mixed-batch.schema.ts`
-- `operations/mixing/mixing.enums.ts`
-- `operations/mixing/mixing.commands.ts`
-- `operations/mixing/mixing.queries.ts`
-- `operations/mixing/mixing.port.ts`
-- `operations/mixing/mixing.service.ts`
-- `operations/mixing/mixing.module.ts`
-- `operations/mixing/index.ts`
+- `operations/consolidation/consolidation.service.ts`
+- `operations/consolidation/consolidation.module.ts`
+- `operations/consolidation/index.ts`
 
 ---
 
@@ -2801,98 +2770,72 @@ export class MixingService implements MixingPort {
 
 ---
 
-## Миграция данных
+## Стратегия внедрения (Rolling Migration)
 
-После завершения реализации потребуется:
+**⚠️ Важно:** Это не миграция данных, а **поэтапное внедрение** нового модуля.
 
-### 1. Автоматическая миграция
+### Принципы внедрения
+
+1. **Поэтапный переход по категориям товаров:**
+   - Сначала: Бакалея (SHELF_STABLE) — простейший случай
+   - Затем: Овощи, фрукты (PERISHABLE)
+   - В конце: Ягоды, молочка (критичные к срокам)
+
+2. **Параллельная работа (переходный период):**
+   - Новые поступления оформляются через `new-inventory`
+   - Старые остатки дорабатываются через старую систему
+   - После полного оборота остатков — переключение
+
+3. **Rolling по продавцам:**
+   - Пилот на 1-2 продавцах
+   - Расширение на остальных после проверки
+
+### Первоначальная настройка (для нового продавца)
 
 ```typescript
-// scripts/migrate-to-new-inventory.ts
-async function migrateToNewInventory(sellerId: string) {
-  const session = await connection.startSession();
-  
-  try {
-    await session.withTransaction(async () => {
-      // 1. Product → ProductTemplate
-      const products = await productModel.find({ owner: sellerId });
-      for (const product of products) {
-        await productTemplatePort.createFromLegacy({
-          legacyProductId: product._id,
-          storageConditions: inferStorageConditions(product.category),
-        }, { session });
-      }
-      
-      // 2. Shop → StorageLocation + Storefront
-      const shops = await shopModel.find({ owner: sellerId });
-      for (const shop of shops) {
-        const storageLocation = await storageLocationPort.create({
-          type: LocationType.SHOP,
-          shop: shop._id,
-          name: `${shop.shopName} - Склад`,
-          temperatureRange: TemperatureRange.ROOM,
-        }, { session });
-        
-        await storefrontPort.create({
-          shop: shop._id,
-          storageLocation: storageLocation._id,
-          products: await migrateShopProducts(shop._id, session),
-        }, { session });
-      }
-      
-      // 3. Warehouse → StorageLocation
-      const warehouses = await warehouseModel.find({ seller: sellerId });
-      for (const warehouse of warehouses) {
-        await storageLocationPort.create({
-          type: LocationType.WAREHOUSE,
-          warehouse: warehouse._id,
-          name: warehouse.name,
-          temperatureRange: TemperatureRange.COLD, // предполагаем холодильник
-        }, { session });
-      }
-      
-      // 4. BatchStock → BatchLocation (если есть данные)
-      // ...
+// При онбординге нового продавца создаём инфраструктуру
+async function setupSellerInventory(sellerId: string) {
+  // 1. Для каждого Shop создаём StorageLocation + Storefront
+  const shops = await shopModel.find({ owner: sellerId });
+  for (const shop of shops) {
+    const storageLocation = await storageLocationPort.create({
+      seller: sellerId,
+      type: LocationType.SHOP,
+      shop: shop._id,
+      name: `${shop.shopName} - Склад`,
+      zoneType: StorageZoneType.ROOM_TEMP,
+      conditionsMode: 'MANUAL', // по умолчанию ручной ввод
     });
-  } finally {
-    await session.endSession();
+    
+    await storefrontPort.create({
+      seller: sellerId,
+      shop: shop._id,
+      storageLocation: storageLocation._id,
+      products: [], // товары добавляются отдельно
+    });
   }
+  
+  // 2. ProductTemplate создаётся при добавлении товара на витрину
+  // (не мигрируем старые Product, создаём по мере надобности)
 }
 ```
 
-### 2. Маппинг категорий → условия хранения
+### Начальная инвентаризация (обязательна при переходе)
 
 ```typescript
-function inferStorageConditions(category: ProductCategory): StorageConditions {
-  const mapping: Record<ProductCategory, Partial<StorageConditions>> = {
-    [ProductCategory.BERRIES]: {
-      preset: StoragePreset.BERRIES,
-      baseShelfLifeDays: 7,
-      idealTempMin: 0, idealTempMax: 4,
-      idealHumidityMin: 90, idealHumidityMax: 95,
-      sensitivity: 'HIGH',
-    },
-    [ProductCategory.FRUITS]: {
-      preset: StoragePreset.APPLES_PEARS,
-      baseShelfLifeDays: 14,
-      idealTempMin: 0, idealTempMax: 4,
-      sensitivity: 'MEDIUM',
-    },
-    [ProductCategory.VEGETABLES]: {
-      preset: StoragePreset.ROOT_VEGETABLES,
-      baseShelfLifeDays: 21,
-      idealTempMin: 2, idealTempMax: 8,
-      sensitivity: 'LOW',
-    },
-    // ... остальные категории
-  };
+// При переходе существующего продавца
+async function initialInventory(sellerId: string, shopId: string) {
+  // 1. Создать сессию инвентаризации
+  const audit = await auditPort.create({
+    type: AuditType.FULL,
+    locationType: LocationType.SHOP,
+    shop: shopId,
+    status: AuditStatus.DRAFT,
+  });
   
-  return {
-    preset: StoragePreset.GENERIC,
-    baseShelfLifeDays: 14,
-    sensitivity: 'MEDIUM',
-    ...mapping[category],
-  };
+  // 2. Сотрудник физически пересчитывает товар
+  // 3. Вводит данные в систему (создаются Batch + BatchLocation)
+  // 4. После завершения — старая система отключается для этого магазина
 }
 ```
 
@@ -2907,28 +2850,98 @@ function inferStorageConditions(category: ProductCategory): StorageConditions {
 - FEFO логика обязательна для всех расходных операций
 - Пересчёт сроков происходит при каждом перемещении
 
-### Обратная совместимость
+### Дуракоустойчивость (Fail-Safe Design)
 
-- **Не трогаем старые модули** (Shop, Warehouse, Product, ShopProduct)
-- Создаём связи через `legacyProduct`, `shop`, `warehouse` refs
-- Старый API продолжает работать через адаптеры
-- Постепенно переключаем функционал на новые модули
+**Принцип:** Система должна работать даже при неполных данных от персонала.
+
+- **Вес при приёмке расходится с накладной на 5%** → алерт, но не блокировка
+- **Не введена температура локации** → использовать нормативную (StoragePreset)
+- **Не указан срок годности** → рассчитать из baseShelfLifeDays товара
+- **Приоритет физического покупателя** → офлайн-продажа всегда перехватывает резерв
+
+```typescript
+// Пример: мягкая валидация при приёмке
+if (Math.abs(expectedQty - actualQty) / expectedQty > 0.05) {
+  await alertsService.create({
+    type: 'RECEIVING_QUANTITY_MISMATCH',
+    severity: 'WARNING', // не ERROR!
+    message: `Расхождение ${Math.round(diff * 100)}%`,
+    // ... НО приёмка не блокируется
+  });
+}
+```
+
+### Приоритет офлайн-покупателя
+
+При конфликте онлайн-резерва и офлайн-продажи:
+
+```typescript
+// Если покупатель на кассе хочет товар из резерва
+if (requestedQty > availableWithoutReserve && orderNotYetAssembled) {
+  // 1. Приоритет офлайн — продаём
+  await processOfflineSale(product, requestedQty);
+  
+  // 2. Резерв перехватывается
+  await reservationPort.forceRelease({
+    reservationId,
+    reason: 'OFFLINE_PRIORITY',
+  });
+  
+  // 3. Онлайн-клиенту → уведомление + отмена/замена
+  await notifyOnlineCustomer(orderId, {
+    type: 'ITEM_UNAVAILABLE',
+    suggestAlternative: true,
+  });
+}
+```
 
 ### Ценообразование
 
 - Цена в `Product.price` остаётся как "рекомендованная"
 - Реальные цены живут в `StorefrontProduct.pricing`
 - Поддержка разных цен для онлайн/офлайн
-- Автоскидки по срокам годности через cron
+- **⚠️ Автоскидки по сроку — ТОЛЬКО ДЛЯ ОНЛАЙН** (офлайн требует смены ценников)
 - Маржинальность рассчитывается от закупочной цены партии
 
-### Смешивание партий
+```typescript
+// Автоскидки применяются только к onlinePrice
+function applyExpirationDiscount(storefrontProduct: StorefrontProduct) {
+  const discount = calculateExpirationDiscount(storefrontProduct);
+  if (discount > 0) {
+    storefrontProduct.pricing.onlinePrice *= (1 - discount / 100);
+    // offlinePrice НЕ меняется автоматически!
+  }
+}
+```
 
-- MixedBatch наследует интерфейс Batch
-- Срок = минимальный из источников
-- Свежесть и цена = средневзвешенные
-- Полная трассируемость состава
-- Работает с FEFO как обычная партия
+### Смешивание партий (упрощённый подход)
+
+**⚠️ MVP:** MixedBatch **НЕ** создаётся пользователем вручную.
+
+**Когда создаётся MixedBatch:**
+- При инвентаризации (обнаружено физическое смешение)
+- При консолидации остатков (менеджером через упрощённый UI)
+- Автоматически при WriteOff → если списали часть партии, а остаток < minQty
+
+**Что НЕ делаем:**
+- Не требуем от продавца взвешивать каждую коробку
+- Не блокируем продажи если партии "виртуально разделены"
+
+```typescript
+// Упрощённое создание MixedBatch при инвентаризации
+async function consolidateRemnants(locationId: string, productId: string) {
+  const smallBatches = await batchLocationPort.findSmallRemnants({
+    locationId,
+    productId,
+    maxQuantity: 1, // кг — остатки меньше 1 кг
+  });
+  
+  if (smallBatches.length > 1) {
+    // Автоматически создаём MixedBatch
+    await mixingService.autoConsolidate(smallBatches);
+  }
+}
+```
 
 ### Управление свежестью (Premium Feature)
 
@@ -2943,6 +2956,154 @@ function inferStorageConditions(category: ProductCategory): StorageConditions {
 - HomemadeDetails: рецепт, ингредиенты, время приготовления
 - При заказе homemade товара: автоматическое списание ингредиентов (по рецепту)
 - shelfLifeAfterPreparationHours — короткий срок жизни после приготовления
+
+### Усушка (Shrinkage) — Опциональная функция
+
+**Проблема:** Овощи и фрукты теряют вес из-за испарения влаги. Через неделю на складе будет "недостача", которая по факту — физика.
+
+**Решение:** Автоматическое списание веса для товаров с `shrinkageEnabled: true`.
+
+```typescript
+// В ProductTemplate
+@Prop({ type: Boolean, default: false })
+shrinkageEnabled: boolean;
+
+/** Процент усушки в сутки (например, 0.5% для картофеля) */
+@Prop({ type: Number, min: 0, max: 5 })
+shrinkagePercentPerDay?: number;
+
+// Cron-задача: ежедневный пересчёт
+async function applyShrinkage() {
+  const batches = await batchLocationPort.findWithShrinkage();
+  
+  for (const batch of batches) {
+    const shrinkageQty = batch.quantity * (batch.product.shrinkagePercentPerDay / 100);
+    
+    await batchLocationPort.decreaseQuantity({
+      batchLocationId: batch._id,
+      quantity: shrinkageQty,
+      reason: WriteOffReason.SHRINKAGE,
+      auto: true, // автоматическое, не требует подтверждения
+    });
+    
+    await movementPort.record({
+      type: MovementType.SHRINKAGE,
+      batchLocation: batch._id,
+      quantityChange: -shrinkageQty,
+      // ...
+    });
+  }
+}
+```
+
+**Типичные значения усушки:**
+| Товар | Усушка %/сутки |
+|-------|----------------|
+| Картофель | 0.3-0.5% |
+| Морковь | 0.5-0.8% |
+| Капуста | 0.2-0.4% |
+| Яблоки | 0.1-0.3% |
+| Ягоды | 1.0-2.0% |
+
+### Smart Photo Request (Живые фото)
+
+**Проблема:** Требовать ежедневные фото для 500+ SKU нереалистично.
+
+**Решение:** Умный запрос фото только для критичных товаров.
+
+```typescript
+// В StorefrontProduct
+@Prop({ type: Boolean, default: false })
+needsPhotoUpdate: boolean;
+
+@Prop({ type: Date })
+photosLastUpdatedAt?: Date;
+
+// Cron-задача: определение товаров, требующих фото
+async function requestSmartPhotos() {
+  const products = await storefrontProductPort.findNeedingPhotos({
+    // Условия для запроса фото:
+    expiringIn: 3,              // срок < 3 дней
+    isHighValue: true,          // цена > X рублей
+    hasRecentReturn: true,      // был возврат за последние 7 дней
+    photoAge: 3,                // последнее фото > 3 дней назад
+    productType: ['PERISHABLE', 'BAKERY'], // только скоропорт
+  });
+  
+  for (const product of products) {
+    await storefrontProductPort.markNeedsPhoto(product._id);
+    // Уведомление продавцу в Telegram
+    await notifyPhotoRequest(product);
+  }
+}
+```
+
+**Правила Smart Photo Request:**
+- **PERISHABLE товары с истекающим сроком (<3 дней)** → запрос ежедневно
+- **High Value товары (>500₽)** → запрос раз в 3 дня
+- **Товары после возврата** → запрос сразу
+- **SHELF_STABLE товары** → запрос раз в неделю (или не запрашивать)
+- **Максимум 10-20 товаров в день** на один магазин
+
+### Возврат поставщику (Supplier Return)
+
+**Проблема:** При обнаружении брака после приёмки нужен механизм возврата поставщику.
+
+```typescript
+// operations/return/supplier-return.schema.ts
+export enum SupplierReturnStatus {
+  DRAFT = 'DRAFT',
+  PENDING_APPROVAL = 'PENDING_APPROVAL',  // ожидает подтверждения поставщика
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  COMPLETED = 'COMPLETED',
+}
+
+@Schema({...})
+export class SupplierReturn {
+  @Prop({ type: Types.ObjectId, ref: 'Supplier', required: true })
+  supplier: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Receiving' })
+  originalReceiving?: Types.ObjectId;  // связь с приёмкой
+
+  @Prop({ type: [SupplierReturnItemSchema], required: true })
+  items: SupplierReturnItem[];
+
+  @Prop({ type: String, enum: Object.values(SupplierReturnStatus) })
+  status: SupplierReturnStatus;
+
+  @Prop({ type: String })
+  reason: string;  // причина возврата
+
+  @Prop({ type: [Types.ObjectId], ref: 'Image' })
+  photos?: Types.ObjectId[];  // фото брака
+
+  /** Ожидаемая сумма возврата */
+  @Prop({ type: Number, min: 0 })
+  expectedRefund?: number;
+
+  /** Фактическая сумма (после согласования) */
+  @Prop({ type: Number, min: 0 })
+  actualRefund?: number;
+}
+
+// Партия со статусом DISPUTE — заблокирована для продажи
+export enum BatchStatus {
+  ACTIVE = 'ACTIVE',
+  DEPLETED = 'DEPLETED',
+  EXPIRED = 'EXPIRED',
+  DISPUTE = 'DISPUTE',  // спор с поставщиком — нельзя продавать
+  RETURNED = 'RETURNED',
+}
+```
+
+**Workflow:**
+1. Обнаружен брак → Batch.status = `DISPUTE` (блокировка продаж)
+2. Создаётся SupplierReturn с фото и описанием
+3. Ожидание ответа поставщика (PENDING_APPROVAL)
+4. Поставщик подтвердил → списание, возврат денег
+5. Поставщик отклонил → разблокировка или WriteOff за свой счёт
 
 ---
 
