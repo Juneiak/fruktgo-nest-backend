@@ -22,20 +22,4 @@ export enum PurchasePriceStrategy {
   FIFO_AVERAGE = 'FIFO_AVERAGE',
 }
 
-/**
- * Единица измерения
- */
-export enum ProductUnit {
-  /** Килограмм */
-  KG = 'KG',
-  /** Штука */
-  PCS = 'PCS',
-  /** Грамм */
-  G = 'G',
-  /** Литр */
-  L = 'L',
-  /** Миллилитр */
-  ML = 'ML',
-  /** Упаковка */
-  PACK = 'PACK',
-}
+// ProductUnit экспортируется из inventory-product

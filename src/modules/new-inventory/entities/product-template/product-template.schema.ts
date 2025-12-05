@@ -3,8 +3,8 @@ import { HydratedDocument, Model, Types } from 'mongoose';
 import {
   ProductTemplateStatus,
   PurchasePriceStrategy,
-  ProductUnit,
 } from './product-template.enums';
+import { ProductUnit } from '../inventory-product/inventory-product.enums';
 import { StoragePreset } from '../../core/storage-preset';
 
 /**
@@ -68,16 +68,16 @@ export const PricingSettingsSchema =
   SchemaFactory.createForClass(PricingSettings);
 
 /**
- * Допустимая погрешность веса
+ * Допустимая погрешность веса (для ProductTemplate)
  */
 @Schema({ _id: false })
-export class ToleranceSettings {
+export class WeightToleranceSettings {
   /** Допустимое отклонение веса (0.05 = 5%) */
   @Prop({ type: Number, min: 0.05, max: 0.15, default: 0.1 })
   weightTolerance: number;
 }
-export const ToleranceSettingsSchema =
-  SchemaFactory.createForClass(ToleranceSettings);
+export const WeightToleranceSettingsSchema =
+  SchemaFactory.createForClass(WeightToleranceSettings);
 
 /**
  * ProductTemplate — шаблон товара продавца
@@ -138,8 +138,8 @@ export class ProductTemplate {
   pricingSettings: PricingSettings;
 
   /** Настройки допусков */
-  @Prop({ type: ToleranceSettingsSchema, default: () => ({}) })
-  toleranceSettings: ToleranceSettings;
+  @Prop({ type: WeightToleranceSettingsSchema, default: () => ({}) })
+  toleranceSettings: WeightToleranceSettings;
 
   /** Штрихкоды (EAN-13, EAN-8 и т.д.) */
   @Prop({ type: [String], default: () => [] })

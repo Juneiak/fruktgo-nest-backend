@@ -1,3 +1,6 @@
+// InventoryProduct — продукт в складском учёте
+export * from './inventory-product';
+
 // ProductTemplate — шаблон товара продавца
 export * from './product-template';
 

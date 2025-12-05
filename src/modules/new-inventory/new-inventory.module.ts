@@ -14,6 +14,7 @@ import { AuditModule } from './operations/audit';
 import { AlertsModule } from './alerts';
 import { InventoryOrchestratorModule } from './orchestrator';
 import {
+  InventoryProductModule,
   ProductTemplateModule,
   StorageLocationModule,
   StorefrontModule,
@@ -59,6 +60,7 @@ import { ConsolidationModule } from './operations/consolidation';
     AuditModule,
     AlertsModule,
     InventoryOrchestratorModule,
+    InventoryProductModule,
     ProductTemplateModule,
     StorageLocationModule,
     StorefrontModule,
@@ -78,6 +80,7 @@ import { ConsolidationModule } from './operations/consolidation';
     AuditModule,
     AlertsModule,
     InventoryOrchestratorModule,
+    InventoryProductModule,
     ProductTemplateModule,
     StorageLocationModule,
     StorefrontModule,

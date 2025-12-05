@@ -4,7 +4,7 @@
 
 ## Статус
 
-🚧 **В разработке** — полная замена, а не расширение старых модулей.
+🚧✅ **Реализация завершена** — все 10 фаз реализованы. Полная замена старых модулей.
 
 ## Документация
 
@@ -86,13 +86,14 @@
 new-inventory/
 ├── core/                   # Пресеты, условия, калькулятор сроков
 ├── entities/               # Базовые сущности
-│   ├── product-template/   # ProductTemplate (типы, homemade, расширения)
-│   ├── storage-location/   # StorageLocation (склад Shop/Warehouse)
+│   ├── inventory-product/  # InventoryProduct (продукт складского учёта)
+│   ├── product-template/   # ProductTemplate (шаблон с настройками)
+│   ├── storage-location/   # StorageLocation (локация хранения)
 │   └── storefront/         # Storefront + StorefrontProduct (витрина с ценами)
 ├── batch/                  # Партии товара (Batch + MixedBatch)
 ├── batch-location/         # Остатки партий в локациях
 ├── pricing/                # Ценообразование (онлайн/офлайн/скидки)
-├── operations/             # Приёмка, перемещение, списание, возврат, инвентаризация, смешивание
+├── operations/             # Приёмка, перемещение, списание, возврат, инвентаризация, консолидация
 ├── movement/               # История движений
 ├── reservation/            # Резервирование под заказы
 ├── alerts/                 # Алерты по срокам
@@ -160,20 +161,20 @@ const reservation = await inventoryOrchestrator.reserveForOrder({
 
 ## Фазы реализации
 
-| # | Фаза | Статус | Дни |
-|---|------|--------|-----|
-| 1 | Ядро (presets, calculator) | ⏳ Pending | 2-3 |
-| 2 | Batch + BatchLocation | ⏳ Pending | 3-4 |
-| 3 | Receiving + Transfer + WriteOff | ⏳ Pending | 4-5 |
-| 4 | Return | ⏳ Pending | 2-3 |
-| 5 | Movement + Reservation | ⏳ Pending | 2-3 |
-| 6 | Audit + Alerts | ⏳ Pending | 2-3 |
-| 7 | Orchestrator + интеграция | ⏳ Pending | 3-4 |
-| 8 | **Базовые сущности** (ProductTemplate, StorageLocation, Storefront) | ⏳ Pending | 2-3 |
-| 9 | **Ценообразование** (Pricing) | ⏳ Pending | 2-3 |
-| 10 | **Смешивание партий** (Mixing) | ⏳ Pending | 1-2 |
+| # | Фаза | Статус |
+|---|------|--------|
+| 1 | Ядро (presets, calculator) | ✅ Done |
+| 2 | Batch + BatchLocation | ✅ Done |
+| 3 | Receiving + Transfer + WriteOff | ✅ Done |
+| 4 | Return | ✅ Done |
+| 5 | Movement + Reservation | ✅ Done |
+| 6 | Audit + Alerts | ✅ Done |
+| 7 | Orchestrator + интеграция | ✅ Done |
+| 8 | Entities (InventoryProduct, ProductTemplate, StorageLocation, Storefront) | ✅ Done |
+| 9 | Pricing | ✅ Done |
+| 10 | Consolidation (auto-mixing) | ✅ Done |
 
-**Общая оценка: 24-33 дня**
+**Всего: 145+ TypeScript файлов**
 
 ## Интеграция
 
@@ -191,11 +192,12 @@ const reservation = await inventoryOrchestrator.reserveForOrder({
 | `write-off/` | `operations/write-off/` |
 | `inventory-audit/` | `operations/audit/` |
 | `shop-product/` (частично) | `entities/storefront/` |
+| `product/` (складская часть) | `entities/inventory-product/` |
 
 ### Модули, которые ОСТАЮТСЯ
 
 - `Shop` — бизнес-сущность магазина (не трогаем)
-- `Product` — справочник товаров (price становится "рекомендованной")
+- `Product` (master catalog) — справочник товаров платформы
 - `Seller` — продавец
 - `Order` — заказы
 
