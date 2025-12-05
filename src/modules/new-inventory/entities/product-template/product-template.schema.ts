@@ -32,8 +32,7 @@ export class StorageSettings {
   @Prop({ type: Number, min: 0, max: 10, default: 0 })
   shrinkagePercentPerDay: number;
 }
-export const StorageSettingsSchema =
-  SchemaFactory.createForClass(StorageSettings);
+export const StorageSettingsSchema = SchemaFactory.createForClass(StorageSettings);
 
 /**
  * Настройки ценообразования

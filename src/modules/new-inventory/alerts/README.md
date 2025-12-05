@@ -1,178 +1,336 @@
-# Alerts
+# Alerts — Алерты
 
-Алерты по срокам годности и условиям хранения.
+Уведомления о проблемах: истекающие сроки, нарушение температуры, низкие остатки.
+
+---
+
+## Зачем нужны алерты?
+
+Представь: у тебя 500 товаров в 3 магазинах. Невозможно следить за всем вручную.
+
+**Алерты = система раннего предупреждения:**
+
+```
+🔴 CRITICAL: Молоко "Простоквашино" истекает ЗАВТРА!
+🟡 WARNING: Холодильник #2 — температура 8°C (норма 2-6°C)
+🔵 INFO: Яблоки — осталось 3 кг (минимум 10 кг)
+```
+
+---
 
 ## Структура
 
 ```
 alerts/
-├── alerts.schema.ts    # Схема
-├── alerts.enums.ts     # Типы алертов
-├── alerts.commands.ts  # Команды
-├── alerts.queries.ts   # Запросы
-├── alerts.port.ts      # Интерфейс
-├── alerts.service.ts   # Реализация
-├── alerts.module.ts    # NestJS модуль
+├── alerts.schema.ts
+├── alerts.enums.ts
+├── alerts.commands.ts
+├── alerts.queries.ts
+├── alerts.port.ts
+├── alerts.service.ts
+├── alerts.module.ts
 └── index.ts
 ```
 
+---
+
+## Типы алертов
+
+### По срокам годности
+
+```
+EXPIRING_CRITICAL — Истекает завтра! (1-2 дня)
+EXPIRING_SOON     — Скоро истечёт (3-7 дней)
+EXPIRED           — Срок истёк, нужно списать
+```
+
+### По условиям хранения
+
+```
+TEMPERATURE_DEVIATION — Температура вне нормы
+HUMIDITY_DEVIATION    — Влажность вне нормы
+```
+
+### По остаткам
+
+```
+LOW_STOCK     — Остаток ниже минимума
+OUT_OF_STOCK  — Нет в наличии
+```
+
+### По качеству
+
+```
+FRESHNESS_LOW — Свежесть < 3 из 10
+```
+
+---
+
+## Severity — Важность
+
+```
+CRITICAL — Требует немедленного действия
+           (истекает завтра, температура критичная)
+
+WARNING  — Требует внимания
+           (истекает через 3-5 дней, небольшое отклонение)
+
+INFO     — Для информации
+           (низкий остаток, рекомендации)
+```
+
+---
+
 ## InventoryAlert
 
-**Что это:** Уведомление о проблеме со складом — истекающие сроки, нарушение условий, низкие остатки.
+### Поля
 
 ```typescript
 InventoryAlert {
   seller,
   
-  type,                     // Тип алерта
-  severity,                 // INFO, WARNING, CRITICAL
+  type,                     // EXPIRING_SOON, TEMPERATURE_DEVIATION...
+  severity,                 // CRITICAL, WARNING, INFO
   
   // Контекст
-  product,
-  batch,
-  location,
+  product,                  // О каком товаре
+  batch,                    // О какой партии
+  location,                 // В какой локации
   
-  // Детали
-  message,
-  data: {                   // Специфичные данные
-    daysUntilExpiration?,
-    temperature?,
-    expectedTemperature?,
-    currentStock?,
-    reorderPoint?,
+  // Описание
+  message,                  // "Молоко истекает завтра"
+  
+  data: {                   // Детали (зависит от типа)
+    daysUntilExpiration,
+    temperature,
+    expectedTemperature,
+    currentStock,
+    reorderPoint,
   },
   
   // Статус
   status,                   // ACTIVE, ACKNOWLEDGED, RESOLVED, DISMISSED
   
   createdAt,
-  acknowledgedAt,
-  acknowledgedBy,
-  resolvedAt,
+  acknowledgedAt,           // Когда увидели
+  acknowledgedBy,           // Кто увидел
+  resolvedAt,               // Когда решили
 }
 ```
 
-## Типы алертов
+### Статусы
 
-| Type | Severity | Описание |
-|------|----------|----------|
-| `EXPIRING_SOON` | WARNING | Срок истекает через 3-7 дней |
-| `EXPIRING_CRITICAL` | CRITICAL | Срок истекает через 1-2 дня |
-| `EXPIRED` | CRITICAL | Срок истёк |
-| `TEMPERATURE_DEVIATION` | WARNING | Температура вне нормы |
-| `HUMIDITY_DEVIATION` | WARNING | Влажность вне нормы |
-| `LOW_STOCK` | INFO | Остаток ниже reorderPoint |
-| `OUT_OF_STOCK` | WARNING | Нет в наличии |
-| `FRESHNESS_LOW` | WARNING | Свежесть < 3 из 10 |
+```
+ACTIVE       — Активный, требует внимания
+ACKNOWLEDGED — Увидели, работаем
+RESOLVED     — Проблема решена
+DISMISSED    — Отклонён (ложный алерт)
+```
+
+---
 
 ## Как создаются алерты
 
-**Автоматически по cron:**
+### Автоматически по cron
 
 ```typescript
 // Каждый день в 6:00
 @Cron('0 6 * * *')
 async checkExpiringBatches() {
   // Находим партии со сроком < 7 дней
-  // Создаём алерты EXPIRING_SOON / EXPIRING_CRITICAL
+  const expiring = await this.batchPort.getExpiring(...);
+  
+  for (const batch of expiring) {
+    const days = daysUntil(batch.expirationDate);
+    
+    if (days <= 2) {
+      await this.alertsPort.create({
+        type: AlertType.EXPIRING_CRITICAL,
+        severity: AlertSeverity.CRITICAL,
+        batch,
+        message: `${batch.product.name} истекает через ${days} дн.`,
+      });
+    } else if (days <= 7) {
+      await this.alertsPort.create({
+        type: AlertType.EXPIRING_SOON,
+        severity: AlertSeverity.WARNING,
+        ...
+      });
+    }
+  }
 }
 
 // Каждый час
 @Cron('0 * * * *')
 async checkConditions() {
-  // Проверяем температуру/влажность в локациях
-  // Создаём алерты при отклонении
+  // Проверяем температуру/влажность
+  const locations = await this.locationPort.getAll(...);
+  
+  for (const location of locations) {
+    if (location.actualConditions.temperature > location.targetConditions.max) {
+      await this.alertsPort.create({
+        type: AlertType.TEMPERATURE_DEVIATION,
+        severity: AlertSeverity.WARNING,
+        location,
+        message: `Температура ${location.actualConditions.temperature}°C (норма ${location.targetConditions.max}°C)`,
+      });
+    }
+  }
 }
 ```
 
-**При операциях:**
+### При операциях
+
 ```typescript
 // После продажи — проверяем остаток
-if (newStock < product.reorderPoint) {
-  await alertsPort.create(new CreateAlertCommand({
-    type: AlertType.LOW_STOCK,
-    severity: AlertSeverity.INFO,
-    product, location,
-    data: { currentStock: newStock, reorderPoint },
-  }));
+async afterSale(product, location) {
+  const stock = await this.getStock(product, location);
+  
+  if (stock < product.reorderPoint) {
+    await this.alertsPort.create({
+      type: AlertType.LOW_STOCK,
+      severity: AlertSeverity.INFO,
+      product,
+      location,
+      message: `${product.name}: осталось ${stock} (мин. ${product.reorderPoint})`,
+      data: {
+        currentStock: stock,
+        reorderPoint: product.reorderPoint,
+      },
+    });
+  }
 }
 ```
+
+---
 
 ## Дуракоустойчивость
 
-**Алерты НЕ блокируют операции:**
-- Можно продавать товар с истекающим сроком (со скидкой)
-- Можно принимать товар при нарушении температуры (с пометкой)
-- Алерты = информирование, не блокировка
+**Алерты НЕ блокируют операции!**
 
-## Команды
-
-```typescript
-// Создать алерт
-new AlertsCommands.CreateAlertCommand({
-  type, severity,
-  product, batch, location,
-  message, data,
-});
-
-// Подтвердить (увидел)
-new AlertsCommands.AcknowledgeAlertCommand(alertId, employeeId);
-
-// Разрешить (проблема решена)
-new AlertsCommands.ResolveAlertCommand(alertId, resolution);
-
-// Отклонить (ложный алерт)
-new AlertsCommands.DismissAlertCommand(alertId, reason);
+```
+Срок истекает → Алерт появляется
+             → НО можно продать со скидкой
+             → НО можно списать
+             → НО можно игнорировать (на свой риск)
+             
+Температура отклоняется → Алерт появляется
+                        → НО можно принять товар
+                        → НО можно переместить
+                        → Просто видишь предупреждение
 ```
 
-## Запросы
+Алерты = информирование, не запрет.
+
+---
+
+## Примеры использования
+
+### Получить активные алерты
 
 ```typescript
-// Активные алерты продавца
-new AlertsQueries.GetActiveAlertsQuery(sellerId);
-
-// Алерты по локации
-new AlertsQueries.GetLocationAlertsQuery(locationId);
-
-// Критические алерты
-new AlertsQueries.GetCriticalAlertsQuery(sellerId);
-
-// Статистика
-new AlertsQueries.GetAlertStatisticsQuery({
-  sellerId,
-  fromDate, toDate,
-});
-```
-
-## Пример: панель алертов
-
-```typescript
-const alerts = await alertsPort.getActiveAlerts(
+const alerts = await alertsPort.getActive(
   new AlertsQueries.GetActiveAlertsQuery(sellerId),
 );
 
 // alerts:
 // [
-//   { type: 'EXPIRING_CRITICAL', severity: 'CRITICAL', 
-//     message: 'Молоко "Простоквашино" истекает завтра', 
-//     data: { daysUntilExpiration: 1 } },
-//   
-//   { type: 'TEMPERATURE_DEVIATION', severity: 'WARNING',
-//     message: 'Холодильник №2: 8°C (норма 2-6°C)',
-//     data: { temperature: 8, expectedTemperature: 4 } },
-//   
-//   { type: 'LOW_STOCK', severity: 'INFO',
-//     message: 'Яблоки: осталось 3 кг (мин. 10 кг)',
-//     data: { currentStock: 3, reorderPoint: 10 } },
+//   {
+//     type: 'EXPIRING_CRITICAL',
+//     severity: 'CRITICAL',
+//     message: 'Молоко "Простоквашино" истекает завтра',
+//     data: { daysUntilExpiration: 1 },
+//   },
+//   {
+//     type: 'TEMPERATURE_DEVIATION',
+//     severity: 'WARNING',
+//     message: 'Холодильник #2: 8°C (норма 2-6°C)',
+//     data: { temperature: 8, expectedTemperature: 4 },
+//   },
 // ]
 ```
+
+### Получить критические алерты
+
+```typescript
+const critical = await alertsPort.getCritical(
+  new AlertsQueries.GetCriticalAlertsQuery(sellerId),
+);
+```
+
+### Подтвердить (увидел)
+
+```typescript
+await alertsPort.acknowledge(
+  new AlertsCommands.AcknowledgeAlertCommand({
+    alertId,
+    acknowledgedBy: employeeId,
+  }),
+);
+```
+
+### Решить проблему
+
+```typescript
+await alertsPort.resolve(
+  new AlertsCommands.ResolveAlertCommand({
+    alertId,
+    resolution: 'Товар продан со скидкой 30%',
+  }),
+);
+```
+
+### Отклонить (ложный алерт)
+
+```typescript
+await alertsPort.dismiss(
+  new AlertsCommands.DismissAlertCommand({
+    alertId,
+    reason: 'Термометр неисправен, заменили',
+  }),
+);
+```
+
+---
+
+## Панель алертов (пример UI)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 🚨 Алерты                                            [3]    │
+├─────────────────────────────────────────────────────────────┤
+│ 🔴 CRITICAL                                                 │
+│   Молоко "Простоквашино" истекает завтра                   │
+│   Партия #1234 • Холодильник #1 • 5 шт                     │
+│   [Списать] [Скидка 50%] [Игнорировать]                    │
+├─────────────────────────────────────────────────────────────┤
+│ 🟡 WARNING                                                  │
+│   Холодильник #2: температура 8°C (норма 2-6°C)            │
+│   Последнее измерение: 5 минут назад                       │
+│   [Проверить] [Создать заявку на ремонт]                   │
+├─────────────────────────────────────────────────────────────┤
+│ 🔵 INFO                                                     │
+│   Яблоки Голден — осталось 3 кг (минимум 10 кг)            │
+│   Магазин "Центральный"                                    │
+│   [Заказать] [Игнорировать]                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
 
 ## Экспорт
 
 ```typescript
 import {
-  ALERTS_PORT, AlertsPort,
-  InventoryAlert, AlertType, AlertSeverity, AlertStatus,
-  AlertsCommands, AlertsQueries,
+  ALERTS_PORT,
+  AlertsPort,
+  
+  InventoryAlert,
+  AlertType,
+  AlertSeverity,
+  AlertStatus,
+  
+  AlertsCommands,
+  AlertsQueries,
 } from 'src/modules/new-inventory/alerts';
 ```

@@ -1,181 +1,309 @@
-# Batch
+# Batch — Партии товара
 
-Партии товара — основа партионного учёта.
+Партия = товар с одной приёмки (одна дата, один поставщик, одна цена).
+
+---
+
+## Что такое партия?
+
+Представь: ты закупил яблоки у поставщика.
+
+```
+Приёмка 1 декабря:
+├── 100 кг яблок
+├── Срок до: 20 декабря
+├── Цена закупки: 80₽/кг
+└── Поставщик: ООО "Сады Кубани"
+
+Это одна ПАРТИЯ.
+```
+
+Через неделю закупил ещё:
+
+```
+Приёмка 8 декабря:
+├── 50 кг яблок
+├── Срок до: 28 декабря  ← другой срок
+├── Цена закупки: 85₽/кг  ← другая цена
+└── Поставщик: ИП Иванов  ← другой поставщик
+
+Это ДРУГАЯ ПАРТИЯ.
+```
+
+---
+
+## Зачем нужны партии?
+
+### 1. FEFO — продаём сначала то, что скоро испортится
+
+```
+У нас 3 партии яблок:
+├── Партия #1: срок до 05.12 (2 дня осталось) ← продаём первой!
+├── Партия #2: срок до 10.12 (7 дней)
+└── Партия #3: срок до 15.12 (12 дней)
+```
+
+### 2. Трассировка — знаем откуда что пришло
+
+```
+Клиент пожаловался на качество
+→ Смотрим из какой партии был товар
+→ Партия #1234 от ООО "Сады"
+→ Связываемся с поставщиком
+```
+
+### 3. Правильный расчёт себестоимости
+
+```
+Партия #1: закупка 80₽/кг
+Партия #2: закупка 85₽/кг
+
+Средняя себестоимость = (80×100 + 85×50) / 150 = 81.67₽/кг
+```
+
+---
 
 ## Структура
 
 ```
 batch/
-├── batch.schema.ts          # Схема Batch
-├── batch.enums.ts           # BatchStatus, BatchOrigin
-├── batch.commands.ts        # Команды
-├── batch.queries.ts         # Запросы
-├── batch.port.ts            # Интерфейс
-├── batch.service.ts         # Реализация
-├── batch.module.ts          # NestJS модуль
-├── mixed-batch.schema.ts    # Смешанные партии
+├── batch.schema.ts          # Обычная партия
+├── batch.enums.ts           # Статусы
+├── batch.commands.ts
+├── batch.queries.ts
+├── batch.port.ts
+├── batch.service.ts
+├── batch.module.ts
+├── mixed-batch.schema.ts    # Смешанная партия
 └── index.ts
 ```
 
-## Batch
+---
 
-**Что это:** Партия товара с одной приёмки — имеет единую дату истечения и закупочную цену.
+## Batch — Партия
+
+### Поля
 
 ```typescript
 Batch {
   seller,
-  product → InventoryProduct,
+  product,                  // → InventoryProduct
   
+  // Идентификация
   batchNumber,              // "B-2024-001234"
+  qrCode,                   // QR-код для сканирования
   
   // Даты
-  productionDate,           // Дата производства
-  expirationDate,           // Исходная дата истечения
-  effectiveExpirationDate,  // Динамическая (с учётом условий)
-  receivedAt,               // Когда принят
+  productionDate,           // Когда произведено
+  expirationDate,           // Изначальный срок
+  effectiveExpirationDate,  // Динамический срок (с учётом условий)
+  receivedAt,               // Когда приняли
   
   // Количество
   initialQuantity,          // Сколько было изначально
-  currentQuantity,          // Сколько осталось (сумма BatchLocation)
+  currentQuantity,          // Сколько осталось сейчас
   
   // Свежесть (0-10)
-  initialFreshness,         // При приёмке
+  initialFreshness,         // При приёмке (10 = идеально)
   freshnessRemaining,       // Сейчас
   
-  // Цена
-  purchasePrice,            // Закупочная цена за единицу
+  // Деньги
+  purchasePrice,            // Цена закупки за единицу
   
-  // Происхождение
-  origin,                   // PURCHASE, PRODUCTION, TRANSFER, RETURN
+  // Откуда
+  origin,                   // PURCHASE, PRODUCTION, RETURN
   supplier,                 // Поставщик
-  receiving,                // Связь с приёмкой
+  receiving,                // → Receiving (документ приёмки)
   
-  status,                   // ACTIVE, EXPIRED, WRITTEN_OFF, DEPLETED, DISPUTE
-  
-  qrCode,                   // QR-код для сканирования
+  // Статус
+  status,                   // ACTIVE, EXPIRED, WRITTEN_OFF...
 }
 ```
 
 ### Статусы партии
 
-| Статус | Описание |
-|--------|----------|
-| `ACTIVE` | Активна, можно продавать |
-| `EXPIRED` | Истёк срок, нужно списать |
-| `WRITTEN_OFF` | Списана |
-| `DEPLETED` | Полностью израсходована |
-| `DISPUTE` | Спор с поставщиком (заблокирована) |
+```
+ACTIVE      — Активна, можно продавать
+EXPIRED     — Срок истёк, нужно списать
+WRITTEN_OFF — Списана полностью
+DEPLETED    — Полностью продана/израсходована
+DISPUTE     — Спор с поставщиком (заблокирована)
+```
 
 ### Происхождение партии
 
-| Origin | Описание |
-|--------|----------|
-| `PURCHASE` | Закупка у поставщика |
-| `PRODUCTION` | Собственное производство |
-| `TRANSFER` | Перемещение (частичное) |
-| `RETURN` | Возврат от клиента |
+```
+PURCHASE    — Купили у поставщика
+PRODUCTION  — Сами произвели (своя кухня)
+TRANSFER    — Частичное перемещение (отделили от большой партии)
+RETURN      — Возврат от клиента
+```
 
 ---
 
-## MixedBatch
+## MixedBatch — Смешанная партия
 
-**Что это:** Смешанная партия — создаётся автоматически при консолидации мелких остатков.
+**Что это:** Партия, которая состоит из нескольких других партий.
+
+### Когда создаётся?
+
+1. **При инвентаризации** — нашли кучу товара, но непонятно из какой партии
+2. **Автоконсолидация** — система объединяет мелкие остатки
+3. **После списания** — остались крохи от разных партий
+
+### Пример
+
+```
+На витрине лежат яблоки, смешанные из 3 партий:
+
+MixedBatch:
+├── Компонент 1: Партия #1234, 5 кг, срок до 05.12
+├── Компонент 2: Партия #1567, 3 кг, срок до 08.12
+└── Компонент 3: Партия #1890, 2 кг, срок до 10.12
+
+Итого: 10 кг
+Эффективный срок: MIN(05.12, 08.12, 10.12) = 05.12
+Средняя свежесть: (5×8 + 3×7 + 2×9) / 10 = 7.9
+```
+
+### Зачем хранить компоненты?
+
+**Трассировка!** Всегда можем сказать, из каких партий состоит смешанный товар.
+
+### Поля
 
 ```typescript
 MixedBatch {
   seller,
   product,
-  location,
+  location,                 // Где создан
   
-  components: [{            // Из каких партий состоит
-    batch,
-    quantity,
-    freshnessAtMixing,
-    originalExpirationDate,
+  // Из чего состоит
+  components: [{
+    batch,                  // → Batch
+    quantity,               // Сколько из этой партии
+    freshnessAtMixing,      // Свежесть на момент смешивания
+    originalExpirationDate, // Исходный срок этой партии
   }],
   
+  // Итоговые значения
   totalQuantity,
-  effectiveExpirationDate,  // MIN из всех компонентов
+  effectiveExpirationDate,  // MIN из всех
   effectiveFreshness,       // Средневзвешенная
   
-  reason,                   // AUTO_CONSOLIDATION, AUDIT_CONSOLIDATION, FOUND_MIXED
+  // Причина
+  reason,                   // AUTO_CONSOLIDATION, AUDIT, FOUND_MIXED
   
   isActive,
 }
 ```
-
-**Зачем нужен:**
-- Трассировка: всегда знаем, из каких партий состоит смешанный товар
-- Срок = минимальный из всех компонентов (безопасность)
-- Создаётся автоматически при инвентаризации или cron-консолидации
 
 ---
 
 ## Жизненный цикл партии
 
 ```
-Приёмка (Receiving)
-       │
-       ▼
-   Batch (ACTIVE)
-       │
-       ├── Продажа → quantity уменьшается
-       │
-       ├── Перемещение → создаётся BatchLocation в новой локации
-       │
-       ├── Списание → status = WRITTEN_OFF
-       │
-       ├── Истёк срок → status = EXPIRED
-       │
-       └── Quantity = 0 → status = DEPLETED
+        Приёмка
+           ↓
+    ┌──────────────┐
+    │    ACTIVE    │ ← Партия создана
+    └──────┬───────┘
+           │
+    ┌──────┴──────────────────────────────┐
+    │                                     │
+    ↓                                     ↓
+Продажи                              Истёк срок
+(quantity↓)                               ↓
+    │                              ┌──────────────┐
+    │                              │   EXPIRED    │
+    ↓                              └──────┬───────┘
+quantity = 0?                             │
+    │                                     ↓
+    ↓ да                            Списание
+┌──────────────┐                          ↓
+│   DEPLETED   │                   ┌──────────────┐
+└──────────────┘                   │  WRITTEN_OFF │
+                                   └──────────────┘
 ```
 
-## Команды
+---
+
+## Использование
+
+### Создать партию (обычно через Receiving)
 
 ```typescript
-// Создать партию (обычно через Receiving)
-new BatchCommands.CreateBatchCommand({
-  seller, product,
-  expirationDate, purchasePrice,
-  initialQuantity, supplier,
-});
-
-// Обновить количество
-new BatchCommands.UpdateQuantityCommand(batchId, newQuantity);
-
-// Обновить свежесть (ручная корректировка)
-new BatchCommands.UpdateFreshnessCommand(batchId, newFreshness, reason);
-
-// Пометить как истёкший
-new BatchCommands.MarkAsExpiredCommand(batchId);
+const batch = await batchPort.create(
+  new BatchCommands.CreateBatchCommand({
+    seller: sellerId,
+    product: productId,
+    expirationDate: new Date('2024-12-20'),
+    purchasePrice: 80,
+    initialQuantity: 100,
+    supplier: 'ООО Сады Кубани',
+    origin: BatchOrigin.PURCHASE,
+  }),
+);
 ```
 
-## Запросы
+### Найти партии товара (FEFO)
 
 ```typescript
-// Получить партию
-new BatchQueries.GetBatchByIdQuery(batchId);
-
-// Партии товара в локации (FEFO)
-new BatchQueries.GetBatchesByProductQuery({
-  seller, product, location,
-  sortByExpiration: true,  // FEFO
-});
-
-// Истекающие партии
-new BatchQueries.GetExpiringBatchesQuery({
-  seller,
-  daysUntilExpiration: 3,
-});
+const batches = await batchPort.getByProduct(
+  new BatchQueries.GetBatchesByProductQuery({
+    seller: sellerId,
+    product: productId,
+    status: BatchStatus.ACTIVE,
+    sortByExpiration: true,  // FEFO — сначала те, что скоро истекают
+  }),
+);
 ```
+
+### Найти истекающие партии
+
+```typescript
+const expiring = await batchPort.getExpiring(
+  new BatchQueries.GetExpiringBatchesQuery({
+    seller: sellerId,
+    daysUntilExpiration: 3,  // Истекают в ближайшие 3 дня
+  }),
+);
+```
+
+### Обновить свежесть (ручная корректировка)
+
+```typescript
+await batchPort.updateFreshness(
+  new BatchCommands.UpdateFreshnessCommand({
+    batchId,
+    newFreshness: 6,  // Было 8, стало 6
+    reason: 'Обнаружены признаки увядания',
+    performedBy: employeeId,
+  }),
+);
+```
+
+---
 
 ## Экспорт
 
 ```typescript
 import {
-  BATCH_PORT, BatchPort,
-  Batch, BatchStatus, BatchOrigin,
-  MixedBatch, MixedBatchReason,
-  BatchCommands, BatchQueries,
+  // Порт
+  BATCH_PORT,
+  BatchPort,
+  
+  // Схемы
+  Batch,
+  MixedBatch,
+  
+  // Енумы
+  BatchStatus,
+  BatchOrigin,
+  MixedBatchReason,
+  
+  // Команды и запросы
+  BatchCommands,
+  BatchQueries,
 } from 'src/modules/new-inventory/batch';
 ```

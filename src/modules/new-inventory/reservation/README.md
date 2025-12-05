@@ -1,30 +1,108 @@
-# Reservation
+# Reservation — Резервирование
 
-Резервирование товара под заказы.
+Резервируем товар под заказы. Товар "занят", но физически на полке.
+
+---
+
+## Зачем нужно резервирование?
+
+### Проблема без резервирования
+
+```
+10:00 — Клиент А заказал 5 кг яблок (остаток 10 кг)
+10:05 — Клиент Б заказал 7 кг яблок (остаток 10 кг)
+
+Оба заказа приняты!
+Но у нас только 10 кг, а нужно 12.
+
+Кто-то останется без яблок :(
+```
+
+### С резервированием
+
+```
+10:00 — Клиент А заказал 5 кг яблок
+        → Резервируем 5 кг
+        → Остаток: 10 кг, доступно: 5 кг
+
+10:05 — Клиент Б хочет 7 кг яблок
+        → Доступно только 5 кг
+        → "Извините, можем доставить только 5 кг"
+```
+
+---
 
 ## Структура
 
 ```
 reservation/
-├── reservation.schema.ts    # Схема
-├── reservation.enums.ts     # Статусы
-├── reservation.commands.ts  # Команды
-├── reservation.queries.ts   # Запросы
-├── reservation.port.ts      # Интерфейс
-├── reservation.service.ts   # Реализация
-├── reservation.module.ts    # NestJS модуль
+├── reservation.schema.ts
+├── reservation.enums.ts
+├── reservation.commands.ts
+├── reservation.queries.ts
+├── reservation.port.ts
+├── reservation.service.ts
+├── reservation.module.ts
 └── index.ts
 ```
 
+---
+
+## Как работает резервирование
+
+### Шаг 1: Создаём резерв
+
+```
+Клиент создал заказ на 5 кг яблок
+
+До:
+BatchLocation { quantity: 50, reservedQuantity: 0 }
+
+После:
+BatchLocation { quantity: 50, reservedQuantity: 5 }
+
+Товар зарезервирован, но физически на полке!
+```
+
+### Шаг 2: Сборка заказа
+
+```
+Сборщик взял товар с полки
+
+До:
+BatchLocation { quantity: 50, reservedQuantity: 5 }
+
+После:
+BatchLocation { quantity: 45, reservedQuantity: 0 }
+
+Товар физически отдали.
+```
+
+### Шаг 3: Отмена (если нужно)
+
+```
+Клиент отменил заказ
+
+До:
+BatchLocation { quantity: 50, reservedQuantity: 5 }
+
+После:
+BatchLocation { quantity: 50, reservedQuantity: 0 }
+
+Резерв снят, товар снова доступен.
+```
+
+---
+
 ## Reservation
 
-**Что это:** Резерв товара под конкретный заказ с привязкой к партиям (FEFO).
+### Поля
 
 ```typescript
 Reservation {
   seller,
-  order,
-  shop,
+  order,                    // → Order
+  shop,                     // → Shop
   
   items: [{
     product,
@@ -37,135 +115,192 @@ Reservation {
     }],
   }],
   
-  status,                   // PENDING, CONFIRMED, PARTIALLY_FULFILLED, FULFILLED, CANCELLED
+  status,                   // PENDING, CONFIRMED, FULFILLED...
   
   reservedAt,
-  expiresAt,                // Автоотмена если заказ не подтверждён
+  expiresAt,                // Автоотмена если не подтверждён
   fulfilledAt,
 }
 ```
 
-## Мягкое резервирование
-
-**Как работает:**
-1. Заказ создаётся → резервируем товар
-2. `BatchLocation.reservedQuantity` увеличивается
-3. Физически товар остаётся на месте
-4. При сборке — фактически отдаём товар
-5. `BatchLocation.quantity` уменьшается, `reservedQuantity` сбрасывается
+### Статусы
 
 ```
-До резерва:
-  BatchLocation { quantity: 100, reservedQuantity: 0 }
-  
-После резерва (заказ на 10 шт):
-  BatchLocation { quantity: 100, reservedQuantity: 10 }
-  
-После сборки:
-  BatchLocation { quantity: 90, reservedQuantity: 0 }
+PENDING             — Создан, ожидает подтверждения
+CONFIRMED           — Подтверждён
+PARTIALLY_FULFILLED — Частично выполнен
+FULFILLED           — Полностью выполнен
+CANCELLED           — Отменён
+EXPIRED             — Истёк (заказ не подтверждён вовремя)
 ```
+
+---
 
 ## FEFO при резервировании
 
-При резервировании автоматически выбираются партии с ближайшим сроком:
+Система автоматически выбирает партии с ближайшим сроком:
+
+```
+У нас 3 партии яблок:
+├── #1: 20 кг, срок до 05.12 (2 дня)
+├── #2: 30 кг, срок до 10.12 (7 дней)
+└── #3: 15 кг, срок до 15.12 (12 дней)
+
+Клиент заказал 25 кг:
+
+Reservation.allocations:
+├── Партия #1: 20 кг (вся, срок ближе всего)
+└── Партия #2: 5 кг (добираем)
+```
+
+---
+
+## Приоритет офлайн-покупателя
+
+**Ситуация:** Клиент онлайн зарезервировал товар, но ещё не собрали. А на кассу пришёл живой покупатель.
+
+**Правило:** Если заказ **ещё не собран** — живой покупатель имеет приоритет.
 
 ```typescript
-const reservation = await reservationPort.reserve(
+// 1. Проверяем, можно ли перехватить
+const canOverride = await reservationPort.canOverrideReservation(reservationId);
+
+// 2. Если да — перехватываем
+if (canOverride) {
+  await reservationPort.overrideForOffline(
+    new ReservationCommands.OverrideForOfflineCommand({
+      reservationId,
+      quantity: 2,
+      reason: 'Офлайн-покупатель',
+    }),
+  );
+}
+
+// 3. Онлайн-клиенту отправляется уведомление:
+//    "К сожалению, часть товара была продана. Мы скорректировали ваш заказ."
+```
+
+---
+
+## Примеры использования
+
+### Создать резерв
+
+```typescript
+const reservation = await reservationPort.create(
   new ReservationCommands.CreateReservationCommand({
     orderId,
     shopId,
     items: [
       { productId: 'apples', quantity: 5 },
+      { productId: 'bananas', quantity: 3 },
     ],
   }),
 );
 
-// Система автоматически выберет:
-// - Партия с expirationDate 2024-12-05: 3 шт
-// - Партия с expirationDate 2024-12-07: 2 шт
-// (сначала те, что истекают раньше)
+// Система автоматически:
+// 1. Находит партии по FEFO
+// 2. Увеличивает reservedQuantity в BatchLocation
+// 3. Создаёт Reservation с allocations
 ```
 
-## Приоритет офлайн-покупателя
-
-Если заказ **ещё не собран**, а товар нужен офлайн-покупателю:
+### Подтвердить резерв
 
 ```typescript
-// 1. Проверяем, можно ли "перехватить" резерв
-const canOverride = await reservationPort.canOverrideReservation(reservationId);
+await reservationPort.confirm(
+  new ReservationCommands.ConfirmReservationCommand(reservationId),
+);
+```
 
-// 2. Если да — перехватываем
-await reservationPort.overrideForOffline(
-  new ReservationCommands.OverrideForOfflineCommand({
+### Выполнить резерв (при сборке)
+
+```typescript
+await reservationPort.fulfill(
+  new ReservationCommands.FulfillReservationCommand({
     reservationId,
-    quantity: 2,
-    reason: 'Офлайн-покупатель',
+    fulfilledItems: [
+      { productId: 'apples', actualQuantity: 4.8 },  // Допуск веса
+      { productId: 'bananas', actualQuantity: 3 },
+    ],
+    employeeId,
   }),
 );
 
-// 3. Онлайн-клиенту отправляется уведомление
+// Система:
+// 1. Уменьшает quantity в BatchLocation
+// 2. Сбрасывает reservedQuantity
+// 3. Создаёт Movement (SALE)
+// 4. Обновляет статус Reservation → FULFILLED
 ```
 
-## Статусы резерва
-
-| Status | Описание |
-|--------|----------|
-| `PENDING` | Создан, ожидает подтверждения |
-| `CONFIRMED` | Подтверждён |
-| `PARTIALLY_FULFILLED` | Частично выполнен (часть собрана) |
-| `FULFILLED` | Полностью выполнен |
-| `CANCELLED` | Отменён |
-| `EXPIRED` | Истёк (заказ не подтверждён) |
-
-## Команды
+### Отменить резерв
 
 ```typescript
-// Создать резерв
-new ReservationCommands.CreateReservationCommand({
-  orderId, shopId,
-  items: [{ productId, quantity }],
-});
+await reservationPort.cancel(
+  new ReservationCommands.CancelReservationCommand({
+    reservationId,
+    reason: 'Клиент отменил заказ',
+  }),
+);
 
-// Подтвердить
-new ReservationCommands.ConfirmReservationCommand(reservationId);
-
-// Выполнить (при сборке)
-new ReservationCommands.FulfillReservationCommand({
-  reservationId,
-  fulfilledItems: [{ productId, quantity }],
-});
-
-// Отменить
-new ReservationCommands.CancelReservationCommand(reservationId, reason);
-
-// Перехват для офлайн
-new ReservationCommands.OverrideForOfflineCommand({
-  reservationId, quantity, reason,
-});
+// reservedQuantity возвращается обратно
 ```
 
-## Запросы
+### Проверить доступность
 
 ```typescript
-// Резерв по заказу
-new ReservationQueries.GetByOrderQuery(orderId);
+const availability = await reservationPort.checkAvailability(
+  new ReservationQueries.CheckAvailabilityQuery({
+    shopId,
+    items: [
+      { productId: 'apples', quantity: 10 },
+    ],
+  }),
+);
 
-// Все активные резервы в магазине
-new ReservationQueries.GetActiveReservationsQuery(shopId);
-
-// Проверить доступность для заказа
-new ReservationQueries.CheckAvailabilityQuery({
-  shopId,
-  items: [{ productId, quantity }],
-});
+// availability:
+// {
+//   available: true,
+//   items: [
+//     {
+//       productId: 'apples',
+//       requested: 10,
+//       available: 15,
+//       canFulfill: true,
+//     },
+//   ],
+// }
 ```
+
+---
+
+## Автоматическое истечение
+
+Если заказ не подтверждён в течение N минут — резерв автоматически снимается.
+
+```typescript
+Reservation {
+  reservedAt: '10:00',
+  expiresAt: '10:30',  // 30 минут на подтверждение
+}
+
+// Cron каждые 5 минут проверяет истёкшие резервы
+// и снимает их
+```
+
+---
 
 ## Экспорт
 
 ```typescript
 import {
-  RESERVATION_PORT, ReservationPort,
-  Reservation, ReservationStatus,
-  ReservationCommands, ReservationQueries,
+  RESERVATION_PORT,
+  ReservationPort,
+  
+  Reservation,
+  ReservationStatus,
+  
+  ReservationCommands,
+  ReservationQueries,
 } from 'src/modules/new-inventory/reservation';
 ```
