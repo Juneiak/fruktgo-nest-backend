@@ -60,6 +60,16 @@ Interface → Application → Process → Domain → Infrastructure
 ❌ Нет циклических зависимостей
 ```
 
+### Ключевые инварианты
+
+| Инвариант | Описание |
+|-----------|----------|
+| **city** | Все ключевые сущности (Order, ShopProduct, Stock) содержат `city` для изоляции данных между городами |
+| **Idempotency** | Платежи и webhooks используют idempotency keys для защиты от дублей |
+| **Int для денег** | Все суммы в копейках (Int), не float |
+| **UTC даты** | Все даты в UTC, таймзона магазина отдельным полем |
+| **No PII in logs** | Телефоны/адреса не логируются полностью |
+
 ---
 
 ## Группа A: Торговля (Core Commerce)
@@ -99,7 +109,7 @@ Interface → Application → Process → Domain → Infrastructure
 
 **Характеристики:**
 - **Write-heavy** — частые операции изменения остатков
-- **ACID critical** — транзакционная целостность обязательна
+- **OCC** — Optimistic Concurrency Control через поле `version` (вместо тяжёлых транзакций)
 - Источник истины для наличия товара
 
 **Ответственность:**
@@ -331,17 +341,27 @@ Interface → Application → Process → Domain → Infrastructure
 
 ### LOYALTY
 
-**Назначение:** Программа лояльности, бонусы, баллы.
+**Назначение:** Программа лояльности, бонусы, баллы, карточки клиента.
 
 **Ответственность:**
-- Бонусный счёт клиента (BonusAccount)
+- Карточка клиента (MemberCard):
+  ```typescript
+  MemberCard {
+    customerId: ObjectId;
+    barcode: string;      // EAN-13, генерируется один раз
+    balance: number;      // cents (source of truth)
+    tier: 'standard' | 'silver' | 'gold';
+  }
+  ```
 - Начисление баллов:
   - За недовес (tolerance compensation)
-  - За отзывы
   - Кэшбэк с заказов
 - Списание баллов при оплате
-- Реферальная программа (будущее)
-- Уровни лояльности (будущее)
+- Лимиты на использование (антиабьюз)
+- QR endpoint: `GET /customer/card/qr → SVG`
+
+**Адаптеры (по мере необходимости):**
+- Apple Wallet, Google Wallet, Koshelek
 
 **Входящие зависимости:**
 - ORDERS — начисление/списание баллов
@@ -380,11 +400,10 @@ Interface → Application → Process → Domain → Infrastructure
 
 **Назначение:** Тикетная система, чаты, арбитраж.
 
+> ⚠️ **MVP:** Чаты через Telegram, не своя тикетница. Только сущность `Issue` для связки.
+
 **Ответственность:**
-- Тикеты (Issue/Ticket) — обращения в поддержку
-- Чаты (Chat):
-  - Покупатель ↔ Селлер
-  - Селлер ↔ Платформа
+- Тикеты (Issue) — обращения в поддержку (связка с Telegram)
 - Споры (Dispute) — арбитраж возвратов
 - SLA и эскалация
 - База знаний (FAQ)
@@ -635,18 +654,24 @@ export interface CatalogPort {
 
 ### Асинхронная (Events)
 
-```typescript
-// Публикация события
-this.eventEmitter.emit('order.created', new OrderCreatedEvent(order));
+> ⚠️ **Важно:** Для масштабирования (>1 инстанса) использовать **BullMQ** (Redis) вместо локального EventEmitter2.
 
-// Подписка в другом модуле
-@OnEvent('order.created')
-async handleOrderCreated(event: OrderCreatedEvent) {
-  // INVENTORY: резервирование
-  // COMMUNICATIONS: уведомление
-  // ANALYTICS: запись события
+```typescript
+// EventBusPort — абстракция над брокером
+export interface EventBusPort {
+  emit(event: string, payload: any): Promise<void>;
 }
+
+// BullMQ для прода, EventEmitter для локальной разработки
+@Inject(EVENT_BUS_PORT) private readonly eventBus: EventBusPort
+
+await this.eventBus.emit('order.created', { orderId, ... });
 ```
+
+**Очереди по приоритету:**
+- `high` — заказы, платежи (retry: 3, backoff: exponential)
+- `default` — уведомления
+- `low` — аналитика, отчёты
 
 ### Правила коммуникации
 
@@ -683,9 +708,18 @@ async handleOrderCreated(event: OrderCreatedEvent) {
 
 **Правила:**
 - Работают ТОЛЬКО через Ports модулей
-- MongoDB транзакции для атомарности
-- События через EventEmitter2
-- Saga pattern для длительных операций
+- **FSM** для статусов — явная машина состояний вместо if/else
+- События через EventBus (BullMQ)
+- Saga pattern для кросс-модульных операций (компенсации при ошибках)
+
+**FSM пример:**
+```typescript
+const OrderTransitions = {
+  [OrderStatus.CREATED]: [OrderStatus.PAID, OrderStatus.CANCELLED],
+  [OrderStatus.PAID]: [OrderStatus.ASSEMBLING, OrderStatus.REFUNDED],
+  // Запрещённые переходы выбросят ошибку
+};
+```
 
 ---
 
@@ -722,18 +756,26 @@ async handleOrderCreated(event: OrderCreatedEvent) {
 
 ## TODO
 
-### Документация
-- [ ] Детализация схем данных каждого модуля
-- [ ] Port интерфейсы и контракты
-- [ ] Event catalog — список всех событий
-- [ ] API документация по ролям
+### Фаза 0 (до кода)
+- [ ] Setup Redis + BullMQ модуль
+- [ ] EventBusPort абстракция
+- [ ] ESLint правила изоляции модулей
 
-### Миграция
-- [ ] Стратегия миграции данных
-- [ ] План поэтапного перехода
-- [ ] Feature flags для A/B миграции
+### Фаза 1 (MVP)
+- [ ] city инварианты во всех ключевых моделях
+- [ ] OCC для INVENTORY
+- [ ] FSM для статусов заказа
+- [ ] Rate limiting на auth/checkout
+- [ ] BFF aggregate endpoints для ключевых экранов
 
-### Техническое
-- [ ] Тестовое покрытие границ модулей
-- [ ] Мониторинг и метрики
-- [ ] Схема деплоя
+### Фаза 2 (Money Flow)
+- [ ] Idempotency keys для платежей
+- [ ] Feature flags фреймворк
+- [ ] Anti-abuse лимиты (промо, отзывы)
+- [ ] Базовый Observability (Prometheus метрики)
+
+### Фаза 3+ (Scale)
+- [ ] Redis Cache для STOREFRONT
+- [ ] ElasticSearch (до этого MongoDB Atlas Search)
+- [ ] Logistics SLA + fallback провайдеры
+- [ ] OpenTelemetry полный

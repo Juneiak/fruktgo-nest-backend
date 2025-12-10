@@ -381,28 +381,3 @@ class ShopProductDto extends PickType(BaseShopProductResponseDto, [
   @Expose() @Type(() => ShopDto) pinnedTo: ShopDto;
 }
 ```
-
----
-
-## 7. Best Practices
-
-### ✅ DO
-
-- Port interfaces для всех зависимостей модулей
-- Classes для Commands/Queries (не interfaces)
-- Namespace exports (`export * as CustomerCommands`)
-- Virtual *Id поля в схемах
-- `handleServiceError` в каждом методе RoleService
-- `@Expose()` для Response DTOs
-- `PickType` для роль-специфичных DTOs (не `OmitType`)
-- `mongooseLeanVirtuals` плагин в каждой схеме
-
-### ❌ DON'T
-
-- Inject сервисы напрямую — используй Ports
-- Бизнес-логика в Controllers/RoleServices
-- DTOs как Commands/Queries
-- Export Services — export Ports
-- Тип `any`
-- Refs через строку (`ref: 'Customer'`)
-- Подсхемы через объект + interface
