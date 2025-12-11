@@ -24,7 +24,8 @@
 | 1 | Лояльность | LOYALTY | MemberCard, баллы, тиры, QR |
 | 2 | Маркетинг | MARKETING | Промокоды, акции, баннеры |
 | 3 | Отзывы | REPUTATION | Отзывы, рейтинги, модерация |
-| 4 | Поддержка | SUPPORT | Тикеты (Issue), Telegram чат |
+| 4 | Поддержка | SUPPORT | Тикеты, споры (Dispute), арбитраж |
+| 5 | Доверие | CUSTOMER | CustomerTrustScore полный |
 
 ---
 
@@ -78,11 +79,78 @@
 
 **Задачи:**
 - Тикеты (Issue) → связка с Telegram
-- Споры (Dispute) по заказам
+- **Споры (Dispute):** арбитраж возвратов
 - SLA и эскалация
 - FAQ (база знаний)
 
-**Детали:** [stage-4.md](./stage-4.md) *(после утверждения)*
+**Dispute схема:**
+```typescript
+Dispute {
+  orderId: ObjectId;
+  customerId: ObjectId;
+  shopId: ObjectId;
+  reason: DisputeReason;    // quality, missing_item, wrong_item, damaged, weight_mismatch
+  status: DisputeStatus;    // opened, under_review, resolved, escalated
+  evidence: {
+    customerPhotos: string[];
+    customerComment: string;
+    sellerPhotos: string[];
+    sellerComment: string;
+  };
+  resolution?: {
+    decision: 'customer_favor' | 'seller_favor' | 'partial';
+    refundAmount?: number;
+    bonusCompensation?: number;
+    resolvedBy: ObjectId;
+    comment: string;
+  };
+}
+```
+
+**Правила арбитража:**
+- Приоритет клиента при высоком TrustScore (>70)
+- Авторазрешение мелких споров (<1000₸)
+- Эскалация при сумме >5000₸
+- Штрафы магазину при частых проигрышах
+
+**Детали:** [stage-4.md](./stage-4.md)
+
+---
+
+## Этап 5: Рейтинг доверия (CUSTOMER)
+
+**Сущность:** CustomerTrust
+
+**Задачи:**
+- CustomerTrust схема (score, disputes, fraudFlags)
+- Автопересчёт после заказа/спора
+- Влияние на лимиты и арбитраж
+- Интеграция с SUPPORT
+
+**Схема:**
+```typescript
+CustomerTrust {
+  customerId: ObjectId;
+  score: number;           // 0-100, начальный = 50
+  totalOrders: number;
+  completedOrders: number;
+  disputesOpened: number;
+  disputesWonByCustomer: number;
+  disputesWonBySeller: number;
+  fraudFlags: string[];
+  lastUpdated: Date;
+}
+```
+
+**Влияние score:**
+| Score | Эффект |
+|-------|--------|
+| >70 | Приоритет в спорах, авторазрешение |
+| 50-70 | Стандартные условия |
+| 30-50 | Строже проверки |
+| <30 | Только ручное рассмотрение споров |
+
+**Детали:** [stage-5.md](./stage-5.md)
 
 ---
 
@@ -91,6 +159,7 @@
 - **Observability:** Prometheus метрики
 - **Anti-abuse:** лимиты на промо и отзывы
 - **Feature flags:** для поэтапного включения
+- **TrustScore:** автоматический пересчёт
 
 ---
 
@@ -100,3 +169,5 @@
 - [ ] Промокоды применяются при checkout
 - [ ] Отзывы с проверкой покупки
 - [ ] Тикеты создаются и видны в Telegram
+- [ ] Споры (Dispute) работают с арбитражем
+- [ ] CustomerTrustScore пересчитывается

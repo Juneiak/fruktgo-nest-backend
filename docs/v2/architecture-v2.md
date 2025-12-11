@@ -105,26 +105,87 @@ Interface → Application → Process → Domain → Infrastructure
 
 ### INVENTORY
 
-**Назначение:** Склады, остатки, партии, списания.
+**Назначение:** Склады, остатки, партии, складские операции.
 
 **Характеристики:**
 - **Write-heavy** — частые операции изменения остатков
 - **OCC** — Optimistic Concurrency Control через поле `version` (вместо тяжёлых транзакций)
 - Источник истины для наличия товара
 
-**Ответственность:**
-- Склады (Warehouse) — локации хранения
+**Подмодули:**
+
+#### Stock (остатки)
 - Остатки (Stock) — количество по SKU на складе
-- Партии (Batch):
-  - Учёт сроков годности (expiresAt)
-  - Динамический срок хранения (зависит от условий)
-  - Пресеты хранения (температура, влажность, этилен)
-  - FEFO (принцип ротации)
-  - Себестоимость
 - Резервирование (Reserve) — бронь под заказ
-- Списания и инвентаризация
 - Движения товара (StockMovement) — аудит
+
+#### Batch (партии)
+- Учёт сроков годности (expiresAt)
+- Динамический срок хранения (зависит от условий)
+- Пресеты хранения (температура, влажность, этилен)
+- FEFO (принцип ротации)
+- Себестоимость
 - Алерты свежести — рекомендации (снизить цену, списать)
+
+#### Operations (складские операции)
+```typescript
+StockOperation {
+  shopId: ObjectId;
+  type: OperationType;    // см. ниже
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  performedBy: ObjectId;  // Employee
+  items: OperationItem[];
+  createdAt: Date;
+  completedAt?: Date;
+}
+```
+
+**Типы операций:**
+| Тип | Описание | MVP |
+|-----|----------|-----|
+| `receiving` | Приёмка товара от поставщика | — |
+| `write_off` | Списание (порча, просрочка) | ✅ |
+| `transfer` | Перемещение между складами | — |
+| `adjustment` | Корректировка остатков | ✅ |
+| `inventory` | Инвентаризация | — |
+| `return` | Возврат на склад | — |
+
+**Приёмка (Receiving):**
+```typescript
+Receiving {
+  supplierId?: string;      // Поставщик
+  invoiceNumber?: string;   // Номер накладной
+  items: {
+    productId: ObjectId;
+    expectedQuantity: number;
+    actualQuantity: number;
+    batchInfo?: {
+      expiresAt: Date;
+      costPrice: number;    // себестоимость
+    };
+  }[];
+}
+```
+
+**Инвентаризация (Inventory Check):**
+```typescript
+InventoryCheck {
+  shopId: ObjectId;
+  type: 'full' | 'partial' | 'category';
+  status: 'planned' | 'in_progress' | 'completed';
+  items: {
+    productId: ObjectId;
+    expectedQuantity: number;
+    actualQuantity: number;
+    discrepancy: number;    // расхождение
+  }[];
+  discrepancyTotal: number;
+  approvedBy?: ObjectId;    // Seller/Admin
+}
+```
+
+#### Warehouse (склады)
+- Склады (Warehouse) — локации хранения (в MVP: 1 склад = 1 магазин)
 
 **Входящие зависимости:**
 - ORDERS резервирует и списывает остатки
@@ -133,6 +194,7 @@ Interface → Application → Process → Domain → Infrastructure
 **Исходящие зависимости:**
 - CATALOG — информация о SKU
 - BUSINESS — привязка склада к магазину
+- AUDIT — логирование операций
 
 ---
 
@@ -272,26 +334,88 @@ Interface → Application → Process → Domain → Infrastructure
 
 ### PLATFORM
 
-**Назначение:** Управление платформой, сотрудники платформы, настройки.
+**Назначение:** Управление платформой, сотрудники, модерация, админ-панель.
 
-**Ответственность:**
-- Сотрудники платформы (PlatformStaff):
-  - `platform_admin` — полный доступ
-  - `platform_finance` — финансы, выплаты
-  - `platform_support` — поддержка
-  - `platform_moderator` — модерация контента
-- KYC — верификация документов селлеров
-- Модерация товаров и отзывов
-- Настройки платформы (комиссии, лимиты, города)
-- Блокировки и санкции
-- Контент (Article) — статьи, блог, новости
+**Подмодули:**
+
+#### Staff (сотрудники платформы)
+```typescript
+PlatformStaff {
+  email: string;
+  phone?: string;
+  name: string;
+  roles: PlatformRole[];     // множественные роли
+  status: 'active' | 'inactive';
+  lastLoginAt: Date;
+}
+```
+
+**Роли:**
+| Роль | Доступ | MVP |
+|------|--------|-----|
+| `platform_admin` | Полный доступ | ✅ |
+| `platform_finance` | Финансы, периоды, выплаты | — |
+| `platform_support` | Поддержка, споры, возвраты | — |
+| `platform_moderator` | Модерация товаров/отзывов | — |
+| `platform_seller_manager` | Модерация селлеров, KYC | — |
+| `platform_risk` | Антифрод, блокировки | — |
+
+#### Moderation (модерация)
+**Функции:**
+- **Селлеры:** заявки, верификация (IS_CHECKING → VERIFIED), блокировка
+- **Магазины:** активация, блокировка, контроль доступности
+- **Каталог:** модерация товаров, скрытие нарушений
+- **Отзывы:** модерация, удаление нарушающих
+
+```typescript
+ModerationAction {
+  targetType: 'seller' | 'shop' | 'product' | 'review';
+  targetId: ObjectId;
+  action: 'approve' | 'reject' | 'block' | 'unblock' | 'hide';
+  performedBy: ObjectId;  // PlatformStaff
+  reason?: string;
+  timestamp: Date;
+}
+```
+
+#### Settings (настройки платформы)
+- Базовая комиссия (%)
+- Лимиты (min заказ, max вывод)
+- Список городов (активные/планируемые)
+- Feature flags
+
+#### KYC (верификация)
+- Проверка документов селлеров
+- Статусы: `pending` → `checking` → `verified` / `rejected`
+
+#### Admin Panel UI
+> Своя админ-панель (React), не сторонние решения.
+
+**Функции Admin Panel:**
+| Раздел | Функции |
+|--------|----------|
+| Селлеры | Список, заявки, KYC, блокировки |
+| Магазины | Список, активация, статистика |
+| Заказы | Просмотр, проблемные кейсы, корректировки |
+| Финансы | Периоды, штрафы/бонусы, выплаты |
+| Поддержка | Тикеты, споры, возвраты |
+| Каталог | Модерация товаров |
+| Аудит | Логи действий, фильтры |
+| Настройки | Комиссии, лимиты, города |
+
+**Доступ:** `/api/platform/**` + `PlatformAuthGuard`
+
+#### Content (контент)
+- Статьи (Article) — блог, новости
+- FAQ
+- Правила платформы
 
 **Входящие зависимости:**
 - Все модули — администрирование
 
 **Исходящие зависимости:**
 - COMMUNICATIONS — уведомления о блокировках
-- AUDIT — логирование действий
+- AUDIT — логирование всех действий
 - ANALYTICS — дашборды
 
 ---
@@ -302,7 +426,7 @@ Interface → Application → Process → Domain → Infrastructure
 
 ### CUSTOMER
 
-**Назначение:** CRM, профили покупателей.
+**Назначение:** CRM, профили покупателей, доверие.
 
 **Ответственность:**
 - Профиль покупателя (Customer) — имя, контакты
@@ -310,10 +434,28 @@ Interface → Application → Process → Domain → Infrastructure
 - Избранное (Wishlist)
 - История просмотров
 - Сегментация для маркетинга
+- **Рейтинг доверия (TrustScore):**
+  ```typescript
+  CustomerTrust {
+    customerId: ObjectId;
+    score: number;           // 0-100, начальный = 50
+    totalOrders: number;
+    completedOrders: number;
+    disputesOpened: number;
+    disputesWonByCustomer: number;
+    disputesWonBySeller: number;
+    fraudFlags: string[];    // подозрительные паттерны
+    lastUpdated: Date;
+  }
+  ```
+  - Автоматический пересчёт после каждого заказа/спора
+  - Влияет на лимиты: низкий score → меньше бонусов, строже проверки
+  - Используется в SUPPORT для арбитража (приоритет клиента при высоком score)
 
 **Входящие зависимости:**
 - ORDERS — кто заказывает
 - MARKETING — таргетинг
+- SUPPORT — TrustScore для арбитража
 
 **Исходящие зависимости:**
 - COMMUNICATIONS — уведомления
@@ -398,23 +540,55 @@ Interface → Application → Process → Domain → Infrastructure
 
 ### SUPPORT
 
-**Назначение:** Тикетная система, чаты, арбитраж.
+**Назначение:** Тикетная система, чаты, арбитраж споров.
 
 > ⚠️ **MVP:** Чаты через Telegram, не своя тикетница. Только сущность `Issue` для связки.
 
 **Ответственность:**
 - Тикеты (Issue) — обращения в поддержку (связка с Telegram)
-- Споры (Dispute) — арбитраж возвратов
+- **Споры (Dispute):**
+  ```typescript
+  Dispute {
+    orderId: ObjectId;
+    customerId: ObjectId;
+    shopId: ObjectId;
+    reason: DisputeReason;    // quality, missing_item, wrong_item, damaged, weight_mismatch
+    status: DisputeStatus;    // opened, under_review, resolved, escalated
+    evidence: {
+      customerPhotos: string[];
+      customerComment: string;
+      sellerPhotos: string[];
+      sellerComment: string;
+    };
+    resolution: {
+      decision: 'customer_favor' | 'seller_favor' | 'partial';
+      refundAmount?: number;    // копейки
+      bonusCompensation?: number;
+      resolvedBy: ObjectId;     // PlatformStaff
+      resolvedAt: Date;
+      comment: string;
+    };
+    autoResolveEligible: boolean;  // можно ли авторазрешить
+  }
+  ```
+- **Правила арбитража (DisputeRules):**
+  - **Приоритет клиента:** при TrustScore > 70 и первом споре — автоматический возврат до 500₸
+  - **Авторазрешение:** мелкие споры (<1000₸) при высоком TrustScore клиента
+  - **Эскалация:** автоматически при сумме >5000₸ или повторных спорах
+  - **Штрафы магазину:** при >3 проигранных спорах/месяц → повышение комиссии
+  - **Защита от абьюза:** при TrustScore <30 — только ручное рассмотрение
 - SLA и эскалация
 - База знаний (FAQ)
 
 **Входящие зависимости:**
 - ORDERS — споры по заказам
-- CUSTOMER — кто обращается
+- CUSTOMER — кто обращается, TrustScore
 
 **Исходящие зависимости:**
 - COMMUNICATIONS — уведомления
 - FINANCE — возвраты по спорам
+- LOYALTY — компенсация баллами
+- AUDIT — логирование решений
 
 ---
 
@@ -494,27 +668,74 @@ Interface → Application → Process → Domain → Infrastructure
 **Назначение:** Аудит-логирование критичных действий.
 
 **Характеристики:**
-- **Write-only** — логи не редактируются
+- **Write-only** — логи не редактируются и не удаляются
+- Immutable записи для юридической защиты
 - Возможна репликация в SIEM
 
+**Схема:**
+```typescript
+AuditLog {
+  _id: ObjectId;
+  timestamp: Date;
+  
+  // Кто
+  actor: {
+    type: 'customer' | 'seller' | 'employee' | 'platform_staff' | 'system';
+    id: ObjectId;
+    name?: string;
+    ip?: string;
+  };
+  
+  // Что
+  action: AuditAction;         // см. ниже
+  category: AuditCategory;     // finance, moderation, inventory, order, auth, settings
+  
+  // Над чем
+  target: {
+    type: string;              // order, shop, seller, product, etc.
+    id: ObjectId;
+  };
+  
+  // Детали
+  changes?: {
+    before?: Record<string, any>;
+    after?: Record<string, any>;
+  };
+  metadata?: Record<string, any>;
+  
+  // Контекст
+  requestId?: string;          // для трейсинга
+  sessionId?: string;
+}
+```
+
+**Категории и действия:**
+| Категория | Действия |
+|----------|----------|
+| `finance` | payout_created, payout_approved, penalty_applied, period_closed, refund_issued |
+| `moderation` | seller_verified, seller_blocked, shop_activated, product_hidden, review_removed |
+| `inventory` | stock_adjusted, write_off, receiving_completed, inventory_approved |
+| `order` | order_cancelled_by_admin, order_refunded, dispute_resolved |
+| `auth` | login_success, login_failed, password_changed, role_changed |
+| `settings` | commission_changed, city_added, feature_flag_toggled |
+| `support` | dispute_opened, dispute_escalated, dispute_resolved |
+
 **Ответственность:**
-- AuditLog — кто, что, когда, над чем
-- Типы действий:
-  - Финансовые операции
-  - Блокировки/разблокировки
-  - Изменения настроек
-  - Складские операции
-  - Административные действия
-- Ретенция и архивация
+- Запись логов через `AuditPort.log()`
+- Просмотр в Admin Panel с фильтрами
+- Ретенция: 2 года (финансы), 1 год (остальное)
+- Архивация в cold storage
 
 **Входящие зависимости:**
 - PLATFORM — действия админов
 - FINANCE — финансовые операции
-- INVENTORY — складские движения
+- INVENTORY — складские операции
 - ORDERS — изменения статусов
+- SUPPORT — споры и решения
 
 **Исходящие зависимости:**
-- MongoDB / ClickHouse (write-only storage)
+- MongoDB (primary storage)
+- ClickHouse (для аналитики, опционально)
 
 ---
 
@@ -756,26 +977,49 @@ const OrderTransitions = {
 
 ## TODO
 
-### Фаза 0 (до кода)
+### Фаза 0: Инфраструктура
 - [ ] Setup Redis + BullMQ модуль
 - [ ] EventBusPort абстракция
 - [ ] ESLint правила изоляции модулей
+- [ ] Common утилиты (City, Money, DomainError)
 
-### Фаза 1 (MVP)
-- [ ] city инварианты во всех ключевых моделях
-- [ ] OCC для INVENTORY
-- [ ] FSM для статусов заказа
-- [ ] Rate limiting на auth/checkout
-- [ ] BFF aggregate endpoints для ключевых экранов
+### Фаза 1: MVP Core
+- [ ] AUTH: JWT, OTP, Telegram OAuth
+- [ ] CUSTOMER: профили, адреса, TrustScore (базовый)
+- [ ] BUSINESS: селлеры, магазины
+- [ ] CATALOG, STOREFRONT: категории, товары, витрина, LivePhotos
+- [ ] INVENTORY: остатки, OCC, резервирование, базовые операции (write_off, adjustment)
+- [ ] ORDERS: корзина, checkout, FSM статусов, Tolerance
+- [ ] WORKFORCE: сотрудники, смены
+- [ ] LOGISTICS, GEO: доставка, зоны, геокодинг
+- [ ] COMMUNICATIONS: Telegram, SMS, BullMQ очередь
+- [ ] E2E интеграция, BFF endpoints
 
-### Фаза 2 (Money Flow)
-- [ ] Idempotency keys для платежей
-- [ ] Feature flags фреймворк
-- [ ] Anti-abuse лимиты (промо, отзывы)
-- [ ] Базовый Observability (Prometheus метрики)
+### Фаза 2: Money Flow
+- [ ] FINANCE: платежи (ЮKassa), кошельки, комиссии
+- [ ] Расчётные периоды, выплаты
+- [ ] Штрафы, возвраты
+- [ ] Idempotency keys
+- [ ] Feature flags
 
-### Фаза 3+ (Scale)
+### Фаза 3: Engagement
+- [ ] LOYALTY: MemberCard, баллы, QR
+- [ ] MARKETING: промокоды, акции
+- [ ] REPUTATION: отзывы, рейтинги
+- [ ] SUPPORT: тикеты, споры (Dispute), арбитраж
+- [ ] CustomerTrustScore полный
+
+### Фаза 4: Operations & Admin
+- [ ] PLATFORM: PlatformStaff, роли, Admin Panel
+- [ ] Moderation: селлеры, магазины, товары
+- [ ] KYC верификация
+- [ ] AUDIT: логирование, просмотр
+- [ ] ANALYTICS: дашборды
+- [ ] INVENTORY расширенный: приёмка, инвентаризация, перемещения
+
+### Фаза 5: Scale
 - [ ] Redis Cache для STOREFRONT
 - [ ] ElasticSearch (до этого MongoDB Atlas Search)
+- [ ] INTEGRATIONS: импорт/экспорт, webhooks
 - [ ] Logistics SLA + fallback провайдеры
 - [ ] OpenTelemetry полный

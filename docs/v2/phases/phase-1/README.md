@@ -53,15 +53,16 @@
 
 **Модули:** CUSTOMER, BUSINESS
 
-**Сущности:** Customer, Address, Seller, Shop
+**Сущности:** Customer, Address, Seller, Shop, CustomerTrust (базовый)
 
 **Задачи:**
 - CRUD профилей
 - Адреса доставки
 - Селлеры и магазины
 - city в сущностях
+- CustomerTrust (базовая схема, score=50 по умолчанию)
 
-**Детали:** [stage-2.md](./stage-2.md) *(после утверждения)*
+**Детали:** [stage-2.md](./stage-2.md)
 
 ---
 

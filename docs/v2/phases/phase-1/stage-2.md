@@ -10,6 +10,7 @@
 - Адреса доставки с city работают
 - Селлеры и магазины создаются и настраиваются
 - Интеграция с AUTH модулем
+- **CustomerTrust** (базовый) — схема готова, пересчёт в Фазе 3
 
 ---
 
@@ -131,6 +132,35 @@ export class CustomerStatistics {
 
 export const CustomerStatisticsSchema = SchemaFactory.createForClass(CustomerStatistics);
 
+@Schema({ _id: false })
+export class CustomerTrust {
+  @Prop({ type: Number, default: 50, min: 0, max: 100 })
+  score: number; // 0-100, начальный = 50
+
+  @Prop({ type: Number, default: 0 })
+  totalOrders: number;
+
+  @Prop({ type: Number, default: 0 })
+  completedOrders: number;
+
+  @Prop({ type: Number, default: 0 })
+  disputesOpened: number;
+
+  @Prop({ type: Number, default: 0 })
+  disputesWonByCustomer: number;
+
+  @Prop({ type: Number, default: 0 })
+  disputesWonBySeller: number;
+
+  @Prop({ type: [String], default: [] })
+  fraudFlags: string[]; // подозрительные паттерны
+
+  @Prop({ type: Date, default: Date.now })
+  lastUpdated: Date;
+}
+
+export const CustomerTrustSchema = SchemaFactory.createForClass(CustomerTrust);
+
 // === Основная схема ===
 
 @Schema({
@@ -178,6 +208,9 @@ export class Customer {
 
   @Prop({ type: CustomerStatisticsSchema, default: () => ({}) })
   statistics: CustomerStatistics;
+
+  @Prop({ type: CustomerTrustSchema, default: () => ({}) })
+  trust: CustomerTrust; // Рейтинг доверия (для арбитража споров)
 
   @Prop({ type: String, enum: City })
   preferredCity?: City; // город по умолчанию
@@ -229,6 +262,7 @@ export interface CustomerPort {
   setDefaultAddress(command: CustomerCommands.SetDefaultAddressCommand): Promise<Customer>;
   updateStatistics(command: CustomerCommands.UpdateStatisticsCommand): Promise<void>;
   updateBonusBalance(command: CustomerCommands.UpdateBonusBalanceCommand): Promise<Customer>;
+  updateTrust(command: CustomerCommands.UpdateTrustCommand): Promise<Customer>;
   block(command: CustomerCommands.BlockCommand): Promise<Customer>;
   unblock(command: CustomerCommands.UnblockCommand): Promise<Customer>;
 
@@ -237,6 +271,7 @@ export interface CustomerPort {
   getByPhone(query: CustomerQueries.GetByPhoneQuery): Promise<Customer | null>;
   getByTelegramId(query: CustomerQueries.GetByTelegramIdQuery): Promise<Customer | null>;
   findOrCreate(query: CustomerQueries.FindOrCreateQuery): Promise<{ customer: Customer; isNew: boolean }>;
+  getTrustScore(query: CustomerQueries.GetTrustScoreQuery): Promise<number>;
 }
 ```
 
@@ -359,6 +394,24 @@ export class UnblockCommand {
     public readonly options?: CommonCommandOptions,
   ) {}
 }
+
+// TrustScore - базовая реализация, полная логика в Фазе 3
+export class UpdateTrustCommand {
+  constructor(
+    public readonly customerId: string,
+    public readonly data: {
+      incrementOrders?: number;
+      incrementCompletedOrders?: number;
+      incrementDisputesOpened?: number;
+      incrementDisputesWonByCustomer?: number;
+      incrementDisputesWonBySeller?: number;
+      addFraudFlag?: string;
+      removeFraudFlag?: string;
+      recalculateScore?: boolean; // Пересчитать score по формуле
+    },
+    public readonly options?: CommonCommandOptions,
+  ) {}
+}
 ```
 
 ---
@@ -398,6 +451,13 @@ export class FindOrCreateQuery {
       telegramUsername?: string;
       firstName?: string;
     },
+    public readonly options?: CommonQueryOptions,
+  ) {}
+}
+
+export class GetTrustScoreQuery {
+  constructor(
+    public readonly customerId: string,
     public readonly options?: CommonQueryOptions,
   ) {}
 }
